@@ -176,7 +176,9 @@ export default function PatientsList() {
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
-      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor === currentUser.doctor.name;
+      
+      // Fix doctor filtering - ensure exact name match
+      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor.trim() === currentUser.doctor.name.trim();
       
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
     });
@@ -281,17 +283,23 @@ export default function PatientsList() {
 
             {getFilteredPatients('my').length === 0 && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No patients assigned to you matching your criteria</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchQuery('');
-                    clearFilters();
-                  }}
-                >
-                  Clear Filters
-                </Button>
+                {getActiveFiltersCount() > 0 || searchQuery ? (
+                  <>
+                    <p className="text-muted-foreground">No patients assigned to you matching your criteria</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => {
+                        setSearchQuery('');
+                        clearFilters();
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">No patients allocated to you</p>
+                )}
               </div>
             )}
           </TabsContent>

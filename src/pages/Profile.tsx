@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Settings, Bell, Shield, LogOut, Phone, Mail, Clock, QrCode, Edit2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const mockUser = {
   id: 'user123',
@@ -187,6 +189,8 @@ const mockUser = {
 };
 
 export default function Profile() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -197,6 +201,11 @@ export default function Profile() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerification, setShowVerification] = useState(false);
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/login');
+  };
 
   const handleEmailChange = () => {
     setIsEditingEmail(true);
@@ -590,7 +599,11 @@ export default function Profile() {
               Privacy & Security
             </Button>
             <Separator />
-            <Button variant="ghost" className="w-full justify-start h-12 text-red-600 hover:text-red-700">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-12 text-red-600 hover:text-red-700"
+              onClick={handleSignOut}
+            >
               <LogOut className="h-5 w-5 mr-3" />
               Sign Out
             </Button>

@@ -65,21 +65,18 @@ export default function Dashboard() {
             value={mockKPIData.totalPatients}
             icon={Users}
             trend={{ value: 5, isPositive: true }}
-            onClick={() => navigate('/patients')}
           />
           <KPITile
             title="Tasks Due"
             value={mockKPIData.tasksDue}
             icon={Clock}
             variant="caution"
-            onClick={() => navigate('/tasks-due')}
           />
           <KPITile
             title="Urgent Alerts"
             value={mockKPIData.urgentAlerts}
             icon={AlertTriangle}
             variant="urgent"
-            onClick={() => navigate('/urgent-alerts')}
           />
           <KPITile
             title="Completed Today"
@@ -87,7 +84,6 @@ export default function Dashboard() {
             icon={CheckCircle}
             variant="stable"
             trend={{ value: 12, isPositive: true }}
-            onClick={() => navigate('/completed-today')}
           />
         </div>
 
@@ -102,7 +98,7 @@ export default function Dashboard() {
               <div
                 key={stage.stage}
                 className="text-center p-2 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow"
-                onClick={() => navigate(`/patients?stage=${stage.stage.toLowerCase().replace('-', '')}`)}
+                onClick={() => navigate(`/patients?stage=${stage.stage.toLowerCase()}`)}
               >
                 <div className={`text-xl font-bold mb-1 ${
                   stage.variant === 'urgent' ? 'text-urgent' :

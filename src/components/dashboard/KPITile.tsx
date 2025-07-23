@@ -12,7 +12,6 @@ interface KPITileProps {
   };
   variant?: 'default' | 'urgent' | 'stable' | 'caution';
   className?: string;
-  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -28,17 +27,14 @@ export function KPITile({
   icon: Icon, 
   trend, 
   variant = 'default',
-  className,
-  onClick
+  className 
 }: KPITileProps) {
   return (
     <Card className={cn(
       "p-6 transition-all hover:shadow-md",
       variantStyles[variant],
-      onClick && "cursor-pointer hover:scale-[1.02]",
       className
-    )}
-    onClick={onClick}>
+    )}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -80,7 +80,6 @@ const currentDoctor = 'Dr. Sarah Wilson';
 
 export default function PatientsList() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPathway, setSelectedPathway] = useState('all');
   const [selectedStage, setSelectedStage] = useState('all');
@@ -129,22 +128,6 @@ export default function PatientsList() {
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor === currentDoctor;
-      
-      // Handle stage filter from URL (dashboard navigation)
-      const stageFilter = searchParams.get('stage');
-      if (stageFilter) {
-        const stageMap: { [key: string]: string } = {
-          'preop': 'Pre-Op',
-          'surgery': 'Surgery', 
-          'postop': 'Post-Op',
-          'recovery': 'Recovery',
-          'discharge': 'Discharge'
-        };
-        const targetStage = stageMap[stageFilter];
-        if (targetStage && patient.currentState !== targetStage) {
-          return false;
-        }
-      }
       
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
     });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { PatientCard } from "@/components/patient/PatientCard";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -80,6 +80,7 @@ const currentDoctor = 'Dr. Sarah Wilson';
 
 export default function PatientsList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPathway, setSelectedPathway] = useState('all');
   const [selectedStage, setSelectedStage] = useState('all');
@@ -88,6 +89,24 @@ export default function PatientsList() {
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+
+  // Handle URL parameters for stage filtering
+  useEffect(() => {
+    const stageParam = searchParams.get('stage');
+    if (stageParam) {
+      // Map dashboard stage names to patient states
+      const stageMapping: { [key: string]: string } = {
+        'preop': 'pre-op',
+        'surgery': 'surgery',
+        'postop': 'post-op',
+        'recovery': 'recovery',
+        'discharge': 'discharge'
+      };
+      
+      const mappedStage = stageMapping[stageParam] || stageParam;
+      setSelectedStage(mappedStage);
+    }
+  }, [searchParams]);
 
   const handleAddPatient = (newPatient: any) => {
     const patient: PatientMeta = {

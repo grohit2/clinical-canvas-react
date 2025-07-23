@@ -7,6 +7,9 @@ import Dashboard from "./pages/Dashboard";
 import PatientsList from "./pages/PatientsList";
 import PatientDetail from "./pages/PatientDetail";
 import Tasks from "./pages/Tasks";
+import TasksDue from "./pages/TasksDue";
+import UrgentAlerts from "./pages/UrgentAlerts";
+import CompletedToday from "./pages/CompletedToday";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/patients" element={<PatientsList />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/tasks-due" element={<TasksDue />} />
+          <Route path="/urgent-alerts" element={<UrgentAlerts />} />
+          <Route path="/completed-today" element={<CompletedToday />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

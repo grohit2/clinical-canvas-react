@@ -145,20 +145,88 @@ export default function PatientDetail() {
   // Get timeline data for current patient
   const patientTimeline = mockTimelines[currentPatient.id] || [];
   
-  // Mock patient demographics - in real app, this would come from API
-  const demographics = {
-    mrn: 'MRN123456',
-    dob: '1975-03-15',
-    age: 49,
-    gender: 'Female',
-    room: 'Room 204B',
-    admissionDate: '2025-07-18',
-    allergies: ['Penicillin', 'Latex'],
-    emergencyContact: {
-      name: 'John Doe (Spouse)',
-      phone: '+1-555-0123'
+  // Patient-specific demographics data
+  const patientDemographics = {
+    '27e8d1ad': {
+      mrn: 'MRN123456',
+      dob: '1975-03-15',
+      age: 49,
+      gender: 'Female',
+      room: 'Room 204B',
+      admissionDate: '2025-07-18',
+      lengthOfStay: 3,
+      nextMilestone: 'Discharge Planning',
+      nextMilestoneTime: 'Expected tomorrow',
+      allergies: ['Penicillin', 'Latex'],
+      emergencyContact: {
+        name: 'John Doe (Spouse)',
+        phone: '+1-555-0123'
+      }
+    },
+    '3b9f2c1e': {
+      mrn: 'MRN789012',
+      dob: '1980-08-22',
+      age: 44,
+      gender: 'Male', 
+      room: 'ICU Room 12',
+      admissionDate: '2025-07-19',
+      lengthOfStay: 1,
+      nextMilestone: 'Cardiology Consult',
+      nextMilestoneTime: 'This afternoon',
+      allergies: ['Aspirin'],
+      emergencyContact: {
+        name: 'Mary Smith (Wife)',
+        phone: '+1-555-0456'
+      }
+    },
+    '8c4d5e2f': {
+      mrn: 'MRN345678',
+      dob: '1965-12-05',
+      age: 59,
+      gender: 'Female',
+      room: 'Room 108A',
+      admissionDate: '2025-07-19',
+      lengthOfStay: 1,
+      nextMilestone: 'Physical Therapy Evaluation',
+      nextMilestoneTime: 'Next week',
+      allergies: [],
+      emergencyContact: null
+    },
+    '9d6e7f3g': {
+      mrn: 'MRN901234',
+      dob: '1990-05-18',
+      age: 34,
+      gender: 'Male',
+      room: 'Room 315C',
+      admissionDate: '2025-07-19',
+      lengthOfStay: 1,
+      nextMilestone: 'Surgery Scheduled',
+      nextMilestoneTime: 'Tomorrow morning',
+      allergies: ['Morphine'],
+      emergencyContact: {
+        name: 'Linda Wilson (Mother)',
+        phone: '+1-555-0789'
+      }
+    },
+    '1a2b3c4d': {
+      mrn: 'MRN567890',
+      dob: '1978-11-30',
+      age: 46,
+      gender: 'Female',
+      room: 'Room 220B',
+      admissionDate: '2025-07-19',
+      lengthOfStay: 1,
+      nextMilestone: 'Respiratory Assessment',
+      nextMilestoneTime: 'Later today',
+      allergies: ['Codeine'],
+      emergencyContact: {
+        name: 'Michael Johnson (Husband)',
+        phone: '+1-555-0321'
+      }
     }
   };
+
+  const demographics = patientDemographics[currentPatient.id];
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -178,20 +246,20 @@ export default function PatientDetail() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">MRN:</span>
-                    <span className="font-medium">{demographics.mrn}</span>
+                    <div className="text-muted-foreground">MRN:</div>
+                    <span className="font-medium">{demographics?.mrn}</span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span>{demographics.age} years old</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span>{demographics.room}</span>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3 text-muted-foreground" />
+                      <span>{demographics?.age} years old</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span>{demographics?.room}</span>
+                    </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-muted-foreground">Pathway:</div>
@@ -229,7 +297,7 @@ export default function PatientDetail() {
               </div>
             )}
 
-            {demographics.allergies.length > 0 && (
+            {demographics?.allergies && demographics.allergies.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Allergies:</span>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -244,22 +312,24 @@ export default function PatientDetail() {
           </div>
 
           {/* Emergency Contact */}
-          <div className="mt-4 pt-4 border-t">
-            <span className="text-sm text-muted-foreground">Emergency Contact:</span>
-            <div className="flex items-center justify-between mt-1">
-              <span className="font-medium">{demographics.emergencyContact.name}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Phone className="h-3 w-3 mr-1" />
-                  Call
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Mail className="h-3 w-3 mr-1" />
-                  Email
-                </Button>
+          {demographics?.emergencyContact && (
+            <div className="mt-4 pt-4 border-t">
+              <span className="text-sm text-muted-foreground">Emergency Contact:</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-medium">{demographics.emergencyContact.name}</span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </Card>
 
         {/* Tabs Navigation */}
@@ -282,18 +352,20 @@ export default function PatientDetail() {
             )}
             
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-2">Length of Stay</h3>
-                <p className="text-2xl font-bold text-medical">3 days</p>
-                <p className="text-sm text-muted-foreground">Since admission</p>
-              </Card>
-              <Card className="p-4">
-                <h3 className="font-semibold mb-2">Next Milestone</h3>
-                <p className="text-lg font-medium">Discharge Planning</p>
-                <p className="text-sm text-muted-foreground">Expected tomorrow</p>
-              </Card>
-            </div>
+            {demographics && (
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-2">Length of Stay</h3>
+                  <p className="text-2xl font-bold text-medical">{demographics.lengthOfStay} {demographics.lengthOfStay === 1 ? 'day' : 'days'}</p>
+                  <p className="text-sm text-muted-foreground">Since admission</p>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-2">Next Milestone</h3>
+                  <p className="text-lg font-medium">{demographics.nextMilestone}</p>
+                  <p className="text-sm text-muted-foreground">{demographics.nextMilestoneTime}</p>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="notes">

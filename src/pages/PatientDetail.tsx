@@ -237,33 +237,33 @@ export default function PatientDetail() {
         notificationCount={2}
       />
       
-      <div className="p-4 space-y-6">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Patient Hero */}
-        <Card className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground mb-2">{currentPatient.name}</h1>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="text-muted-foreground">MRN:</div>
-                    <span className="font-medium">{demographics?.mrn}</span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+        <Card className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-3 break-words">{currentPatient.name}</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-muted-foreground whitespace-nowrap">MRN:</span>
+                    <span className="font-medium break-all">{demographics?.mrn}</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 flex-shrink-0">
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span>{demographics?.age} years old</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span>{demographics?.room}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="whitespace-nowrap">{demographics?.age} years old</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="break-words">{demographics?.room}</span>
+                  </div>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="text-muted-foreground">Pathway:</div>
-                  <Badge variant="outline" className="capitalize">
+                  <Badge variant="outline" className="capitalize w-fit">
                     {currentPatient.pathway}
                   </Badge>
                   <div className="text-muted-foreground">Current Stage:</div>
@@ -271,25 +271,25 @@ export default function PatientDetail() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-shrink-0 w-full sm:w-auto">
               <QrCode className="h-4 w-4 mr-2" />
               QR Code
             </Button>
           </div>
 
           {/* Diagnosis and Comorbidities */}
-          <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             <div>
               <span className="text-sm text-muted-foreground">Primary Diagnosis:</span>
-              <div className="font-medium">{currentPatient.diagnosis}</div>
+              <div className="font-medium mt-1 break-words">{currentPatient.diagnosis}</div>
             </div>
             
             {currentPatient.comorbidities.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Comorbidities:</span>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
                   {currentPatient.comorbidities.map((comorbidity) => (
-                    <Badge key={comorbidity} variant="secondary">
+                    <Badge key={comorbidity} variant="secondary" className="text-xs">
                       {comorbidity}
                     </Badge>
                   ))}
@@ -300,9 +300,9 @@ export default function PatientDetail() {
             {demographics?.allergies && demographics.allergies.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Allergies:</span>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
                   {demographics.allergies.map((allergy) => (
-                    <Badge key={allergy} variant="destructive">
+                    <Badge key={allergy} variant="destructive" className="text-xs">
                       {allergy}
                     </Badge>
                   ))}
@@ -313,16 +313,16 @@ export default function PatientDetail() {
 
           {/* Emergency Contact */}
           {demographics?.emergencyContact && (
-            <div className="mt-4 pt-4 border-t">
+            <div className="mt-4 sm:mt-6 pt-4 border-t">
               <span className="text-sm text-muted-foreground">Emergency Contact:</span>
-              <div className="flex items-center justify-between mt-1">
-                <span className="font-medium">{demographics.emergencyContact.name}</span>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
+                <span className="font-medium break-words">{demographics.emergencyContact.name}</span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
                     <Phone className="h-3 w-3 mr-1" />
                     Call
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
                     <Mail className="h-3 w-3 mr-1" />
                     Email
                   </Button>
@@ -334,67 +334,67 @@ export default function PatientDetail() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="labs">Labs</TabsTrigger>
-            <TabsTrigger value="meds">Meds</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm px-1 sm:px-3">Overview</TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs sm:text-sm px-1 sm:px-3">Notes</TabsTrigger>
+            <TabsTrigger value="labs" className="text-xs sm:text-sm px-1 sm:px-3">Labs</TabsTrigger>
+            <TabsTrigger value="meds" className="text-xs sm:text-sm px-1 sm:px-3">Meds</TabsTrigger>
+            <TabsTrigger value="tasks" className="text-xs sm:text-sm px-1 sm:px-3">Tasks</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" className="space-y-4 mt-4">
             {patientTimeline.length > 0 ? (
               <Timeline entries={patientTimeline} currentState={currentPatient.currentState} />
             ) : (
-              <Card className="p-6">
-                <p className="text-muted-foreground text-center">No timeline data available for this patient</p>
+              <Card className="p-4 sm:p-6">
+                <p className="text-muted-foreground text-center text-sm sm:text-base">No timeline data available for this patient</p>
               </Card>
             )}
             
             {/* Quick Stats */}
             {demographics && (
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-2">Length of Stay</h3>
-                  <p className="text-2xl font-bold text-medical">{demographics.lengthOfStay} {demographics.lengthOfStay === 1 ? 'day' : 'days'}</p>
-                  <p className="text-sm text-muted-foreground">Since admission</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <Card className="p-3 sm:p-4">
+                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Length of Stay</h3>
+                  <p className="text-xl sm:text-2xl font-bold text-medical">{demographics.lengthOfStay} {demographics.lengthOfStay === 1 ? 'day' : 'days'}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Since admission</p>
                 </Card>
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-2">Next Milestone</h3>
-                  <p className="text-lg font-medium">{demographics.nextMilestone}</p>
-                  <p className="text-sm text-muted-foreground">{demographics.nextMilestoneTime}</p>
+                <Card className="p-3 sm:p-4">
+                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Next Milestone</h3>
+                  <p className="text-base sm:text-lg font-medium break-words">{demographics.nextMilestone}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{demographics.nextMilestoneTime}</p>
                 </Card>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="notes">
-            <Card className="p-4">
-              <p className="text-muted-foreground text-center py-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Notes component will be implemented here
               </p>
             </Card>
           </TabsContent>
 
           <TabsContent value="labs">
-            <Card className="p-4">
-              <p className="text-muted-foreground text-center py-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Lab results component will be implemented here
               </p>
             </Card>
           </TabsContent>
 
           <TabsContent value="meds">
-            <Card className="p-4">
-              <p className="text-muted-foreground text-center py-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Medications component will be implemented here
               </p>
             </Card>
           </TabsContent>
 
           <TabsContent value="tasks">
-            <Card className="p-4">
-              <p className="text-muted-foreground text-center py-8">
+            <Card className="p-4 sm:p-6">
+              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
                 Tasks component will be implemented here
               </p>
             </Card>

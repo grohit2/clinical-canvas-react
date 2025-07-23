@@ -75,39 +75,58 @@ const mockPatients: PatientMeta[] = [
   }
 ];
 
-const mockTimeline: TimelineEntry[] = [
-  {
-    patientId: '27e8d1ad',
-    state: 'Admission',
-    dateIn: '2025-07-18T08:00:00Z',
-    dateOut: '2025-07-18T10:00:00Z',
-    checklistIn: ['vitals-recorded', 'allergies-checked'],
-    checklistOut: ['pre-op-clearance']
-  },
-  {
-    patientId: '27e8d1ad',
-    state: 'Pre-Op',
-    dateIn: '2025-07-18T10:00:00Z',
-    dateOut: '2025-07-18T14:00:00Z',
-    checklistIn: ['consent-signed', 'fasting-confirmed'],
-    checklistOut: ['anesthesia-cleared']
-  },
-  {
-    patientId: '27e8d1ad',
-    state: 'Surgery',
-    dateIn: '2025-07-18T14:00:00Z',
-    dateOut: '2025-07-18T16:30:00Z',
-    checklistIn: ['timeout-completed', 'antibiotics-given'],
-    checklistOut: ['procedure-completed', 'counts-correct']
-  },
-  {
-    patientId: '27e8d1ad',
-    state: 'Post-Op',
-    dateIn: '2025-07-18T16:30:00Z',
-    checklistIn: ['recovery-stable', 'pain-managed'],
-    checklistOut: []
-  }
-];
+const mockTimelines: Record<string, TimelineEntry[]> = {
+  '27e8d1ad': [
+    {
+      patientId: '27e8d1ad',
+      state: 'Admission',
+      dateIn: '2025-07-18T08:00:00Z',
+      dateOut: '2025-07-18T10:00:00Z',
+      checklistIn: ['vitals-recorded', 'allergies-checked'],
+      checklistOut: ['pre-op-clearance']
+    },
+    {
+      patientId: '27e8d1ad',
+      state: 'Pre-Op',
+      dateIn: '2025-07-18T10:00:00Z',
+      dateOut: '2025-07-18T14:00:00Z',
+      checklistIn: ['consent-signed', 'fasting-confirmed'],
+      checklistOut: ['anesthesia-cleared']
+    },
+    {
+      patientId: '27e8d1ad',
+      state: 'Surgery',
+      dateIn: '2025-07-18T14:00:00Z',
+      dateOut: '2025-07-18T16:30:00Z',
+      checklistIn: ['timeout-completed', 'antibiotics-given'],
+      checklistOut: ['procedure-completed', 'counts-correct']
+    },
+    {
+      patientId: '27e8d1ad',
+      state: 'Post-Op',
+      dateIn: '2025-07-18T16:30:00Z',
+      checklistIn: ['recovery-stable', 'pain-managed'],
+      checklistOut: []
+    }
+  ],
+  '3b9f2c1e': [
+    {
+      patientId: '3b9f2c1e',
+      state: 'Emergency',
+      dateIn: '2025-07-19T12:00:00Z',
+      dateOut: '2025-07-19T14:00:00Z',
+      checklistIn: ['triage-completed', 'vitals-stable'],
+      checklistOut: ['ecg-completed']
+    },
+    {
+      patientId: '3b9f2c1e',
+      state: 'ICU',
+      dateIn: '2025-07-19T14:00:00Z',
+      checklistIn: ['monitoring-active', 'medications-administered'],
+      checklistOut: []
+    }
+  ]
+};
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -123,6 +142,9 @@ export default function PatientDetail() {
     return null;
   }
 
+  // Get timeline data for current patient
+  const patientTimeline = mockTimelines[currentPatient.id] || [];
+  
   // Mock patient demographics - in real app, this would come from API
   const demographics = {
     mrn: 'MRN123456',
@@ -251,7 +273,13 @@ export default function PatientDetail() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <Timeline entries={mockTimeline} currentState={currentPatient.currentState} />
+            {patientTimeline.length > 0 ? (
+              <Timeline entries={patientTimeline} currentState={currentPatient.currentState} />
+            ) : (
+              <Card className="p-6">
+                <p className="text-muted-foreground text-center">No timeline data available for this patient</p>
+              </Card>
+            )}
             
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-4">

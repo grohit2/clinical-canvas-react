@@ -38,11 +38,12 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-2xl font-bold text-foreground leading-tight">{mockUser.name}</h2>
-                <Button variant="outline" size="sm" className="flex-shrink-0 ml-3">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  QR Scanner
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <h2 className="text-2xl md:text-2xl font-bold text-foreground leading-tight truncate">{mockUser.name}</h2>
+                <Button variant="outline" size="sm" className="flex-shrink-0 text-xs md:text-sm px-2 md:px-3">
+                  <QrCode className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span className="hidden sm:inline">QR Scanner</span>
+                  <span className="sm:hidden">QR</span>
                 </Button>
               </div>
               <div className="space-y-2">

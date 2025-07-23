@@ -39,9 +39,9 @@ export function Header({
         <h1 className="text-xl font-semibold text-foreground">{title}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         {showSearch && (
-          <div className="relative">
+          <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search patients..."
@@ -50,6 +50,14 @@ export function Header({
               className="pl-9 w-64"
             />
           </div>
+        )}
+        
+        {showAdd && title === "Patients" && (
+          <Button onClick={onAdd} size="sm" className="flex-shrink-0">
+            <Plus className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Add Patient</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
         )}
         
         <div className="relative">
@@ -62,13 +70,6 @@ export function Header({
             </Badge>
           )}
         </div>
-
-        {showAdd && title === "Patients" && (
-          <Button onClick={onAdd} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Patient
-          </Button>
-        )}
       </div>
     </header>
   );

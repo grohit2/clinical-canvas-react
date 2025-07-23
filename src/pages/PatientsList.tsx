@@ -12,7 +12,7 @@ import { PatientMeta } from "@/types/models";
 import { useNavigate } from "react-router-dom";
 
 // Mock data - replace with real API calls
-const mockPatients: PatientMeta[] = [
+let mockPatients: PatientMeta[] = [
   {
     id: '27e8d1ad',
     name: 'Jane Doe',
@@ -87,6 +87,24 @@ export default function PatientsList() {
   const [activeTab, setActiveTab] = useState('all');
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+
+  const handleAddPatient = (newPatient: any) => {
+    const patient: PatientMeta = {
+      id: Math.random().toString(36).substr(2, 8),
+      name: newPatient.name,
+      qrCode: `https://qrc.c/${Math.random().toString(36).substr(2, 8)}`,
+      pathway: newPatient.pathway,
+      currentState: 'stable',
+      diagnosis: newPatient.diagnosis,
+      comorbidities: newPatient.comorbidities ? newPatient.comorbidities.split(',').map((c: string) => c.trim()) : [],
+      updateCounter: 1,
+      lastUpdated: new Date().toISOString(),
+      assignedDoctor: newPatient.assignedDoctor
+    };
+    setPatients(prev => [...prev, patient]);
+    mockPatients = [...mockPatients, patient];
+  };
 
   const getActiveFiltersCount = () => {
     let count = 0;
@@ -103,7 +121,7 @@ export default function PatientsList() {
   };
 
   const getFilteredPatients = (tabFilter: string) => {
-    return mockPatients.filter(patient => {
+    return patients.filter(patient => {
       const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            patient.diagnosis.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
@@ -234,6 +252,7 @@ export default function PatientsList() {
       <AddPatientForm 
         open={showAddPatientForm}
         onOpenChange={setShowAddPatientForm}
+        onAddPatient={handleAddPatient}
       />
 
       <NotificationsPopup 

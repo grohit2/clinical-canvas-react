@@ -51,9 +51,10 @@ type AddPatientFormValues = z.infer<typeof addPatientSchema>;
 interface AddPatientFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddPatient?: (patient: AddPatientFormValues) => void;
 }
 
-export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
+export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,6 +81,9 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Add patient to the list
+      onAddPatient?.(data);
       
       toast({
         title: "Patient added successfully",

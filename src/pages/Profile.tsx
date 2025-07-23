@@ -25,64 +25,67 @@ const mockUser = {
 
 export default function Profile() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <Header title="Profile" />
       
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 max-w-full overflow-x-hidden">
         {/* User Info Card */}
         <Card className="p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg">
+          <div className="flex items-start gap-6 mb-6">
+            <Avatar className="h-20 w-20 border-2 border-border shadow-sm">
+              <AvatarFallback className="text-xl font-semibold bg-medical/10 text-medical">
                 {mockUser.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-xl font-bold">{mockUser.name}</h2>
-                <Button variant="outline" size="sm">
-                  <QrCode className="h-4 w-4" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-2xl font-bold text-foreground leading-tight">{mockUser.name}</h2>
+                <Button variant="outline" size="sm" className="flex-shrink-0 ml-3">
+                  <QrCode className="h-4 w-4 mr-2" />
+                  QR Scanner
                 </Button>
               </div>
-              <p className="text-muted-foreground">{mockUser.department}</p>
-              <Badge variant="outline" className="mt-1 capitalize">
-                {mockUser.role}
-              </Badge>
+              <div className="space-y-2">
+                <p className="text-lg text-muted-foreground font-medium">{mockUser.department}</p>
+                <Badge variant="outline" className="capitalize text-sm px-3 py-1">
+                  {mockUser.role}
+                </Badge>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
+              <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Email:</span>
+                <span className="text-muted-foreground font-medium">Email:</span>
               </div>
-              <span className="font-medium break-all">{mockUser.email}</span>
+              <span className="font-medium text-foreground break-all ml-4">{mockUser.email}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
+              <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Phone:</span>
+                <span className="text-muted-foreground font-medium">Phone:</span>
               </div>
-              <span className="font-medium">{mockUser.phone}</span>
+              <span className="font-medium text-foreground">{mockUser.phone}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-3">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Shift:</span>
+                <span className="text-muted-foreground font-medium">Shift:</span>
               </div>
-              <span className="font-medium text-right">{mockUser.shift}</span>
+              <span className="font-medium text-foreground text-right">{mockUser.shift}</span>
             </div>
           </div>
 
           {/* Permissions */}
-          <div className="mt-4">
-            <span className="text-sm text-muted-foreground">Permissions:</span>
-            <div className="flex flex-wrap gap-2 mt-1">
+          <div className="mt-6 pt-4 border-t border-border/50">
+            <span className="text-sm text-muted-foreground font-medium">Permissions:</span>
+            <div className="flex flex-wrap gap-2 mt-3">
               {mockUser.permissions.map((permission) => (
-                <Badge key={permission} variant="secondary">
+                <Badge key={permission} variant="secondary" className="capitalize text-xs px-3 py-1">
                   {permission}
                 </Badge>
               ))}

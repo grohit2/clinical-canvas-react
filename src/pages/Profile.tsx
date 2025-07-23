@@ -25,6 +25,58 @@ const mockUser = {
     tasksCompleted: 28,
     hoursWorked: 8.5
   },
+  notifications: [
+    {
+      id: 'not001',
+      patientId: 'pat001',
+      patientName: 'John Doe',
+      taskType: 'Lab Results Review',
+      priority: 'high',
+      dueDate: '2024-07-24',
+      description: 'Blood work results pending review and approval',
+      timeAgo: '2 hours ago'
+    },
+    {
+      id: 'not002',
+      patientId: 'pat002',
+      patientName: 'Jane Smith',
+      taskType: 'Pre-Surgery Clearance',
+      priority: 'urgent',
+      dueDate: '2024-07-24',
+      description: 'Final clearance needed for tomorrow surgery',
+      timeAgo: '4 hours ago'
+    },
+    {
+      id: 'not003',
+      patientId: 'pat003',
+      patientName: 'Robert Johnson',
+      taskType: 'Medication Adjustment',
+      priority: 'medium',
+      dueDate: '2024-07-25',
+      description: 'Post-surgery medication dosage review required',
+      timeAgo: '1 day ago'
+    },
+    {
+      id: 'not004',
+      patientId: 'pat004',
+      patientName: 'Maria Garcia',
+      taskType: 'Follow-up Consultation',
+      priority: 'medium',
+      dueDate: '2024-07-25',
+      description: 'Schedule follow-up after cardiac procedure',
+      timeAgo: '1 day ago'
+    },
+    {
+      id: 'not005',
+      patientId: 'pat005',
+      patientName: 'David Brown',
+      taskType: 'Test Results',
+      priority: 'low',
+      dueDate: '2024-07-26',
+      description: 'ECG results interpretation needed',
+      timeAgo: '2 days ago'
+    }
+  ],
   // Extended profile data
   personalInfo: {
     fullName: 'Dr. Sarah Wilson',
@@ -136,6 +188,7 @@ const mockUser = {
 
 export default function Profile() {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -161,6 +214,68 @@ export default function Profile() {
     setIsEditingEmail(false);
     setIsEditingPassword(false);
   };
+
+  // Notifications View
+  if (showNotifications) {
+    const getPriorityColor = (priority: string) => {
+      switch (priority) {
+        case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
+        case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'low': return 'bg-green-100 text-green-800 border-green-200';
+        default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <Header title="Notifications" />
+        
+        <div className="p-4 space-y-4">
+          <div className="flex items-center gap-2 mb-6">
+            <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-lg font-semibold">Patient Tasks & Notifications</h1>
+          </div>
+
+          {mockUser.notifications.map((notification) => (
+            <Card key={notification.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-sm sm:text-base truncate">{notification.patientName}</h3>
+                    <Badge className={`text-xs px-2 py-1 ${getPriorityColor(notification.priority)}`}>
+                      {notification.priority.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium text-primary mb-1">{notification.taskType}</p>
+                  <p className="text-sm text-muted-foreground mb-2 break-words">{notification.description}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Due: {notification.dueDate}</span>
+                    <span>{notification.timeAgo}</span>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="flex-shrink-0">
+                  View
+                </Button>
+              </div>
+            </Card>
+          ))}
+
+          {mockUser.notifications.length === 0 && (
+            <Card className="p-8 text-center">
+              <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No pending tasks</h3>
+              <p className="text-muted-foreground">All your patient tasks are up to date!</p>
+            </Card>
+          )}
+        </div>
+        
+        <BottomBar />
+      </div>
+    );
+  }
 
   if (showAccountSettings) {
     return (
@@ -198,16 +313,16 @@ export default function Profile() {
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3 min-h-[48px]">
-                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Email ID</span>
-                <div className="flex items-center gap-3 flex-1 justify-end">
+                <span className="text-muted-foreground flex-shrink-0 w-24 xs:w-28 sm:w-32 md:w-40">Email ID</span>
+                <div className="flex items-center gap-2 xs:gap-3 flex-1 justify-end overflow-hidden">
                   {isEditingEmail ? (
                     <Input 
                       value={newEmail} 
                       onChange={(e) => setNewEmail(e.target.value)}
-                      className="w-48 max-w-[200px]"
+                      className="w-32 xs:w-36 sm:w-44 md:w-48 text-xs xs:text-sm"
                     />
                   ) : (
-                    <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.email}</span>
+                    <span className="font-medium text-right break-all text-xs xs:text-sm sm:text-base max-w-[120px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-none">{mockUser.email}</span>
                   )}
                   <Edit2 
                     className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" 
@@ -457,9 +572,18 @@ export default function Profile() {
               <Settings className="h-5 w-5 mr-3" />
               Account Settings
             </Button>
-            <Button variant="ghost" className="w-full justify-start h-12">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-12"
+              onClick={() => setShowNotifications(true)}
+            >
               <Bell className="h-5 w-5 mr-3" />
               Notifications
+              {mockUser.notifications.length > 0 && (
+                <Badge className="ml-auto bg-red-500 text-white text-xs">
+                  {mockUser.notifications.length}
+                </Badge>
+              )}
             </Button>
             <Button variant="ghost" className="w-full justify-start h-12">
               <Shield className="h-5 w-5 mr-3" />

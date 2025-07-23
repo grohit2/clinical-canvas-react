@@ -1,25 +1,15 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { KPITile } from "@/components/dashboard/KPITile";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Calendar } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-// Mock data - replace with real API calls
-const mockKPIData = {
-  totalPatients: 47,
-  tasksDue: 12,
-  urgentAlerts: 3,
-  completedToday: 28
-};
-
-const mockUpcomingProcedures = [
-  { id: '1', patient: 'John Smith', procedure: 'Appendectomy', time: '14:30', surgeon: 'Dr. Wilson' },
-  { id: '2', patient: 'Maria Garcia', procedure: 'Knee Replacement', time: '16:00', surgeon: 'Dr. Chen' },
-  { id: '3', patient: 'David Johnson', procedure: 'Cardiac Stent', time: '09:15', surgeon: 'Dr. Patel' }
-];
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { mockPatients, mockTasks, mockNotifications } from "@/data/mockData";
+import { Calendar, Users, Activity, Clock, AlertTriangle, CheckCircle2, Bell, UserCheck, Stethoscope, HeartPulse, BrainCircuit } from "lucide-react";
 
 const mockStageHeatMap = [
   { stage: 'Pre-Op', count: 8, variant: 'caution' as const },

@@ -19,6 +19,7 @@ const mockTasks: Task[] = [
     type: 'lab',
     due: '2025-07-19T15:00:00Z',
     assigneeId: 'doctor1',
+    assigneeRole: 'doctor',
     status: 'open',
     priority: 'high',
     recurring: false
@@ -30,6 +31,7 @@ const mockTasks: Task[] = [
     type: 'medication',
     due: '2025-07-19T16:30:00Z',
     assigneeId: 'nurse1',
+    assigneeRole: 'nurse',
     status: 'in-progress',
     priority: 'urgent',
     recurring: true
@@ -41,6 +43,7 @@ const mockTasks: Task[] = [
     type: 'assessment',
     due: '2025-07-20T09:00:00Z',
     assigneeId: 'doctor2',
+    assigneeRole: 'doctor',
     status: 'open',
     priority: 'medium',
     recurring: false

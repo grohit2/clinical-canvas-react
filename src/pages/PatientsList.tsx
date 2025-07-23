@@ -9,74 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
+import { mockPatients as initialMockPatients } from "@/data/mockData";
 import { useNavigate } from "react-router-dom";
 
-// Mock data - replace with real API calls
-let mockPatients: PatientMeta[] = [
-  {
-    id: '27e8d1ad',
-    name: 'Jane Doe',
-    qrCode: 'https://qrc.c/27e8d1ad',
-    pathway: 'surgical',
-    currentState: 'post-op',
-    diagnosis: 'Cholecystitis',
-    comorbidities: ['HTN', 'DM'],
-    updateCounter: 5,
-    lastUpdated: '2025-07-19T14:30:09Z',
-    assignedDoctor: 'Dr. Smith'
-  },
-  {
-    id: '3b9f2c1e',
-    name: 'John Smith',
-    qrCode: 'https://qrc.c/3b9f2c1e',
-    pathway: 'emergency',
-    currentState: 'ICU',
-    diagnosis: 'Acute MI',
-    comorbidities: ['CAD', 'HTN'],
-    updateCounter: 12,
-    lastUpdated: '2025-07-19T16:45:22Z',
-    assignedDoctor: 'Dr. Johnson'
-  },
-  {
-    id: '8c4d5e2f',
-    name: 'Maria Garcia',
-    qrCode: 'https://qrc.c/8c4d5e2f',
-    pathway: 'consultation',
-    currentState: 'stable',
-    diagnosis: 'Osteoarthritis',
-    comorbidities: ['Obesity'],
-    updateCounter: 2,
-    lastUpdated: '2025-07-19T11:20:15Z',
-    assignedDoctor: 'Dr. Smith'
-  },
-  {
-    id: '9d6e7f3g',
-    name: 'Robert Wilson',
-    qrCode: 'https://qrc.c/9d6e7f3g',
-    pathway: 'surgical',
-    currentState: 'pre-op',
-    diagnosis: 'Appendicitis',
-    comorbidities: [],
-    updateCounter: 8,
-    lastUpdated: '2025-07-19T13:15:30Z',
-    assignedDoctor: 'Dr. Smith'
-  },
-  {
-    id: '1a2b3c4d',
-    name: 'Sarah Johnson',
-    qrCode: 'https://qrc.c/1a2b3c4d',
-    pathway: 'emergency',
-    currentState: 'recovery',
-    diagnosis: 'Pneumonia',
-    comorbidities: ['COPD', 'HTN'],
-    updateCounter: 3,
-    lastUpdated: '2025-07-19T09:45:18Z',
-    assignedDoctor: 'Dr. Johnson'
-  }
-];
-
 // Mock current logged-in doctor
-const currentDoctor = 'Dr. Smith';
+const currentDoctor = 'Dr. Sarah Wilson';
 
 export default function PatientsList() {
   const navigate = useNavigate();
@@ -87,23 +24,28 @@ export default function PatientsList() {
   const [activeTab, setActiveTab] = useState('all');
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+  const [patients, setPatients] = useState<PatientMeta[]>(initialMockPatients);
 
   const handleAddPatient = (newPatient: any) => {
     const patient: PatientMeta = {
       id: Math.random().toString(36).substr(2, 8),
       name: newPatient.name,
-      qrCode: `https://qrc.c/${Math.random().toString(36).substr(2, 8)}`,
+      qrCode: `QR${Math.random().toString(36).substr(2, 8)}`,
       pathway: newPatient.pathway,
-      currentState: 'stable',
+      currentState: 'onboard',
       diagnosis: newPatient.diagnosis,
       comorbidities: newPatient.comorbidities ? newPatient.comorbidities.split(',').map((c: string) => c.trim()) : [],
       updateCounter: 1,
       lastUpdated: new Date().toISOString(),
-      assignedDoctor: newPatient.assignedDoctor
+      assignedDoctor: newPatient.assignedDoctor,
+      room: 'TBD',
+      age: newPatient.age || 0,
+      mrn: `MRN${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      allergies: [],
+      admissionDate: new Date().toISOString(),
+      priority: 'medium'
     };
     setPatients(prev => [...prev, patient]);
-    mockPatients = [...mockPatients, patient];
   };
 
   const getActiveFiltersCount = () => {

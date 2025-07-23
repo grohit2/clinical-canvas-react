@@ -118,7 +118,7 @@ export default function PatientsList() {
   const filteredPatients = getFilteredPatients(activeTab);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <Header 
         title="Patients" 
         showSearch
@@ -130,7 +130,7 @@ export default function PatientsList() {
         onNotificationClick={() => setShowNotifications(true)}
       />
       
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="all">All Patients</TabsTrigger>

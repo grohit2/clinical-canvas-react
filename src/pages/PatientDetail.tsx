@@ -241,7 +241,7 @@ export default function PatientDetail() {
   const demographics = patientDemographics[currentPatient.id];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <Header 
         title="Patient Details" 
         showBack

@@ -181,13 +181,13 @@ export default function Tasks() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <Header 
         title="Tasks" 
         notificationCount={4}
       />
       
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
         {/* Header with Add Task Button */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Task Management</h2>
@@ -216,7 +216,7 @@ export default function Tasks() {
         </div>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-full">
           {kanbanColumns.map(column => {
             const columnTasks = filteredTasks.filter(task => task.status === column.id);
             

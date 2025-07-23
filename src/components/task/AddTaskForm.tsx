@@ -37,7 +37,8 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.patientId || !formData.title || !formData.type || !formData.assigneeId || !selectedDate) {
+    if (!formData.patientId || !formData.title || !formData.type || !formData.assigneeId || !selectedDate || !formData.time) {
+      alert('Please fill in all required fields: Patient ID, Task Description, Task Type, Assigned Person, Date and Time');
       return;
     }
 
@@ -88,7 +89,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto w-[95vw]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
@@ -96,7 +97,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Patient Selection */}
           <div className="space-y-2">
-            <Label htmlFor="patient">Patient ID</Label>
+            <Label htmlFor="patient">Patient ID *</Label>
             <Select value={formData.patientId} onValueChange={(value) => setFormData(prev => ({ ...prev, patientId: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select patient" />
@@ -113,7 +114,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
 
           {/* Task Type */}
           <div className="space-y-2">
-            <Label htmlFor="type">Task Type</Label>
+            <Label htmlFor="type">Task Type *</Label>
             <Select value={formData.type} onValueChange={(value: Task['type']) => setFormData(prev => ({ ...prev, type: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select task type" />
@@ -197,7 +198,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time">Time *</Label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -206,6 +207,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
                   value={formData.time}
                   onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
                   className="pl-10"
+                  required
                 />
               </div>
             </div>
@@ -213,7 +215,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
 
           {/* Assigned Person */}
           <div className="space-y-2">
-            <Label htmlFor="assignee">Assigned Person</Label>
+            <Label htmlFor="assignee">Assigned Person *</Label>
             <Select value={formData.assigneeId} onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select assignee" />

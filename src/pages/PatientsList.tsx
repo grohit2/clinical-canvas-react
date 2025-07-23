@@ -10,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { patientAssignments, doctorsDatabase } from "@/data/authData";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
   {
     id: '27e8d1ad',
     name: 'Jane Doe',
-    qrCode: 'https://qrc.c/27e8d1ad',
+    qrCode: `${window.location.origin}/qr/27e8d1ad`,
     pathway: 'surgical',
     currentState: 'post-op',
     diagnosis: 'Cholecystitis',
@@ -28,7 +30,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: '3b9f2c1e',
     name: 'John Smith',
-    qrCode: 'https://qrc.c/3b9f2c1e',
+    qrCode: `${window.location.origin}/qr/3b9f2c1e`,
     pathway: 'emergency',
     currentState: 'ICU',
     diagnosis: 'Acute MI',
@@ -40,7 +42,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: '8c4d5e2f',
     name: 'Maria Garcia',
-    qrCode: 'https://qrc.c/8c4d5e2f',
+    qrCode: `${window.location.origin}/qr/8c4d5e2f`,
     pathway: 'consultation',
     currentState: 'stable',
     diagnosis: 'Osteoarthritis',
@@ -52,7 +54,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: '9d6e7f3g',
     name: 'Robert Wilson',
-    qrCode: 'https://qrc.c/9d6e7f3g',
+    qrCode: `${window.location.origin}/qr/9d6e7f3g`,
     pathway: 'surgical',
     currentState: 'pre-op',
     diagnosis: 'Appendicitis',
@@ -64,7 +66,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: '1a2b3c4d',
     name: 'Sarah Johnson',
-    qrCode: 'https://qrc.c/1a2b3c4d',
+    qrCode: `${window.location.origin}/qr/1a2b3c4d`,
     pathway: 'emergency',
     currentState: 'recovery',
     diagnosis: 'Pneumonia',
@@ -72,15 +74,37 @@ let mockPatients: PatientMeta[] = [
     updateCounter: 3,
     lastUpdated: '2025-07-19T09:45:18Z',
     assignedDoctor: 'Dr. Johnson'
+  },
+  {
+    id: '6f7g8h9i',
+    name: 'Michael Brown',
+    qrCode: `${window.location.origin}/qr/6f7g8h9i`,
+    pathway: 'consultation',
+    currentState: 'stable',
+    diagnosis: 'Diabetes Type 2',
+    comorbidities: ['HTN', 'Obesity'],
+    updateCounter: 4,
+    lastUpdated: '2025-07-19T10:20:30Z',
+    assignedDoctor: 'Dr. Emily Chen'
+  },
+  {
+    id: '2j3k4l5m',
+    name: 'Lisa Davis',
+    qrCode: `${window.location.origin}/qr/2j3k4l5m`,
+    pathway: 'emergency',
+    currentState: 'stable',
+    diagnosis: 'Chest Pain',
+    comorbidities: [],
+    updateCounter: 1,
+    lastUpdated: '2025-07-19T15:45:12Z',
+    assignedDoctor: 'Dr. Emily Chen'
   }
 ];
-
-// Mock current logged-in doctor
-const currentDoctor = 'Dr. Sarah Wilson';
 
 export default function PatientsList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPathway, setSelectedPathway] = useState('all');
   const [selectedStage, setSelectedStage] = useState('all');
@@ -89,6 +113,11 @@ export default function PatientsList() {
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+
+  if (!currentUser) {
+    navigate('/login');
+    return null;
+  }
 
   // Handle URL parameters for stage filtering
   useEffect(() => {
@@ -109,10 +138,11 @@ export default function PatientsList() {
   }, [searchParams]);
 
   const handleAddPatient = (newPatient: any) => {
+    const patientId = Math.random().toString(36).substr(2, 8);
     const patient: PatientMeta = {
-      id: Math.random().toString(36).substr(2, 8),
+      id: patientId,
       name: newPatient.name,
-      qrCode: `https://qrc.c/${Math.random().toString(36).substr(2, 8)}`,
+      qrCode: `${window.location.origin}/qr/${patientId}`,
       pathway: newPatient.pathway,
       currentState: 'stable',
       diagnosis: newPatient.diagnosis,
@@ -146,7 +176,7 @@ export default function PatientsList() {
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
-      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor === currentDoctor;
+      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor === currentUser.doctor.name;
       
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
     });

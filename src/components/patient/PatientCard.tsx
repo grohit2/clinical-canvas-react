@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
 import { PatientMeta } from "@/types/models";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, MapPin, Clock, QrCode } from "lucide-react";
 
 interface PatientCardProps {
   patient: PatientMeta;
@@ -12,6 +13,7 @@ interface PatientCardProps {
 }
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
+  const [showQR, setShowQR] = useState(false);
   const getStageVariant = (stage: string) => {
     switch (stage.toLowerCase()) {
       case 'icu':
@@ -112,7 +114,28 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
             </div>
           )}
         </div>
+        
+        <div className="flex-shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowQR(!showQR);
+            }}
+            className="p-1 hover:bg-muted rounded"
+          >
+            <QrCode className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
       </div>
+      
+      {showQR && (
+        <div className="mt-4 p-4 bg-muted/50 rounded-lg flex flex-col items-center gap-2">
+          <QRCodeGenerator value={patient.qrCode} size={120} />
+          <p className="text-xs text-muted-foreground text-center">
+            Scan for patient details
+          </p>
+        </div>
+      )}
     </Card>
   );
 }

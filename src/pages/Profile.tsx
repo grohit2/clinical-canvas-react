@@ -10,6 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Settings, Bell, Shield, LogOut, Phone, Mail, Clock, QrCode, Edit2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const mockUser = {
   id: 'user123',
@@ -187,16 +190,25 @@ const mockUser = {
 };
 
 export default function Profile() {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
-  const [newEmail, setNewEmail] = useState(mockUser.email);
+  const [newEmail, setNewEmail] = useState(currentUser?.doctor.email || '');
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerification, setShowVerification] = useState(false);
+
+  if (!currentUser) {
+    navigate('/login');
+    return null;
+  }
+
+  const doctor = currentUser.doctor;
 
   const handleEmailChange = () => {
     setIsEditingEmail(true);
@@ -206,6 +218,12 @@ export default function Profile() {
   const handlePasswordChange = () => {
     setIsEditingPassword(true);
     setShowVerification(true);
+  };
+
+  const handleSignOut = () => {
+    logout();
+    toast.success('Signed out successfully');
+    navigate('/login');
   };
 
   const verifyAndSave = () => {
@@ -299,7 +317,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Full Name</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.personalInfo.fullName}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.name}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -307,7 +325,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Gender</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{mockUser.personalInfo.gender}</span>
+                  <span className="font-medium text-right">{doctor.gender}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -322,7 +340,7 @@ export default function Profile() {
                       className="w-32 xs:w-36 sm:w-44 md:w-48 text-xs xs:text-sm"
                     />
                   ) : (
-                    <span className="font-medium text-right break-all text-xs xs:text-sm sm:text-base max-w-[120px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-none">{mockUser.email}</span>
+                    <span className="font-medium text-right break-all text-xs xs:text-sm sm:text-base max-w-[120px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-none">{doctor.email}</span>
                   )}
                   <Edit2 
                     className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" 
@@ -334,7 +352,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Phone Number</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{mockUser.phone}</span>
+                  <span className="font-medium text-right">{doctor.phone}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -342,7 +360,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Date of Birth</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{mockUser.personalInfo.dateOfBirth.toLocaleDateString()}</span>
+                  <span className="font-medium text-right">{new Date(doctor.dateOfBirth).toLocaleDateString()}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -358,7 +376,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Specialization</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.specialization}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.specialization}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -366,7 +384,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Department</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.department}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.department}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -374,7 +392,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Experience</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{mockUser.professionalInfo.yearsOfExperience} years</span>
+                  <span className="font-medium text-right">{doctor.yearsOfExperience} years</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -382,7 +400,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Registration</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.medicalRegistrationNumber}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.medicalRegistrationNumber}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -390,7 +408,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Consultation Fee</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">₹{mockUser.professionalInfo.consultationFee}</span>
+                  <span className="font-medium text-right">₹{doctor.consultationFee}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -497,14 +515,14 @@ export default function Profile() {
           <div className="flex items-center gap-3 sm:gap-4">
             <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shadow-sm flex-shrink-0">
               <AvatarFallback className="text-base sm:text-lg font-semibold bg-medical/10 text-medical">
-                {mockUser.name.split(' ').map(n => n[0]).join('')}
+                {doctor.name.split(' ').map((n: string) => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0 mr-2">
-              <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">{mockUser.name}</h2>
-              <p className="text-sm sm:text-base text-muted-foreground truncate">{mockUser.department}</p>
+              <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">{doctor.name}</h2>
+              <p className="text-sm sm:text-base text-muted-foreground truncate">{doctor.department}</p>
               <Badge variant="outline" className="mt-1 capitalize text-xs">
-                {mockUser.role}
+                {doctor.role}
               </Badge>
             </div>
             <Button variant="outline" size="sm" className="flex-shrink-0 h-9 px-2 sm:px-3">
@@ -537,7 +555,7 @@ export default function Profile() {
             <div className="flex items-center gap-3">
               <Mail className="h-5 w-5 text-muted-foreground" />
               <div>
-                <div className="font-medium">{mockUser.email}</div>
+                <div className="font-medium">{doctor.email}</div>
                 <div className="text-sm text-muted-foreground">Primary Email</div>
               </div>
             </div>
@@ -545,7 +563,7 @@ export default function Profile() {
             <div className="flex items-center gap-3">
               <Phone className="h-5 w-5 text-muted-foreground" />
               <div>
-                <div className="font-medium">{mockUser.phone}</div>
+                <div className="font-medium">{doctor.phone}</div>
                 <div className="text-sm text-muted-foreground">Contact Number</div>
               </div>
             </div>
@@ -553,7 +571,7 @@ export default function Profile() {
             <div className="flex items-center gap-3">
               <Clock className="h-5 w-5 text-muted-foreground" />
               <div>
-                <div className="font-medium">{mockUser.shift}</div>
+                <div className="font-medium">{doctor.shift}</div>
                 <div className="text-sm text-muted-foreground">Current Shift</div>
               </div>
             </div>
@@ -590,7 +608,11 @@ export default function Profile() {
               Privacy & Security
             </Button>
             <Separator />
-            <Button variant="ghost" className="w-full justify-start h-12 text-red-600 hover:text-red-700">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-12 text-red-600 hover:text-red-700"
+              onClick={handleSignOut}
+            >
               <LogOut className="h-5 w-5 mr-3" />
               Sign Out
             </Button>

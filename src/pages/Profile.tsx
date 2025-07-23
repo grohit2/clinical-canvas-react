@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, Bell, Shield, LogOut, Phone, Mail, Clock } from "lucide-react";
+import { Settings, Bell, Shield, LogOut, Phone, Mail, Clock, QrCode } from "lucide-react";
 
 const mockUser = {
   id: 'user123',
@@ -38,7 +38,12 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-xl font-bold">{mockUser.name}</h2>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-xl font-bold">{mockUser.name}</h2>
+                <Button variant="outline" size="sm">
+                  <QrCode className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-muted-foreground">{mockUser.department}</p>
               <Badge variant="outline" className="mt-1 capitalize">
                 {mockUser.role}
@@ -46,24 +51,30 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Email:</span>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Email:</span>
+              </div>
+              <span className="font-medium break-all">{mockUser.email}</span>
             </div>
-            <span className="font-medium">{mockUser.email}</span>
             
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Phone:</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Phone:</span>
+              </div>
+              <span className="font-medium">{mockUser.phone}</span>
             </div>
-            <span className="font-medium">{mockUser.phone}</span>
             
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Shift:</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Shift:</span>
+              </div>
+              <span className="font-medium text-right">{mockUser.shift}</span>
             </div>
-            <span className="font-medium">{mockUser.shift}</span>
           </div>
 
           {/* Permissions */}

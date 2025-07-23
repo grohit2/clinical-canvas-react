@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Task } from "@/types/models";
-import { Clock, User, Calendar, Flag } from "lucide-react";
+import { Clock, User, Calendar, Flag, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AddTaskForm } from "@/components/task/AddTaskForm";
 
 // Mock data
 const mockTasks: Task[] = [
@@ -50,6 +51,22 @@ const kanbanColumns = [
   { id: 'open', title: 'To Do', color: 'bg-muted' },
   { id: 'in-progress', title: 'In Progress', color: 'bg-caution/20' },
   { id: 'done', title: 'Done', color: 'bg-stable/20' }
+];
+
+const mockPatients = [
+  { id: 'P001', name: 'John Smith' },
+  { id: 'P002', name: 'Sarah Johnson' },
+  { id: 'P003', name: 'Michael Brown' },
+  { id: 'P004', name: 'Emily Davis' },
+  { id: 'P005', name: 'Robert Wilson' }
+];
+
+const mockStaff = [
+  { id: 'S001', name: 'Dr. Sarah Wilson' },
+  { id: 'S002', name: 'Dr. Michael Chen' },
+  { id: 'S003', name: 'Nurse Lisa Johnson' },
+  { id: 'S004', name: 'Dr. Robert Patel' },
+  { id: 'S005', name: 'Nurse Maria Garcia' }
 ];
 
 interface TaskCardProps {
@@ -143,11 +160,20 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
 export default function Tasks() {
   const [tasks, setTasks] = useState(mockTasks);
   const [filter, setFilter] = useState<'all' | 'my-tasks'>('all');
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
 
   const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
     setTasks(prev => prev.map(task => 
       task.taskId === taskId ? { ...task, status: newStatus } : task
     ));
+  };
+
+  const handleAddTask = (newTask: Omit<Task, 'taskId'>) => {
+    const taskWithId = {
+      ...newTask,
+      taskId: `task_${Date.now()}`
+    };
+    setTasks(prevTasks => [...prevTasks, taskWithId]);
   };
 
   const filteredTasks = tasks.filter(task => 
@@ -158,12 +184,19 @@ export default function Tasks() {
     <div className="min-h-screen bg-background pb-20">
       <Header 
         title="Tasks" 
-        showAdd
-        onAdd={() => {/* Open add task modal */}}
         notificationCount={4}
       />
       
       <div className="p-4 space-y-4">
+        {/* Header with Add Task Button */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Task Management</h2>
+          <Button onClick={() => setShowAddTaskForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
+
         {/* Filter Buttons */}
         <div className="flex gap-2">
           <Button
@@ -219,6 +252,14 @@ export default function Tasks() {
           })}
         </div>
       </div>
+
+      <AddTaskForm
+        open={showAddTaskForm}
+        onOpenChange={setShowAddTaskForm}
+        onSubmit={handleAddTask}
+        patients={mockPatients}
+        staff={mockStaff}
+      />
 
       <BottomBar />
     </div>

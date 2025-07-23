@@ -63,7 +63,7 @@ export function Header({
           )}
         </div>
 
-        {showAdd && (
+        {showAdd && title === "Patients" && (
           <Button onClick={onAdd} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Patient

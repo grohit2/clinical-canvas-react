@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StageChip } from "@/components/patient/StageChip";
 import { Timeline } from "@/components/patient/Timeline";
-import { QrCode, Copy, Phone, Mail, Calendar, MapPin } from "lucide-react";
+import { QrCode, Copy, Phone, Mail, Calendar, MapPin, Clock } from "lucide-react";
 import { PatientMeta, TimelineEntry } from "@/types/models";
 
 // Mock data - replace with real API calls
@@ -132,6 +132,17 @@ export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Find the current patient based on ID
   const currentPatient = mockPatients.find(patient => patient.id === id);
@@ -237,7 +248,26 @@ export default function PatientDetail() {
         notificationCount={2}
       />
       
-      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      {/* Sticky Header on Scroll */}
+      {isScrolled && (
+        <div className="fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm">
+          <div className="px-3 sm:px-4 lg:px-6 py-2">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm sm:text-base font-semibold text-foreground truncate">
+                  {currentPatient.name}
+                </h2>
+                <p className="text-xs text-muted-foreground truncate">
+                  {demographics?.mrn} • {currentPatient.currentState}
+                </p>
+              </div>
+              <StageChip stage={currentPatient.currentState} variant="caution" size="sm" />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className={`p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 ${isScrolled ? 'pt-20' : ''}`}>
         {/* Patient Hero */}
         <Card className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
@@ -334,69 +364,162 @@ export default function PatientDetail() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 h-auto">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm px-1 sm:px-3">Overview</TabsTrigger>
-            <TabsTrigger value="notes" className="text-xs sm:text-sm px-1 sm:px-3">Notes</TabsTrigger>
-            <TabsTrigger value="labs" className="text-xs sm:text-sm px-1 sm:px-3">Labs</TabsTrigger>
-            <TabsTrigger value="meds" className="text-xs sm:text-sm px-1 sm:px-3">Meds</TabsTrigger>
-            <TabsTrigger value="tasks" className="text-xs sm:text-sm px-1 sm:px-3">Tasks</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50 rounded-lg border">
+            <TabsTrigger 
+              value="overview" 
+              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger 
+              value="notes" 
+              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              Notes
+            </TabsTrigger>
+            <TabsTrigger 
+              value="labs" 
+              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              Labs
+            </TabsTrigger>
+            <TabsTrigger 
+              value="meds" 
+              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              Meds
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tasks" 
+              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+            >
+              Tasks
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4 mt-4">
-            {patientTimeline.length > 0 ? (
-              <Timeline entries={patientTimeline} currentState={currentPatient.currentState} />
-            ) : (
-              <Card className="p-4 sm:p-6">
-                <p className="text-muted-foreground text-center text-sm sm:text-base">No timeline data available for this patient</p>
+          <TabsContent value="overview" className="space-y-4 mt-6">
+            <div className="space-y-4">
+              {/* Patient Information Summary */}
+              <Card className="p-4 sm:p-6 border-l-4 border-l-primary">
+                <h3 className="font-semibold mb-3 text-base sm:text-lg">Patient Overview</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Diagnosis:</span>
+                    <p className="font-medium mt-1">{currentPatient.diagnosis}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Assigned Doctor:</span>
+                    <p className="font-medium mt-1">{currentPatient.assignedDoctor}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Last Updated:</span>
+                    <p className="font-medium mt-1">{new Date(currentPatient.lastUpdated).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                
+                {/* Allergies in Overview */}
+                {demographics?.allergies && demographics.allergies.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <span className="text-sm text-muted-foreground font-medium">⚠️ Allergies:</span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {demographics.allergies.map((allergy) => (
+                        <Badge key={allergy} variant="destructive" className="text-xs">
+                          {allergy}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </Card>
-            )}
-            
-            {/* Quick Stats */}
-            {demographics && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <Card className="p-3 sm:p-4">
-                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Length of Stay</h3>
-                  <p className="text-xl sm:text-2xl font-bold text-medical">{demographics.lengthOfStay} {demographics.lengthOfStay === 1 ? 'day' : 'days'}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Since admission</p>
+
+              {/* Timeline */}
+              {patientTimeline.length > 0 ? (
+                <Timeline entries={patientTimeline} currentState={currentPatient.currentState} />
+              ) : (
+                <Card className="p-4 sm:p-6">
+                  <p className="text-muted-foreground text-center text-sm sm:text-base">No timeline data available for this patient</p>
                 </Card>
-                <Card className="p-3 sm:p-4">
-                  <h3 className="font-semibold mb-2 text-sm sm:text-base">Next Milestone</h3>
-                  <p className="text-base sm:text-lg font-medium break-words">{demographics.nextMilestone}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{demographics.nextMilestoneTime}</p>
-                </Card>
+              )}
+              
+              {/* Quick Stats */}
+              {demographics && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Card className="p-4 sm:p-6 border border-border/50">
+                    <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      Length of Stay
+                    </h3>
+                    <p className="text-2xl sm:text-3xl font-bold text-primary mb-1">
+                      {demographics.lengthOfStay} {demographics.lengthOfStay === 1 ? 'day' : 'days'}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Since admission on {new Date(demographics.admissionDate).toLocaleDateString()}</p>
+                  </Card>
+                  <Card className="p-4 sm:p-6 border border-border/50">
+                    <h3 className="font-semibold mb-3 text-sm sm:text-base flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" />
+                      Next Milestone
+                    </h3>
+                    <p className="text-base sm:text-lg font-medium mb-1 break-words">{demographics.nextMilestone}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{demographics.nextMilestoneTime}</p>
+                  </Card>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-6">
+            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-base sm:text-lg">Clinical Notes</h3>
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
+                    <p className="text-center py-8">Clinical notes will be displayed here</p>
+                    <p className="text-center text-xs">Patient: {currentPatient.name} • ID: {currentPatient.id}</p>
+                  </div>
+                </div>
               </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="notes">
-            <Card className="p-4 sm:p-6">
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Notes component will be implemented here
-              </p>
             </Card>
           </TabsContent>
 
-          <TabsContent value="labs">
-            <Card className="p-4 sm:p-6">
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Lab results component will be implemented here
-              </p>
+          <TabsContent value="labs" className="mt-6">
+            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-base sm:text-lg">Laboratory Results</h3>
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
+                    <p className="text-center py-8">Lab results will be displayed here</p>
+                    <p className="text-center text-xs">Patient: {currentPatient.name} • ID: {currentPatient.id}</p>
+                  </div>
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="meds">
-            <Card className="p-4 sm:p-6">
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Medications component will be implemented here
-              </p>
+          <TabsContent value="meds" className="mt-6">
+            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-base sm:text-lg">Medications</h3>
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
+                    <p className="text-center py-8">Medication list will be displayed here</p>
+                    <p className="text-center text-xs">Patient: {currentPatient.name} • ID: {currentPatient.id}</p>
+                  </div>
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="tasks">
-            <Card className="p-4 sm:p-6">
-              <p className="text-muted-foreground text-center py-6 sm:py-8 text-sm sm:text-base">
-                Tasks component will be implemented here
-              </p>
+          <TabsContent value="tasks" className="mt-6">
+            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-base sm:text-lg">Tasks & Checklist</h3>
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
+                    <p className="text-center py-8">Patient tasks and checklist will be displayed here</p>
+                    <p className="text-center text-xs">Patient: {currentPatient.name} • ID: {currentPatient.id}</p>
+                  </div>
+                </div>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>

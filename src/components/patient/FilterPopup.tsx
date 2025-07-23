@@ -63,7 +63,10 @@ export function FilterPopup({
           {/* Pathways */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Pathway</label>
-            <RadioGroup value={selectedPathway} onValueChange={onPathwayChange}>
+            <RadioGroup value={selectedPathway} onValueChange={(value) => {
+              onPathwayChange(value);
+              setOpen(false);
+            }}>
               {pathwayFilters.map((pathway) => (
                 <div key={pathway} className="flex items-center space-x-2">
                   <RadioGroupItem value={pathway} id={`pathway-${pathway}`} />
@@ -78,7 +81,10 @@ export function FilterPopup({
           {/* Stages */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Stage</label>
-            <RadioGroup value={selectedStage} onValueChange={onStageChange}>
+            <RadioGroup value={selectedStage} onValueChange={(value) => {
+              onStageChange(value);
+              setOpen(false);
+            }}>
               {stageFilters.map((stage) => (
                 <div key={stage} className="flex items-center space-x-2">
                   <RadioGroupItem value={stage} id={`stage-${stage}`} />
@@ -96,7 +102,10 @@ export function FilterPopup({
             <Button
               variant={showUrgentOnly ? "default" : "outline"}
               size="sm"
-              onClick={() => onUrgentToggle(!showUrgentOnly)}
+              onClick={() => {
+                onUrgentToggle(!showUrgentOnly);
+                setOpen(false);
+              }}
               className="text-xs"
             >
               Urgent Only

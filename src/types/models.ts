@@ -11,13 +11,6 @@ export interface PatientMeta {
   updateCounter: number;
   lastUpdated: string;
   assignedDoctor?: string;
-  assignedNurse?: string;
-  room?: string;
-  age?: number;
-  mrn?: string;
-  allergies?: string[];
-  admissionDate?: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
 }
 
 export interface TimelineEntry {
@@ -33,16 +26,12 @@ export interface Task {
   taskId: string;
   patientId: string;
   title: string;
-  type: 'lab' | 'medication' | 'procedure' | 'assessment' | 'discharge' | 'doctor' | 'nurse';
+  type: 'lab' | 'medication' | 'procedure' | 'assessment' | 'discharge';
   due: string;
   assigneeId: string;
-  assigneeRole: 'doctor' | 'nurse' | 'lab' | 'pharmacist' | 'technician';
   status: 'open' | 'in-progress' | 'done' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   recurring: boolean;
-  recurringFreq?: 'daily' | 'weekly' | 'monthly';
-  description?: string;
-  estimatedDuration?: number; // minutes
 }
 
 export interface Medication {
@@ -102,32 +91,6 @@ export interface StaffProfile {
     email?: string;
   };
   permissions: string[];
-}
-
-// Pathway state definitions
-export interface PathwayStates {
-  surgical: ('onboard' | 'preop' | 'd-1-op' | 'op' | 'd+1-op' | 'post-op')[];
-  consultation: ('onboard' | 'wait' | 'consult' | 'followup' | 'done')[];
-  emergency: ('onboard' | 'triage' | 'treatment' | 'observation' | 'discharge')[];
-}
-
-export const PATHWAY_STATES: PathwayStates = {
-  surgical: ['onboard', 'preop', 'd-1-op', 'op', 'd+1-op', 'post-op'],
-  consultation: ['onboard', 'wait', 'consult', 'followup', 'done'],
-  emergency: ['onboard', 'triage', 'treatment', 'observation', 'discharge']
-};
-
-// Notification types
-export interface Notification {
-  id: string;
-  type: 'whatsapp' | 'lab' | 'task' | 'approval';
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  patientId?: string;
-  taskId?: string;
 }
 
 // UI-specific types

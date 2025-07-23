@@ -54,7 +54,6 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
       type: formData.type,
       due: dueDateTime.toISOString(),
       assigneeId: formData.assigneeId,
-      assigneeRole: 'doctor', // Default to doctor, this could be enhanced to determine role based on assigneeId
       status: 'open',
       priority: formData.priority,
       recurring: false

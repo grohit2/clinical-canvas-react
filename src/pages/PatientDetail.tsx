@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StageChip } from "@/components/patient/StageChip";
 import { Timeline } from "@/components/patient/Timeline";
+import { PatientTasks } from "@/components/patient/PatientTasks";
 import { QrCode, Copy, Phone, Mail, Calendar, MapPin, Clock } from "lucide-react";
 import { PatientMeta, TimelineEntry } from "@/types/models";
 
@@ -512,13 +513,8 @@ export default function PatientDetail() {
           <TabsContent value="tasks" className="mt-6">
             <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
               <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Tasks & Checklist</h3>
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
-                    <p className="text-center py-8">Patient tasks and checklist will be displayed here</p>
-                    <p className="text-center text-xs">Patient: {currentPatient.name} • ID: {currentPatient.id}</p>
-                  </div>
-                </div>
+                <h3 className="font-semibold text-base sm:text-lg">Patient Tasks</h3>
+                <PatientTasks patientId={currentPatient.id} />
               </div>
             </Card>
           </TabsContent>

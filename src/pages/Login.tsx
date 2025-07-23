@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { loginUser } from '@/data/authData';
+import { authService } from '@/services';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export default function Login() {
     setError('');
 
     try {
-      const user = await loginUser({ email, password });
+      const user = await authService.login({ email, password });
       
       if (user) {
         login(user);

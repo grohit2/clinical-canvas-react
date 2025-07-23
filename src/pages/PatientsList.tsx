@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { patientAssignments, doctorsDatabase } from "@/data/authData";
+import { patientService, authService } from "@/services";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -112,12 +112,30 @@ export default function PatientsList() {
   const [activeTab, setActiveTab] = useState('all');
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+  const [patients, setPatients] = useState<PatientMeta[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   if (!currentUser) {
     navigate('/login');
     return null;
   }
+
+  // Load patients from API with fallback to mock data
+  useEffect(() => {
+    const loadPatients = async () => {
+      try {
+        setIsLoading(true);
+        const patientsData = await patientService.getPatients();
+        setPatients(patientsData);
+      } catch (error) {
+        console.error('Failed to load patients:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
+  }, []);
 
   // Handle URL parameters for stage filtering
   useEffect(() => {
@@ -137,22 +155,25 @@ export default function PatientsList() {
     }
   }, [searchParams]);
 
-  const handleAddPatient = (newPatient: any) => {
-    const patientId = Math.random().toString(36).substr(2, 8);
-    const patient: PatientMeta = {
-      id: patientId,
-      name: newPatient.name,
-      qrCode: `${window.location.origin}/qr/${patientId}`,
-      pathway: newPatient.pathway,
-      currentState: 'stable',
-      diagnosis: newPatient.diagnosis,
-      comorbidities: newPatient.comorbidities ? newPatient.comorbidities.split(',').map((c: string) => c.trim()) : [],
-      updateCounter: 1,
-      lastUpdated: new Date().toISOString(),
-      assignedDoctor: newPatient.assignedDoctor
-    };
-    setPatients(prev => [...prev, patient]);
-    mockPatients = [...mockPatients, patient];
+  const handleAddPatient = async (newPatient: any) => {
+    try {
+      const patientData = {
+        name: newPatient.name,
+        pathway: newPatient.pathway,
+        currentState: 'stable' as const,
+        diagnosis: newPatient.diagnosis,
+        comorbidities: newPatient.comorbidities ? newPatient.comorbidities.split(',').map((c: string) => c.trim()) : [],
+        updateCounter: 1,
+        lastUpdated: new Date().toISOString(),
+        assignedDoctor: newPatient.assignedDoctor
+      };
+      
+      const createdPatient = await patientService.createPatient(patientData);
+      setPatients(prev => [...prev, createdPatient]);
+      setShowAddPatientForm(false);
+    } catch (error) {
+      console.error('Failed to create patient:', error);
+    }
   };
 
   const getActiveFiltersCount = () => {

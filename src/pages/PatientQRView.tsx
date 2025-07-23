@@ -7,6 +7,7 @@ import { StageChip } from '@/components/patient/StageChip';
 import { UpdateRing } from '@/components/patient/UpdateRing';
 import { Clock, MapPin, User, Activity } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { patientService } from '@/services';
 
 // Mock patient data - in real app, this would come from an API
 const mockPatientData = {
@@ -42,11 +43,24 @@ export default function PatientQRView() {
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<any>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (id && mockPatientData[id as keyof typeof mockPatientData]) {
-      setPatient(mockPatientData[id as keyof typeof mockPatientData]);
-    }
+    const loadPatientData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const patientData = await patientService.getPatientQRData(id);
+        setPatient(patientData);
+      } catch (error) {
+        console.error('Failed to load patient QR data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatientData();
     
     // Update timestamp every minute
     const interval = setInterval(() => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Task } from "@/types/models";
 import { Clock, User, Calendar, Flag, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddTaskForm } from "@/components/task/AddTaskForm";
+import { taskService } from "@/services";
 
 // Mock data
 const mockTasks: Task[] = [
@@ -158,22 +159,46 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
 }
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<'all' | 'my-tasks'>('all');
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
-    setTasks(prev => prev.map(task => 
-      task.taskId === taskId ? { ...task, status: newStatus } : task
-    ));
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setIsLoading(true);
+        const tasksData = await taskService.getTasks();
+        setTasks(tasksData);
+      } catch (error) {
+        console.error('Failed to load tasks:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTasks();
+  }, []);
+
+  const handleStatusChange = async (taskId: string, newStatus: Task['status']) => {
+    try {
+      await taskService.updateTaskStatus(taskId, newStatus);
+      setTasks(prev => prev.map(task => 
+        task.taskId === taskId ? { ...task, status: newStatus } : task
+      ));
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+    }
   };
 
-  const handleAddTask = (newTask: Omit<Task, 'taskId'>) => {
-    const taskWithId = {
-      ...newTask,
-      taskId: `task_${Date.now()}`
-    };
-    setTasks(prevTasks => [...prevTasks, taskWithId]);
+  const handleAddTask = async (newTask: Omit<Task, 'taskId'>) => {
+    try {
+      const createdTask = await taskService.createTask(newTask);
+      setTasks(prevTasks => [...prevTasks, createdTask]);
+      setShowAddTaskForm(false);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
   };
 
   const filteredTasks = tasks.filter(task => 

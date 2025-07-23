@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, User, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { taskService } from "@/services";
 
 // Mock urgent alerts data - tasks due within 10 minutes
 const mockUrgentAlerts = [
@@ -45,6 +47,24 @@ const mockUrgentAlerts = [
 
 export default function UrgentAlerts() {
   const navigate = useNavigate();
+  const [urgentAlerts, setUrgentAlerts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUrgentAlerts = async () => {
+      try {
+        setIsLoading(true);
+        const alerts = await taskService.getUrgentAlerts();
+        setUrgentAlerts(alerts);
+      } catch (error) {
+        console.error('Failed to load urgent alerts:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUrgentAlerts();
+  }, []);
 
   const getMinutesColor = (minutes: number) => {
     if (minutes <= 2) return 'text-urgent';
@@ -77,7 +97,7 @@ export default function UrgentAlerts() {
             <div>
               <h2 className="text-lg font-semibold text-urgent">Critical Tasks</h2>
               <p className="text-sm text-muted-foreground">
-                {mockUrgentAlerts.length} tasks require immediate attention (≤10 min)
+                {urgentAlerts.length} tasks require immediate attention (≤10 min)
               </p>
             </div>
           </div>
@@ -85,7 +105,7 @@ export default function UrgentAlerts() {
 
         {/* Urgent Alerts List */}
         <div className="space-y-3">
-          {mockUrgentAlerts.map((alert) => (
+          {urgentAlerts.map((alert) => (
             <Card key={alert.id} className="p-4 border-l-4 border-urgent bg-urgent/5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-2">
@@ -132,7 +152,7 @@ export default function UrgentAlerts() {
           ))}
         </div>
 
-        {mockUrgentAlerts.length === 0 && (
+        {urgentAlerts.length === 0 && !isLoading && (
           <Card className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No urgent alerts</h3>

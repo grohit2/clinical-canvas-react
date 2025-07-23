@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { KPITile } from "@/components/dashboard/KPITile";
@@ -6,31 +7,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-// Mock data - replace with real API calls
-const mockKPIData = {
-  totalPatients: 47,
-  tasksDue: 12,
-  urgentAlerts: 3,
-  completedToday: 28
-};
-
-const mockUpcomingProcedures = [
-  { id: '1', patient: 'John Smith', procedure: 'Appendectomy', time: '14:30', surgeon: 'Dr. Wilson' },
-  { id: '2', patient: 'Maria Garcia', procedure: 'Knee Replacement', time: '16:00', surgeon: 'Dr. Chen' },
-  { id: '3', patient: 'David Johnson', procedure: 'Cardiac Stent', time: '09:15', surgeon: 'Dr. Patel' }
-];
-
-const mockStageHeatMap = [
-  { stage: 'Pre-Op', count: 8, variant: 'caution' as const },
-  { stage: 'Surgery', count: 3, variant: 'urgent' as const },
-  { stage: 'Post-Op', count: 12, variant: 'stable' as const },
-  { stage: 'Recovery', count: 15, variant: 'default' as const },
-  { stage: 'Discharge', count: 9, variant: 'stable' as const }
-];
+import { dashboardService, KPIData, UpcomingProcedure, StageHeatMapItem } from "@/services";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [kpiData, setKpiData] = useState<KPIData>({ totalPatients: 0, tasksDue: 0, urgentAlerts: 0, completedToday: 0 });
+  const [upcomingProcedures, setUpcomingProcedures] = useState<UpcomingProcedure[]>([]);
+  const [stageHeatMap, setStageHeatMap] = useState<StageHeatMapItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        const [kpi, procedures, heatMap] = await Promise.all([
+          dashboardService.getKPIData(),
+          dashboardService.getUpcomingProcedures(),
+          dashboardService.getStageHeatMap()
+        ]);
+        
+        setKpiData(kpi);
+        setUpcomingProcedures(procedures);
+        setStageHeatMap(heatMap);
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -62,28 +69,28 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-4">
           <KPITile
             title="Total Patients"
-            value={mockKPIData.totalPatients}
+            value={isLoading ? "..." : kpiData.totalPatients}
             icon={Users}
             trend={{ value: 5, isPositive: true }}
             onClick={() => navigate('/patients')}
           />
           <KPITile
             title="Tasks Due"
-            value={mockKPIData.tasksDue}
+            value={isLoading ? "..." : kpiData.tasksDue}
             icon={Clock}
             variant="caution"
             onClick={() => navigate('/tasks-due')}
           />
           <KPITile
             title="Urgent Alerts"
-            value={mockKPIData.urgentAlerts}
+            value={isLoading ? "..." : kpiData.urgentAlerts}
             icon={AlertTriangle}
             variant="urgent"
             onClick={() => navigate('/urgent-alerts')}
           />
           <KPITile
             title="Completed Today"
-            value={mockKPIData.completedToday}
+            value={isLoading ? "..." : kpiData.completedToday}
             icon={CheckCircle}
             variant="stable"
             trend={{ value: 12, isPositive: true }}
@@ -98,7 +105,7 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="grid grid-cols-5 gap-2">
-            {mockStageHeatMap.map((stage) => (
+            {stageHeatMap.map((stage) => (
               <div
                 key={stage.stage}
                 className="text-center p-2 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow"
@@ -127,7 +134,7 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {mockUpcomingProcedures.map((procedure) => (
+            {upcomingProcedures.map((procedure) => (
               <div key={procedure.id} className="flex items-center justify-between p-3 rounded-lg border gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{procedure.patient}</div>

@@ -11,6 +11,7 @@ import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { QrCode, Copy, Phone, Mail, Calendar, MapPin, Clock } from "lucide-react";
 import { PatientMeta, TimelineEntry } from "@/types/models";
+import { patientService, taskService } from "@/services";
 
 // Mock data - replace with real API calls
 const mockPatients: PatientMeta[] = [
@@ -134,6 +135,9 @@ export default function PatientDetail() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [currentPatient, setCurrentPatient] = useState<PatientMeta | null>(null);
+  const [patientTimeline, setPatientTimeline] = useState<TimelineEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -145,17 +149,46 @@ export default function PatientDetail() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Find the current patient based on ID
-  const currentPatient = mockPatients.find(patient => patient.id === id);
-  
-  // If patient not found, redirect to patients list
-  if (!currentPatient) {
-    navigate('/patients');
-    return null;
+  useEffect(() => {
+    const loadPatientData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [patient, timeline] = await Promise.all([
+          patientService.getPatientById(id),
+          patientService.getPatientTimeline(id)
+        ]);
+        
+        if (!patient) {
+          navigate('/patients');
+          return;
+        }
+        
+        setCurrentPatient(patient);
+        setPatientTimeline(timeline);
+      } catch (error) {
+        console.error('Failed to load patient data:', error);
+        navigate('/patients');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatientData();
+  }, [id, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div>Loading patient data...</div>
+      </div>
+    );
   }
 
-  // Get timeline data for current patient
-  const patientTimeline = mockTimelines[currentPatient.id] || [];
+  if (!currentPatient) {
+    return null;
+  }
   
   // Patient-specific demographics data
   const patientDemographics = {

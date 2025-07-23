@@ -23,7 +23,7 @@ let mockPatients: PatientMeta[] = [
     comorbidities: ['HTN', 'DM'],
     updateCounter: 5,
     lastUpdated: '2025-07-19T14:30:09Z',
-    assignedDoctor: 'Dr. Smith'
+    assignedDoctor: 'Dr. Sarah Wilson'
   },
   {
     id: '3b9f2c1e',
@@ -47,7 +47,7 @@ let mockPatients: PatientMeta[] = [
     comorbidities: ['Obesity'],
     updateCounter: 2,
     lastUpdated: '2025-07-19T11:20:15Z',
-    assignedDoctor: 'Dr. Smith'
+    assignedDoctor: 'Dr. Sarah Wilson'
   },
   {
     id: '9d6e7f3g',
@@ -59,7 +59,7 @@ let mockPatients: PatientMeta[] = [
     comorbidities: [],
     updateCounter: 8,
     lastUpdated: '2025-07-19T13:15:30Z',
-    assignedDoctor: 'Dr. Smith'
+    assignedDoctor: 'Dr. Sarah Wilson'
   },
   {
     id: '1a2b3c4d',
@@ -76,7 +76,7 @@ let mockPatients: PatientMeta[] = [
 ];
 
 // Mock current logged-in doctor
-const currentDoctor = 'Dr. Smith';
+const currentDoctor = 'Dr. Sarah Wilson';
 
 export default function PatientsList() {
   const navigate = useNavigate();

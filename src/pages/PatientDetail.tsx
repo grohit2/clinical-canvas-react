@@ -12,17 +12,68 @@ import { QrCode, Copy, Phone, Mail, Calendar, MapPin } from "lucide-react";
 import { PatientMeta, TimelineEntry } from "@/types/models";
 
 // Mock data - replace with real API calls
-const mockPatient: PatientMeta = {
-  id: '27e8d1ad',
-  name: 'Jane Doe',
-  qrCode: 'https://qrc.c/27e8d1ad',
-  pathway: 'surgical',
-  currentState: 'post-op',
-  diagnosis: 'Cholecystitis',
-  comorbidities: ['HTN', 'DM'],
-  updateCounter: 5,
-  lastUpdated: '2025-07-19T14:30:09Z'
-};
+const mockPatients: PatientMeta[] = [
+  {
+    id: '27e8d1ad',
+    name: 'Jane Doe',
+    qrCode: 'https://qrc.c/27e8d1ad',
+    pathway: 'surgical',
+    currentState: 'post-op',
+    diagnosis: 'Cholecystitis',
+    comorbidities: ['HTN', 'DM'],
+    updateCounter: 5,
+    lastUpdated: '2025-07-19T14:30:09Z',
+    assignedDoctor: 'Dr. Smith'
+  },
+  {
+    id: '3b9f2c1e',
+    name: 'John Smith',
+    qrCode: 'https://qrc.c/3b9f2c1e',
+    pathway: 'emergency',
+    currentState: 'ICU',
+    diagnosis: 'Acute MI',
+    comorbidities: ['CAD', 'HTN'],
+    updateCounter: 12,
+    lastUpdated: '2025-07-19T16:45:22Z',
+    assignedDoctor: 'Dr. Johnson'
+  },
+  {
+    id: '8c4d5e2f',
+    name: 'Maria Garcia',
+    qrCode: 'https://qrc.c/8c4d5e2f',
+    pathway: 'consultation',
+    currentState: 'stable',
+    diagnosis: 'Osteoarthritis',
+    comorbidities: ['Obesity'],
+    updateCounter: 2,
+    lastUpdated: '2025-07-19T11:20:15Z',
+    assignedDoctor: 'Dr. Smith'
+  },
+  {
+    id: '9d6e7f3g',
+    name: 'Robert Wilson',
+    qrCode: 'https://qrc.c/9d6e7f3g',
+    pathway: 'surgical',
+    currentState: 'pre-op',
+    diagnosis: 'Appendicitis',
+    comorbidities: [],
+    updateCounter: 8,
+    lastUpdated: '2025-07-19T13:15:30Z',
+    assignedDoctor: 'Dr. Smith'
+  },
+  {
+    id: '1a2b3c4d',
+    name: 'Sarah Johnson',
+    qrCode: 'https://qrc.c/1a2b3c4d',
+    pathway: 'emergency',
+    currentState: 'recovery',
+    diagnosis: 'Pneumonia',
+    comorbidities: ['COPD', 'HTN'],
+    updateCounter: 3,
+    lastUpdated: '2025-07-19T09:45:18Z',
+    assignedDoctor: 'Dr. Johnson'
+  }
+];
 
 const mockTimeline: TimelineEntry[] = [
   {
@@ -63,7 +114,16 @@ export default function PatientDetail() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Mock patient demographics
+  // Find the current patient based on ID
+  const currentPatient = mockPatients.find(patient => patient.id === id);
+  
+  // If patient not found, redirect to patients list
+  if (!currentPatient) {
+    navigate('/patients');
+    return null;
+  }
+
+  // Mock patient demographics - in real app, this would come from API
   const demographics = {
     mrn: 'MRN123456',
     dob: '1975-03-15',
@@ -92,7 +152,7 @@ export default function PatientDetail() {
         <Card className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground mb-2">{mockPatient.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">{currentPatient.name}</h1>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -114,10 +174,10 @@ export default function PatientDetail() {
                 <div className="space-y-1">
                   <div className="text-muted-foreground">Pathway:</div>
                   <Badge variant="outline" className="capitalize">
-                    {mockPatient.pathway}
+                    {currentPatient.pathway}
                   </Badge>
                   <div className="text-muted-foreground">Current Stage:</div>
-                  <StageChip stage={mockPatient.currentState} variant="caution" />
+                  <StageChip stage={currentPatient.currentState} variant="caution" />
                 </div>
               </div>
             </div>
@@ -131,14 +191,14 @@ export default function PatientDetail() {
           <div className="space-y-3">
             <div>
               <span className="text-sm text-muted-foreground">Primary Diagnosis:</span>
-              <div className="font-medium">{mockPatient.diagnosis}</div>
+              <div className="font-medium">{currentPatient.diagnosis}</div>
             </div>
             
-            {mockPatient.comorbidities.length > 0 && (
+            {currentPatient.comorbidities.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Comorbidities:</span>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {mockPatient.comorbidities.map((comorbidity) => (
+                  {currentPatient.comorbidities.map((comorbidity) => (
                     <Badge key={comorbidity} variant="secondary">
                       {comorbidity}
                     </Badge>
@@ -191,7 +251,7 @@ export default function PatientDetail() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <Timeline entries={mockTimeline} currentState={mockPatient.currentState} />
+            <Timeline entries={mockTimeline} currentState={currentPatient.currentState} />
             
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-4">

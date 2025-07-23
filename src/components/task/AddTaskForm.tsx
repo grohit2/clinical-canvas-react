@@ -248,7 +248,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
 
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex-1">
-              Start Task
+              Submit
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

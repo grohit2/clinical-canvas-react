@@ -32,7 +32,7 @@ export default function Profile() {
         {/* User Info Card */}
         <Card className="p-6">
           <div className="flex items-start gap-6 mb-6">
-            <Avatar className="h-20 w-20 border-2 border-border shadow-sm">
+            <Avatar className="h-20 w-20 shadow-sm">
               <AvatarFallback className="text-xl font-semibold bg-medical/10 text-medical">
                 {mockUser.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>

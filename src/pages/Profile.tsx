@@ -180,55 +180,55 @@ export default function Profile() {
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               👨‍⚕️ Personal Information
             </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Full Name</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.personalInfo.fullName}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Full Name</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.personalInfo.fullName}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Gender</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.personalInfo.gender}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Gender</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right">{mockUser.personalInfo.gender}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Email ID</span>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Email ID</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
                   {isEditingEmail ? (
                     <Input 
                       value={newEmail} 
                       onChange={(e) => setNewEmail(e.target.value)}
-                      className="w-48"
+                      className="w-48 max-w-[200px]"
                     />
                   ) : (
-                    <span className="font-medium">{mockUser.email}</span>
+                    <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.email}</span>
                   )}
                   <Edit2 
-                    className="h-4 w-4 text-muted-foreground cursor-pointer" 
+                    className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" 
                     onClick={handleEmailChange}
                   />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Phone Number</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.phone}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Phone Number</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right">{mockUser.phone}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Date of Birth</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.personalInfo.dateOfBirth.toLocaleDateString()}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Date of Birth</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right">{mockUser.personalInfo.dateOfBirth.toLocaleDateString()}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
             </div>
@@ -239,44 +239,44 @@ export default function Profile() {
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               🏥 Professional Information
             </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Specialization</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.professionalInfo.specialization}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Specialization</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.specialization}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Department</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.professionalInfo.department}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Department</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.department}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Years of Experience</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.professionalInfo.yearsOfExperience} years</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Experience</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right">{mockUser.professionalInfo.yearsOfExperience} years</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Medical Registration</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{mockUser.professionalInfo.medicalRegistrationNumber}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Registration</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{mockUser.professionalInfo.medicalRegistrationNumber}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Consultation Fee</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">₹{mockUser.professionalInfo.consultationFee}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer" />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Consultation Fee</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                  <span className="font-medium text-right">₹{mockUser.professionalInfo.consultationFee}</span>
+                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
             </div>
@@ -287,55 +287,56 @@ export default function Profile() {
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               🔐 Security Settings
             </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Password</span>
-                <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Password</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
                   {isEditingPassword ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Input 
                         type="password"
-                        placeholder="Current Password"
+                        placeholder="Current"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-32"
+                        className="w-20 sm:w-24"
                       />
                       <Input 
                         type={showPassword ? "text" : "password"}
-                        placeholder="New Password"
+                        placeholder="New"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-32"
+                        className="w-20 sm:w-24"
                       />
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setShowPassword(!showPassword)}
+                        className="p-1"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   ) : (
-                    <span className="font-medium">••••••••</span>
+                    <span className="font-medium text-right">••••••••</span>
                   )}
                   <Edit2 
-                    className="h-4 w-4 text-muted-foreground cursor-pointer"
+                    className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0"
                     onClick={handlePasswordChange}
                   />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Two-Factor Authentication</span>
-                <div className="flex items-center gap-2">
-                  <Switch checked={mockUser.securityInfo.twoFactorEnabled} />
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Two-Factor Auth</span>
+                <div className="flex items-center gap-3 flex-1 justify-end">
                   <span className="text-sm text-green-600">Enabled</span>
+                  <Switch checked={mockUser.securityInfo.twoFactorEnabled} className="flex-shrink-0" />
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Last Login</span>
-                <span className="font-medium">{mockUser.securityInfo.lastLogin}</span>
+              <div className="flex items-center justify-between py-3 min-h-[48px]">
+                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Last Login</span>
+                <span className="font-medium text-right text-sm break-words max-w-[200px] sm:max-w-none">{mockUser.securityInfo.lastLogin}</span>
               </div>
             </div>
           </Card>
@@ -377,23 +378,23 @@ export default function Profile() {
       
       <div className="p-4 space-y-6">
         {/* Profile Header */}
-        <Card className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Avatar className="h-16 w-16 shadow-sm">
-              <AvatarFallback className="text-lg font-semibold bg-medical/10 text-medical">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shadow-sm flex-shrink-0">
+              <AvatarFallback className="text-base sm:text-lg font-semibold bg-medical/10 text-medical">
                 {mockUser.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-foreground">{mockUser.name}</h2>
-              <p className="text-muted-foreground">{mockUser.department}</p>
+            <div className="flex-1 min-w-0 mr-2">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">{mockUser.name}</h2>
+              <p className="text-sm sm:text-base text-muted-foreground truncate">{mockUser.department}</p>
               <Badge variant="outline" className="mt-1 capitalize text-xs">
                 {mockUser.role}
               </Badge>
             </div>
-            <Button variant="outline" size="sm">
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Scanner
+            <Button variant="outline" size="sm" className="flex-shrink-0 h-9 px-2 sm:px-3">
+              <QrCode className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">QR Scanner</span>
             </Button>
           </div>
         </Card>

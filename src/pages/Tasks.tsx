@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
+import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -254,6 +255,12 @@ export default function Tasks() {
         onAddTask={handleAddTask}
         patients={mockPatients}
         staff={mockStaff}
+      />
+
+      <FloatingActionButton
+        icon={<Plus className="h-6 w-6" />}
+        label="Add Task"
+        onClick={() => setShowAddTaskForm(true)}
       />
 
       <BottomBar />

@@ -9,6 +9,7 @@ const mockPatients: PatientMeta[] = [
   {
     id: "27e8d1ad",
     name: "Jane Doe",
+    mrn: "MRN001234",
     qrCode: `${window.location.origin}/qr/27e8d1ad`,
     pathway: "surgical",
     currentState: "post-op",
@@ -21,6 +22,7 @@ const mockPatients: PatientMeta[] = [
   {
     id: "3b9f2c1e",
     name: "John Smith",
+    mrn: "MRN005678",
     qrCode: `${window.location.origin}/qr/3b9f2c1e`,
     pathway: "emergency",
     currentState: "ICU",
@@ -33,6 +35,7 @@ const mockPatients: PatientMeta[] = [
   {
     id: "8c4d5e2f",
     name: "Maria Garcia",
+    mrn: "MRN009012",
     qrCode: `${window.location.origin}/qr/8c4d5e2f`,
     pathway: "consultation",
     currentState: "stable",
@@ -45,6 +48,7 @@ const mockPatients: PatientMeta[] = [
   {
     id: "9d6e7f3g",
     name: "Robert Wilson",
+    mrn: "MRN003456",
     qrCode: `${window.location.origin}/qr/9d6e7f3g`,
     pathway: "surgical",
     currentState: "pre-op",
@@ -57,6 +61,7 @@ const mockPatients: PatientMeta[] = [
   {
     id: "1a2b3c4d",
     name: "Sarah Johnson",
+    mrn: "MRN007890",
     qrCode: `${window.location.origin}/qr/1a2b3c4d`,
     pathway: "emergency",
     currentState: "stable",

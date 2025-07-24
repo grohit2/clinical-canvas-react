@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { RightActions } from '@/components/RightActions';
 import { FAB } from '@/components/ui/FAB';
+import { toast } from '@/components/ui/use-toast';
 
 // Mock data
 const mockTasks: Task[] = [
@@ -198,8 +199,12 @@ export default function Tasks() {
                 {groupedTasks[column.id]?.map((task) => (
                   <SwipeableRow
                     key={task.taskId}
-                    renderRightActions={(progress, dragX) => (
-                      <RightActions mrn={task.patientId} close={() => {}} />
+                    renderRightActions={() => (
+                      <RightActions
+                        mrn={task.patientId}
+                        close={() => {}}
+                        showToast={(msg) => toast({ title: msg })}
+                      />
                     )}
                   >
                     <TaskCard
@@ -253,10 +258,10 @@ export default function Tasks() {
       </div>
 
       <FAB
-        icon="plus"
+        icon={<span className="text-2xl">＋</span>}
         label="Add Task"
-        onPress={() => setShowAddTaskForm(true)}
-        accessibilityLabel="Add Task"
+        onClick={() => setShowAddTaskForm(true)}
+        ariaLabel="Add Task"
       />
 
       <AddTaskForm

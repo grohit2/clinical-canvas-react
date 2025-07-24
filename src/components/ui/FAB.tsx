@@ -1,49 +1,13 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, Text } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export const FAB = ({ icon, label, onPress, style, accessibilityLabel }) => (
-  <Pressable
-    style={({ pressed }) => [styles.fab, style, pressed && styles.pressed]}
-    onPress={onPress}
-    accessible={true}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel || label}
+export const FAB = ({ icon, label, onClick, style, ariaLabel }) => (
+  <button
+    className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+    style={style}
+    onClick={onClick}
+    aria-label={ariaLabel || label}
   >
-    <View style={styles.iconContainer}>
-      <MaterialCommunityIcons name={icon} size={28} color="#fff" />
-    </View>
-    {label && <Text style={styles.label}>{label}</Text>}
-  </Pressable>
+    {icon}
+    {label && <span className="font-semibold text-base">{label}</span>}
+  </button>
 );
-
-const styles = StyleSheet.create({
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 24,
-    backgroundColor: '#2563EB', // primary-500
-    borderRadius: 28,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    zIndex: 100,
-  },
-  pressed: {
-    backgroundColor: '#1D4ED8',
-  },
-  iconContainer: {
-    marginRight: 8,
-  },
-  label: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

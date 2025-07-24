@@ -15,6 +15,7 @@ import { patientService, authService } from "@/services";
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { RightActions } from '@/components/RightActions';
 import { FAB } from '@/components/ui/FAB';
+import { toast } from '@/components/ui/use-toast';
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -278,8 +279,12 @@ export default function PatientsList() {
               {allFilteredPatients.map((patient) => (
                 <SwipeableRow
                   key={patient.id}
-                  renderRightActions={(progress, dragX) => (
-                    <RightActions mrn={patient.id} close={() => {}} />
+                  renderRightActions={() => (
+                    <RightActions
+                      mrn={patient.id}
+                      close={() => {}}
+                      showToast={(msg) => toast({ title: msg })}
+                    />
                   )}
                 >
                   <PatientCard
@@ -362,10 +367,10 @@ export default function PatientsList() {
       </div>
 
       <FAB
-        icon="plus"
+        icon={<span className="text-2xl">＋</span>}
         label="Add Patient"
-        onPress={() => setShowAddPatientForm(true)}
-        accessibilityLabel="Add Patient"
+        onClick={() => setShowAddPatientForm(true)}
+        ariaLabel="Add Patient"
       />
 
       <AddPatientForm

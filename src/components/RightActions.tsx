@@ -1,56 +1,31 @@
 import React from 'react';
-import { View, StyleSheet, ToastAndroid, Platform } from 'react-native';
-import * as Clipboard from '@react-native-clipboard/clipboard';
-import * as Haptics from 'expo-haptics';
 import { ActionButton } from './ui/ActionButton';
 
 const LIS_URL = 'http://115.241.194.20/LIS/Reports/Patient_Report.aspx/';
 
-export const RightActions = ({ mrn, close }) => {
+export const RightActions = ({ mrn, close, showToast }) => {
   const openLink = (mrn) => {
-    // TODO: Use WebView or Linking.openURL
     const url = `${LIS_URL}${mrn}`;
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
-    } else {
-      // Use Linking.openURL(url)
-    }
+    window.open(url, '_blank');
     close && close();
   };
 
   const copyMrn = (mrn) => {
-    Clipboard.setString(mrn);
-    if (Platform.OS === 'android') {
-      ToastAndroid.show('MRN copied', ToastAndroid.SHORT);
-    } else {
-      // TODO: Use Snackbar or similar for iOS/web
-    }
-    Haptics.selectionAsync();
+    navigator.clipboard.writeText(mrn);
+    if (showToast) showToast('MRN copied');
     close && close();
   };
 
   const openRadiology = (mrn) => {
-    // Placeholder for future radiology link
+    if (showToast) showToast('Radiology link coming soon');
     close && close();
   };
 
   return (
-    <View style={styles.actionBar}>
-      <ActionButton icon="flask" label="Labs" onPress={() => openLink(mrn)} />
-      <ActionButton icon="content-copy" label="Copy" onPress={() => copyMrn(mrn)} />
-      <ActionButton icon="image" label="Radio" onPress={() => openRadiology(mrn)} />
-    </View>
+    <div className="flex h-full items-center bg-gray-100 rounded-r-lg overflow-hidden">
+      <ActionButton icon="🧪" label="Labs" onClick={() => openLink(mrn)} />
+      <ActionButton icon="📋" label="Copy" onClick={() => copyMrn(mrn)} />
+      <ActionButton icon="🖼️" label="Radio" onClick={() => openRadiology(mrn)} />
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  actionBar: {
-    flexDirection: 'row',
-    height: '100%',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    overflow: 'hidden',
-  },
-});

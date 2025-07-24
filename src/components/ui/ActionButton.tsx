@@ -1,42 +1,13 @@
 import React from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export const ActionButton = ({ icon, label, onPress, accessibilityLabel }) => (
-  <Pressable
-    style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-    onPress={onPress}
-    accessible={true}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel || label}
+export const ActionButton = ({ icon, label, onClick, ariaLabel }) => (
+  <button
+    className="flex flex-col items-center justify-center w-16 h-16 bg-gray-100 rounded-r-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+    onClick={onClick}
+    aria-label={ariaLabel || label}
+    type="button"
   >
-    <View style={styles.iconContainer}>
-      <MaterialCommunityIcons name={icon} size={24} color="#1F2937" />
-    </View>
-    <Text style={styles.label}>{label}</Text>
-  </Pressable>
+    <span className="text-2xl mb-1">{icon}</span>
+    <span className="text-xs font-medium text-gray-700">{label}</span>
+  </button>
 );
-
-const styles = StyleSheet.create({
-  button: {
-    width: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    paddingVertical: 8,
-    marginLeft: 2,
-  },
-  pressed: {
-    backgroundColor: '#E4E7EB',
-  },
-  iconContainer: {
-    marginBottom: 2,
-  },
-  label: {
-    fontSize: 12,
-    color: '#1F2937',
-    marginTop: 2,
-  },
-});

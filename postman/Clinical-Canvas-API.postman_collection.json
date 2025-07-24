@@ -1,0 +1,1281 @@
+{
+  "info": {
+    "name": "Clinical Canvas API",
+    "description": "Complete API collection for Clinical Canvas patient management system",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-refresh token if expired",
+          "const token = pm.environment.get('auth_token');",
+          "if (!token) {",
+          "    console.log('No auth token found. Please login first.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has token', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    ",
+                  "    // Store token for subsequent requests",
+                  "    pm.environment.set('auth_token', jsonData.token);",
+                  "    pm.environment.set('current_user_id', jsonData.user.user_id);",
+                  "    pm.environment.set('current_user_role', jsonData.user.role);",
+                  "});",
+                  "",
+                  "pm.test('User has required properties', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.user).to.have.property('user_id');",
+                  "    pm.expect(jsonData.user).to.have.property('name');",
+                  "    pm.expect(jsonData.user).to.have.property('role');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sarah.wilson@hospital.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "auth", "login"]
+            },
+            "description": "Login with doctor credentials"
+          }
+        },
+        {
+          "name": "Login as Nurse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "pm.environment.set('nurse_token', jsonData.token);",
+                  "pm.environment.set('nurse_user_id', jsonData.user.user_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"emily.johnson@hospital.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "auth", "login"]
+            },
+            "description": "Login with nurse credentials"
+          }
+        },
+        {
+          "name": "Login as Technician",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "pm.environment.set('tech_token', jsonData.token);",
+                  "pm.environment.set('tech_user_id', jsonData.user.user_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"michael.chen@hospital.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "auth", "login"]
+            },
+            "description": "Login with technician credentials"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('User profile returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('user_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('role');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "auth", "me"]
+            },
+            "description": "Get current authenticated user profile"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "auth", "logout"]
+            },
+            "description": "Logout current user"
+          }
+        }
+      ],
+      "description": "Authentication endpoints for login, logout, and user management"
+    },
+    {
+      "name": "👥 Patients",
+      "item": [
+        {
+          "name": "List All Patients",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of patients', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.length > 0) {",
+                  "        const patient = jsonData[0];",
+                  "        pm.expect(patient).to.have.property('patient_id');",
+                  "        pm.expect(patient).to.have.property('name');",
+                  "        pm.expect(patient).to.have.property('pathway');",
+                  "        ",
+                  "        // Store first patient ID for other tests",
+                  "        pm.environment.set('test_patient_id', patient.patient_id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients"]
+            },
+            "description": "Get all patients"
+          }
+        },
+        {
+          "name": "List Patients with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients?pathway=surgical&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients"],
+              "query": [
+                {
+                  "key": "pathway",
+                  "value": "surgical"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "state",
+                  "value": "post-op",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Jane",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get patients with filtering options"
+          }
+        },
+        {
+          "name": "Create New Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Patient created successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('patient_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData.name).to.eql('Test Patient');",
+                  "    ",
+                  "    // Store created patient ID for cleanup",
+                  "    pm.environment.set('created_patient_id', jsonData.patient_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Patient\",\n  \"pathway\": \"consultation\",\n  \"current_state\": \"admitted\",\n  \"diagnosis\": \"Routine Checkup\",\n  \"comorbidities\": [\"None\"],\n  \"assigned_doctor\": \"Dr. Sarah Wilson\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients"]
+            },
+            "description": "Create a new patient"
+          }
+        },
+        {
+          "name": "Get Patient by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Patient details returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('patient_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('diagnosis');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}"]
+            },
+            "description": "Get specific patient details"
+          }
+        },
+        {
+          "name": "Update Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Patient updated successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('current_state');",
+                  "    pm.expect(jsonData.current_state).to.eql('discharged');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_state\": \"discharged\",\n  \"diagnosis\": \"Routine Checkup - Completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}"]
+            },
+            "description": "Update patient information"
+          }
+        },
+        {
+          "name": "Get Patient QR Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('QR data contains required fields', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('patient_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('vitals');",
+                  "    pm.expect(jsonData).to.have.property('recent_updates');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}/qr",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}", "qr"]
+            },
+            "description": "Get patient QR code data for bedside scanning"
+          }
+        },
+        {
+          "name": "Get Patient Timeline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Timeline is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}/timeline",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}", "timeline"]
+            },
+            "description": "Get patient timeline entries"
+          }
+        },
+        {
+          "name": "Get Patient Notes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Notes is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}/notes",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}", "notes"],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "2025-01-01T00:00:00Z",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get patient notes"
+          }
+        },
+        {
+          "name": "Create Patient Note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Note created successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('note_id');",
+                  "    pm.expect(jsonData).to.have.property('content');",
+                  "    pm.expect(jsonData.content).to.eql('Test note from Postman');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{test_patient_id}}\",\n  \"author_id\": \"{{current_user_id}}\",\n  \"category\": \"doctorNote\",\n  \"content\": \"Test note from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{test_patient_id}}/notes",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{test_patient_id}}", "notes"]
+            },
+            "description": "Create a new note for a patient"
+          }
+        },
+        {
+          "name": "Get Patient Assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/assignments?doctor_id={{current_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "assignments"],
+              "query": [
+                {
+                  "key": "doctor_id",
+                  "value": "{{current_user_id}}"
+                }
+              ]
+            },
+            "description": "Get patients assigned to a doctor"
+          }
+        }
+      ],
+      "description": "Patient management endpoints"
+    },
+    {
+      "name": "📋 Tasks",
+      "item": [
+        {
+          "name": "List All Tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of tasks', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.length > 0) {",
+                  "        const task = jsonData[0];",
+                  "        pm.expect(task).to.have.property('task_id');",
+                  "        pm.expect(task).to.have.property('title');",
+                  "        pm.expect(task).to.have.property('type');",
+                  "        pm.expect(task).to.have.property('status');",
+                  "        ",
+                  "        // Store first task ID for other tests",
+                  "        pm.environment.set('test_task_id', task.task_id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks"]
+            },
+            "description": "Get all tasks for current user"
+          }
+        },
+        {
+          "name": "List Tasks with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks?status=open&type=lab&priority=high",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "type",
+                  "value": "lab"
+                },
+                {
+                  "key": "priority",
+                  "value": "high"
+                },
+                {
+                  "key": "assignee_id",
+                  "value": "{{current_user_id}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get tasks with various filters"
+          }
+        },
+        {
+          "name": "Create New Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Task created successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('task_id');",
+                  "    pm.expect(jsonData).to.have.property('title');",
+                  "    pm.expect(jsonData.title).to.eql('Test Task from Postman');",
+                  "    ",
+                  "    // Store created task ID",
+                  "    pm.environment.set('created_task_id', jsonData.task_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{test_patient_id}}\",\n  \"title\": \"Test Task from Postman\",\n  \"type\": \"assessment\",\n  \"due\": \"2025-01-20T14:00:00Z\",\n  \"assignee_id\": \"{{current_user_id}}\",\n  \"priority\": \"medium\",\n  \"recurring\": false,\n  \"details\": {\n    \"notes\": \"Created via Postman for testing\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks"]
+            },
+            "description": "Create a new task"
+          }
+        },
+        {
+          "name": "Get Tasks by Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of tasks for patient', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks/patient/{{test_patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks", "patient", "{{test_patient_id}}"]
+            },
+            "description": "Get all tasks for a specific patient"
+          }
+        },
+        {
+          "name": "Get Tasks Due Today",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of tasks due today', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks/due-today",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks", "due-today"],
+              "query": [
+                {
+                  "key": "assignee_id",
+                  "value": "{{current_user_id}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get tasks due today for current user"
+          }
+        },
+        {
+          "name": "Get Completed Tasks Today",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of completed tasks', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks/completed-today",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks", "completed-today"]
+            },
+            "description": "Get tasks completed today"
+          }
+        },
+        {
+          "name": "Get Urgent Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of urgent tasks', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    // Check structure if any urgent tasks exist",
+                  "    if (jsonData.length > 0) {",
+                  "        const task = jsonData[0];",
+                  "        pm.expect(task).to.have.property('time_remaining');",
+                  "        pm.expect(task).to.have.property('patient_name');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/tasks/urgent-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "tasks", "urgent-alerts"]
+            },
+            "description": "Get urgent alerts (tasks due within 10 minutes or marked urgent)"
+          }
+        }
+      ],
+      "description": "Task management endpoints"
+    },
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get KPI Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('KPI data has required fields', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('total_patients');",
+                  "    pm.expect(jsonData).to.have.property('tasks_due');",
+                  "    pm.expect(jsonData).to.have.property('urgent_alerts');",
+                  "    pm.expect(jsonData).to.have.property('completed_today');",
+                  "    ",
+                  "    // All should be numbers",
+                  "    pm.expect(jsonData.total_patients).to.be.a('number');",
+                  "    pm.expect(jsonData.tasks_due).to.be.a('number');",
+                  "    pm.expect(jsonData.urgent_alerts).to.be.a('number');",
+                  "    pm.expect(jsonData.completed_today).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/dashboard/kpi",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "dashboard", "kpi"],
+              "query": [
+                {
+                  "key": "doctor_id",
+                  "value": "{{current_user_id}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get dashboard KPI metrics"
+          }
+        },
+        {
+          "name": "Get Upcoming Procedures",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of procedures', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.length > 0) {",
+                  "        const procedure = jsonData[0];",
+                  "        pm.expect(procedure).to.have.property('id');",
+                  "        pm.expect(procedure).to.have.property('patient_name');",
+                  "        pm.expect(procedure).to.have.property('procedure');",
+                  "        pm.expect(procedure).to.have.property('time');",
+                  "        pm.expect(procedure).to.have.property('surgeon');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/dashboard/procedures/upcoming",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "dashboard", "procedures", "upcoming"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "doctor_id",
+                  "value": "{{current_user_id}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get upcoming procedures"
+          }
+        },
+        {
+          "name": "Get Stage Heatmap",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of stage data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.length > 0) {",
+                  "        const stage = jsonData[0];",
+                  "        pm.expect(stage).to.have.property('stage');",
+                  "        pm.expect(stage).to.have.property('count');",
+                  "        pm.expect(stage).to.have.property('variant');",
+                  "        ",
+                  "        // Validate variant values",
+                  "        pm.expect(['caution', 'urgent', 'stable', 'default']).to.include(stage.variant);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/dashboard/stage-heatmap",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "dashboard", "stage-heatmap"],
+              "query": [
+                {
+                  "key": "pathway",
+                  "value": "surgical",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get stage heat map data"
+          }
+        }
+      ],
+      "description": "Dashboard analytics endpoints"
+    },
+    {
+      "name": "👨‍⚕️ Doctors & Staff",
+      "item": [
+        {
+          "name": "List All Doctors",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of doctors', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    ",
+                  "    if (jsonData.length > 0) {",
+                  "        const doctor = jsonData[0];",
+                  "        pm.expect(doctor).to.have.property('user_id');",
+                  "        pm.expect(doctor).to.have.property('name');",
+                  "        pm.expect(doctor).to.have.property('role');",
+                  "        pm.expect(doctor).to.have.property('email');",
+                  "        pm.expect(doctor.role).to.eql('doctor');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/doctors",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "doctors"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "doctor"
+                }
+              ]
+            },
+            "description": "Get all doctors"
+          }
+        },
+        {
+          "name": "List All Nurses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/doctors?role=nurse",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "doctors"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "nurse"
+                }
+              ]
+            },
+            "description": "Get all nurses"
+          }
+        },
+        {
+          "name": "List All Technicians",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/doctors?role=technician",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "doctors"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "technician"
+                }
+              ]
+            },
+            "description": "Get all technicians"
+          }
+        },
+        {
+          "name": "Get Doctor Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Doctor profile returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('user_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('role');",
+                  "    pm.expect(jsonData).to.have.property('contact_info');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/doctors/{{current_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "doctors", "{{current_user_id}}"]
+            },
+            "description": "Get specific doctor profile"
+          }
+        },
+        {
+          "name": "Update Doctor Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Profile updated successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('user_id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact_info\": {\n    \"phone\": \"+1-555-0199\",\n    \"pager\": \"199\",\n    \"updated_via\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/doctors/{{current_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "doctors", "{{current_user_id}}"]
+            },
+            "description": "Update doctor profile information"
+          }
+        }
+      ],
+      "description": "Doctor and staff management endpoints"
+    },
+    {
+      "name": "🏥 System",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Health check response', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "System health check"
+          }
+        },
+        {
+          "name": "API Root",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('API info returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('version');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "API root endpoint"
+          }
+        }
+      ],
+      "description": "System and health check endpoints"
+    },
+    {
+      "name": "🧹 Cleanup",
+      "item": [
+        {
+          "name": "Delete Created Patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Patient deleted successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{api_version}}/patients/{{created_patient_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{api_version}}", "patients", "{{created_patient_id}}"]
+            },
+            "description": "Clean up created test patient"
+          }
+        }
+      ],
+      "description": "Cleanup test data created during testing"
+    }
+  ]
+}

@@ -9,83 +9,93 @@ import { useNavigate } from "react-router-dom";
 // Mock task data for the current doctor
 const mockTasksDue = [
   {
-    id: '1',
-    patientName: 'Jane Doe',
-    patientId: '27e8d1ad',
-    title: 'Post-op vitals check',
-    type: 'assessment' as const,
-    priority: 'high' as const,
-    dueTime: '15:30',
-    assignedDoctor: 'Dr. Sarah Wilson'
+    id: "1",
+    patientName: "Jane Doe",
+    patientId: "27e8d1ad",
+    title: "Post-op vitals check",
+    type: "assessment" as const,
+    priority: "high" as const,
+    dueTime: "15:30",
+    assignedDoctor: "Dr. Sarah Wilson",
   },
   {
-    id: '2',
-    patientName: 'Robert Wilson',
-    patientId: '9d6e7f3g',
-    title: 'Pre-operative assessment',
-    type: 'assessment' as const,
-    priority: 'medium' as const,
-    dueTime: '16:00',
-    assignedDoctor: 'Dr. Sarah Wilson'
+    id: "2",
+    patientName: "Robert Wilson",
+    patientId: "9d6e7f3g",
+    title: "Pre-operative assessment",
+    type: "assessment" as const,
+    priority: "medium" as const,
+    dueTime: "16:00",
+    assignedDoctor: "Dr. Sarah Wilson",
   },
   {
-    id: '3',
-    patientName: 'John Smith',
-    patientId: '3b9f2c1e',
-    title: 'Medication administration',
-    type: 'medication' as const,
-    priority: 'urgent' as const,
-    dueTime: '14:45',
-    assignedDoctor: 'Dr. Johnson'
+    id: "3",
+    patientName: "John Smith",
+    patientId: "3b9f2c1e",
+    title: "Medication administration",
+    type: "medication" as const,
+    priority: "urgent" as const,
+    dueTime: "14:45",
+    assignedDoctor: "Dr. Johnson",
   },
   {
-    id: '4',
-    patientName: 'Sarah Johnson',
-    patientId: '1a2b3c4d',
-    title: 'Discharge planning',
-    type: 'discharge' as const,
-    priority: 'medium' as const,
-    dueTime: '17:00',
-    assignedDoctor: 'Dr. Johnson'
-  }
+    id: "4",
+    patientName: "Sarah Johnson",
+    patientId: "1a2b3c4d",
+    title: "Discharge planning",
+    type: "discharge" as const,
+    priority: "medium" as const,
+    dueTime: "17:00",
+    assignedDoctor: "Dr. Johnson",
+  },
 ];
 
 // Current doctor from profile
-const currentDoctor = 'Dr. Sarah Wilson';
+const currentDoctor = "Dr. Sarah Wilson";
 
 export default function TasksDue() {
   const navigate = useNavigate();
 
   // Filter tasks for current doctor
-  const doctorTasks = mockTasksDue.filter(task => task.assignedDoctor === currentDoctor);
+  const doctorTasks = mockTasksDue.filter(
+    (task) => task.assignedDoctor === currentDoctor,
+  );
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'text-urgent border-urgent bg-urgent/5';
-      case 'high': return 'text-caution border-caution bg-caution/5';
-      case 'medium': return 'text-medical border-medical bg-medical/5';
-      default: return 'text-muted-foreground border-border';
+      case "urgent":
+        return "text-urgent border-urgent bg-urgent/5";
+      case "high":
+        return "text-caution border-caution bg-caution/5";
+      case "medium":
+        return "text-medical border-medical bg-medical/5";
+      default:
+        return "text-muted-foreground border-border";
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'assessment': return <User className="h-4 w-4" />;
-      case 'medication': return <AlertCircle className="h-4 w-4" />;
-      case 'discharge': return <Calendar className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
+      case "assessment":
+        return <User className="h-4 w-4" />;
+      case "medication":
+        return <AlertCircle className="h-4 w-4" />;
+      case "discharge":
+        return <Calendar className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header 
-        title="Tasks Due" 
+      <Header
+        title="Tasks Due"
         showBack
-        onBack={() => navigate('/')}
+        onBack={() => navigate("/")}
         notificationCount={3}
       />
-      
+
       <div className="p-4 space-y-4">
         {/* Summary */}
         <Card className="p-4">
@@ -106,13 +116,21 @@ export default function TasksDue() {
         {/* Tasks List */}
         <div className="space-y-3">
           {doctorTasks.map((task) => (
-            <Card key={task.id} className={`p-4 border-l-4 ${getPriorityColor(task.priority)}`}>
+            <Card
+              key={task.id}
+              className={`p-4 border-l-4 ${getPriorityColor(task.priority)}`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
                     {getTypeIcon(task.type)}
                     <h3 className="font-medium">{task.title}</h3>
-                    <Badge variant={task.priority === 'urgent' ? 'destructive' : 'secondary'} className="text-xs">
+                    <Badge
+                      variant={
+                        task.priority === "urgent" ? "destructive" : "secondary"
+                      }
+                      className="text-xs"
+                    >
                       {task.priority}
                     </Badge>
                   </div>
@@ -125,16 +143,13 @@ export default function TasksDue() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => navigate(`/patients/${task.patientId}`)}
                   >
                     View Patient
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                  >
+                  <Button variant="outline" size="sm">
                     Mark Done
                   </Button>
                 </div>

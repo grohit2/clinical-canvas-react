@@ -1,12 +1,27 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -15,73 +30,88 @@ import { Task } from "@/types/models";
 interface AddTaskFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (task: Omit<Task, 'taskId'>) => void;
-  patients: Array<{ id: string; name: string; }>;
-  staff: Array<{ id: string; name: string; }>;
+  onSubmit: (task: Omit<Task, "taskId">) => void;
+  patients: Array<{ id: string; name: string }>;
+  staff: Array<{ id: string; name: string }>;
 }
 
-export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: AddTaskFormProps) {
+export function AddTaskForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  patients,
+  staff,
+}: AddTaskFormProps) {
   const [formData, setFormData] = useState({
     patientId: "",
     title: "",
-    type: "" as Task['type'],
+    type: "" as Task["type"],
     due: "",
     assigneeId: "",
-    priority: "medium" as Task['priority'],
+    priority: "medium" as Task["priority"],
     testType: "",
     medication: "",
-    time: ""
+    time: "",
   });
   const [selectedDate, setSelectedDate] = useState<Date>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.patientId || !formData.title || !formData.type || !formData.assigneeId || !selectedDate || !formData.time) {
-      alert('Please fill in all required fields: Patient ID, Task Description, Task Type, Assigned Person, Date and Time');
+
+    if (
+      !formData.patientId ||
+      !formData.title ||
+      !formData.type ||
+      !formData.assigneeId ||
+      !selectedDate ||
+      !formData.time
+    ) {
+      alert(
+        "Please fill in all required fields: Patient ID, Task Description, Task Type, Assigned Person, Date and Time",
+      );
       return;
     }
 
     const dueDateTime = selectedDate;
     if (formData.time) {
-      const [hours, minutes] = formData.time.split(':');
+      const [hours, minutes] = formData.time.split(":");
       dueDateTime.setHours(parseInt(hours), parseInt(minutes));
     }
 
-    const newTask: Omit<Task, 'taskId'> = {
+    const newTask: Omit<Task, "taskId"> = {
       patientId: formData.patientId,
       title: formData.title,
       type: formData.type,
       due: dueDateTime.toISOString(),
       assigneeId: formData.assigneeId,
-      status: 'open',
+      status: "open",
       priority: formData.priority,
-      recurring: false
+      recurring: false,
     };
 
     onSubmit(newTask);
     onOpenChange(false);
-    
+
     // Reset form
     setFormData({
       patientId: "",
       title: "",
-      type: "" as Task['type'],
+      type: "" as Task["type"],
       due: "",
       assigneeId: "",
       priority: "medium",
       testType: "",
       medication: "",
-      time: ""
+      time: "",
     });
     setSelectedDate(undefined);
   };
 
   const getTaskTitle = () => {
-    if (formData.type === 'lab' && formData.testType) {
+    if (formData.type === "lab" && formData.testType) {
       return `Lab Test: ${formData.testType}`;
     }
-    if (formData.type === 'medication' && formData.medication) {
+    if (formData.type === "medication" && formData.medication) {
       return `Medication: ${formData.medication}`;
     }
     return formData.title;
@@ -93,12 +123,17 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Patient Selection */}
           <div className="space-y-2">
             <Label htmlFor="patient">Patient ID *</Label>
-            <Select value={formData.patientId} onValueChange={(value) => setFormData(prev => ({ ...prev, patientId: value }))}>
+            <Select
+              value={formData.patientId}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, patientId: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select patient" />
               </SelectTrigger>
@@ -115,7 +150,12 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
           {/* Task Type */}
           <div className="space-y-2">
             <Label htmlFor="type">Task Type *</Label>
-            <Select value={formData.type} onValueChange={(value: Task['type']) => setFormData(prev => ({ ...prev, type: value }))}>
+            <Select
+              value={formData.type}
+              onValueChange={(value: Task["type"]) =>
+                setFormData((prev) => ({ ...prev, type: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select task type" />
               </SelectTrigger>
@@ -130,44 +170,60 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
           </div>
 
           {/* Test Type (if lab selected) */}
-          {formData.type === 'lab' && (
+          {formData.type === "lab" && (
             <div className="space-y-2">
               <Label htmlFor="testType">Test Type</Label>
               <Input
                 id="testType"
                 value={formData.testType}
-                onChange={(e) => setFormData(prev => ({ ...prev, testType: e.target.value, title: `Lab Test: ${e.target.value}` }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    testType: e.target.value,
+                    title: `Lab Test: ${e.target.value}`,
+                  }))
+                }
                 placeholder="e.g., Blood Test, X-Ray, MRI"
               />
             </div>
           )}
 
           {/* Medication (if medication selected) */}
-          {formData.type === 'medication' && (
+          {formData.type === "medication" && (
             <div className="space-y-2">
               <Label htmlFor="medication">Medication</Label>
               <Input
                 id="medication"
                 value={formData.medication}
-                onChange={(e) => setFormData(prev => ({ ...prev, medication: e.target.value, title: `Medication: ${e.target.value}` }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    medication: e.target.value,
+                    title: `Medication: ${e.target.value}`,
+                  }))
+                }
                 placeholder="e.g., Paracetamol 500mg"
               />
             </div>
           )}
 
           {/* Task Title (if not auto-generated) */}
-          {formData.type && formData.type !== 'lab' && formData.type !== 'medication' && (
-            <div className="space-y-2">
-              <Label htmlFor="title">Task Description</Label>
-              <Textarea
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter task description"
-                rows={3}
-              />
-            </div>
-          )}
+          {formData.type &&
+            formData.type !== "lab" &&
+            formData.type !== "medication" && (
+              <div className="space-y-2">
+                <Label htmlFor="title">Task Description</Label>
+                <Textarea
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                  placeholder="Enter task description"
+                  rows={3}
+                />
+              </div>
+            )}
 
           {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
@@ -179,7 +235,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
+                      !selectedDate && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -205,7 +261,9 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
                   id="time"
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, time: e.target.value }))
+                  }
                   className="pl-10"
                   required
                 />
@@ -216,7 +274,12 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
           {/* Assigned Person */}
           <div className="space-y-2">
             <Label htmlFor="assignee">Assigned Person *</Label>
-            <Select value={formData.assigneeId} onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}>
+            <Select
+              value={formData.assigneeId}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, assigneeId: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select assignee" />
               </SelectTrigger>
@@ -233,7 +296,12 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority">Priority</Label>
-            <Select value={formData.priority} onValueChange={(value: Task['priority']) => setFormData(prev => ({ ...prev, priority: value }))}>
+            <Select
+              value={formData.priority}
+              onValueChange={(value: Task["priority"]) =>
+                setFormData((prev) => ({ ...prev, priority: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -250,7 +318,11 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
             <Button type="submit" className="flex-1">
               Submit
             </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
           </div>

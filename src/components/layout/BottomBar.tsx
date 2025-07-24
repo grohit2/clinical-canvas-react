@@ -21,7 +21,7 @@ export function BottomBar() {
               "flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors",
               isActive
                 ? "text-medical bg-medical-muted"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted",
             )
           }
         >

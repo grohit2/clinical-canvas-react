@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -17,8 +21,17 @@ interface FilterPopupProps {
   activeFiltersCount: number;
 }
 
-const pathwayFilters = ['all', 'surgical', 'emergency', 'consultation'];
-const stageFilters = ['all', 'pre-op', 'surgery', 'post-op', 'ICU', 'recovery', 'stable', 'discharge'];
+const pathwayFilters = ["all", "surgical", "emergency", "consultation"];
+const stageFilters = [
+  "all",
+  "pre-op",
+  "surgery",
+  "post-op",
+  "ICU",
+  "recovery",
+  "stable",
+  "discharge",
+];
 
 export function FilterPopup({
   selectedPathway,
@@ -28,7 +41,7 @@ export function FilterPopup({
   onStageChange,
   onUrgentToggle,
   onClearFilters,
-  activeFiltersCount
+  activeFiltersCount,
 }: FilterPopupProps) {
   const [open, setOpen] = useState(false);
 
@@ -63,15 +76,23 @@ export function FilterPopup({
           {/* Pathways */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Pathway</label>
-            <RadioGroup value={selectedPathway} onValueChange={(value) => {
-              onPathwayChange(value);
-              setOpen(false);
-            }}>
+            <RadioGroup
+              value={selectedPathway}
+              onValueChange={(value) => {
+                onPathwayChange(value);
+                setOpen(false);
+              }}
+            >
               {pathwayFilters.map((pathway) => (
                 <div key={pathway} className="flex items-center space-x-2">
                   <RadioGroupItem value={pathway} id={`pathway-${pathway}`} />
-                  <Label htmlFor={`pathway-${pathway}`} className="text-sm cursor-pointer">
-                    {pathway === 'all' ? 'All' : pathway.charAt(0).toUpperCase() + pathway.slice(1)}
+                  <Label
+                    htmlFor={`pathway-${pathway}`}
+                    className="text-sm cursor-pointer"
+                  >
+                    {pathway === "all"
+                      ? "All"
+                      : pathway.charAt(0).toUpperCase() + pathway.slice(1)}
                   </Label>
                 </div>
               ))}
@@ -81,15 +102,23 @@ export function FilterPopup({
           {/* Stages */}
           <div className="space-y-3">
             <label className="text-sm font-medium">Stage</label>
-            <RadioGroup value={selectedStage} onValueChange={(value) => {
-              onStageChange(value);
-              setOpen(false);
-            }}>
+            <RadioGroup
+              value={selectedStage}
+              onValueChange={(value) => {
+                onStageChange(value);
+                setOpen(false);
+              }}
+            >
               {stageFilters.map((stage) => (
                 <div key={stage} className="flex items-center space-x-2">
                   <RadioGroupItem value={stage} id={`stage-${stage}`} />
-                  <Label htmlFor={`stage-${stage}`} className="text-sm cursor-pointer">
-                    {stage === 'all' ? 'All' : stage.charAt(0).toUpperCase() + stage.slice(1)}
+                  <Label
+                    htmlFor={`stage-${stage}`}
+                    className="text-sm cursor-pointer"
+                  >
+                    {stage === "all"
+                      ? "All"
+                      : stage.charAt(0).toUpperCase() + stage.slice(1)}
                   </Label>
                 </div>
               ))}

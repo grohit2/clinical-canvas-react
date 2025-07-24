@@ -1,41 +1,47 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { authService } from '@/services';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, User, Lock } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { authService } from "@/services";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, User, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const user = await authService.login({ email, password });
-      
+
       if (user) {
         login(user);
         toast.success(`Welcome back, ${user.doctor.name}!`);
-        navigate('/');
+        navigate("/");
       } else {
-        setError('Invalid email or password');
+        setError("Invalid email or password");
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +75,7 @@ export default function Login() {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -92,28 +98,34 @@ export default function Login() {
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </Button>
           </form>
 
           <div className="mt-6 space-y-2">
-            <p className="text-sm text-muted-foreground text-center">Demo Credentials:</p>
+            <p className="text-sm text-muted-foreground text-center">
+              Demo Credentials:
+            </p>
             <div className="text-xs space-y-1 bg-muted p-3 rounded">
-              <p><strong>Dr. Sarah Wilson:</strong> sarah.wilson@hospital.com / password123</p>
-              <p><strong>Dr. Johnson:</strong> johnson@hospital.com / password456</p>
-              <p><strong>Dr. Emily Chen:</strong> emily.chen@hospital.com / password789</p>
+              <p>
+                <strong>Dr. Sarah Wilson:</strong> sarah.wilson@hospital.com /
+                password123
+              </p>
+              <p>
+                <strong>Dr. Johnson:</strong> johnson@hospital.com / password456
+              </p>
+              <p>
+                <strong>Dr. Emily Chen:</strong> emily.chen@hospital.com /
+                password789
+              </p>
             </div>
           </div>
         </CardContent>

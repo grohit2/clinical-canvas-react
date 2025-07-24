@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import QRCode from 'qrcode';
+import { useEffect, useRef } from "react";
+import QRCode from "qrcode";
 
 interface QRCodeGeneratorProps {
   value: string;
@@ -7,10 +7,10 @@ interface QRCodeGeneratorProps {
   className?: string;
 }
 
-export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ 
-  value, 
-  size = 128, 
-  className = "" 
+export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
+  value,
+  size = 128,
+  className = "",
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -20,9 +20,9 @@ export const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
         width: size,
         margin: 2,
         color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
       });
     }
   }, [value, size]);

@@ -1,5 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthUser, Doctor } from '@/data/authData';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
+import { AuthUser, Doctor } from "@/data/authData";
 
 interface AuthContextType {
   currentUser: AuthUser | null;
@@ -13,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -26,7 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
+    const userData = localStorage.getItem("currentUser");
     if (userData) {
       setCurrentUser(JSON.parse(userData));
     }
@@ -34,24 +41,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = (user: AuthUser) => {
     setCurrentUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem("currentUser", JSON.stringify(user));
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem("currentUser");
   };
 
-  const value = {
-    currentUser,
-    login,
-    logout,
-    isAuthenticated: !!currentUser
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({
+      currentUser,
+      login,
+      logout,
+      isAuthenticated: !!currentUser,
+    }),
+    [currentUser],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

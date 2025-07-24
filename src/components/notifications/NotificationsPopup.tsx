@@ -12,7 +12,7 @@ import { Clock, AlertCircle, User, FileText } from "lucide-react";
 
 interface Notification {
   id: string;
-  type: 'urgent' | 'update' | 'assignment' | 'report';
+  type: "urgent" | "update" | "assignment" | "report";
   title: string;
   message: string;
   timestamp: string;
@@ -63,34 +63,35 @@ interface NotificationsPopupProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupProps) {
+export function NotificationsPopup({
+  open,
+  onOpenChange,
+}: NotificationsPopupProps) {
   const [notifications, setNotifications] = useState(mockNotifications);
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification,
+      ),
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
+    setNotifications((prev) =>
+      prev.map((notification) => ({ ...notification, read: true })),
     );
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'urgent':
+      case "urgent":
         return <AlertCircle className="h-4 w-4 text-urgent" />;
-      case 'update':
+      case "update":
         return <FileText className="h-4 w-4 text-primary" />;
-      case 'assignment':
+      case "assignment":
         return <User className="h-4 w-4 text-blue-500" />;
-      case 'report':
+      case "report":
         return <FileText className="h-4 w-4 text-green-500" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
@@ -99,24 +100,26 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
 
   const getNotificationBadgeVariant = (type: string) => {
     switch (type) {
-      case 'urgent':
-        return 'destructive';
-      case 'update':
-        return 'default';
-      case 'assignment':
-        return 'secondary';
-      case 'report':
-        return 'outline';
+      case "urgent":
+        return "destructive";
+      case "update":
+        return "default";
+      case "assignment":
+        return "secondary";
+      case "report":
+        return "outline";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60),
+    );
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes}m ago`;
     } else if (diffInMinutes < 1440) {
@@ -126,7 +129,7 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -156,9 +159,9 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
           ) : (
             notifications.map((notification, index) => (
               <div key={notification.id}>
-                <div 
+                <div
                   className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent ${
-                    !notification.read ? 'bg-accent/50' : ''
+                    !notification.read ? "bg-accent/50" : ""
                   }`}
                   onClick={() => markAsRead(notification.id)}
                 >
@@ -166,7 +169,9 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
                     {getNotificationIcon(notification.type)}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className={`text-sm font-medium ${!notification.read ? 'font-semibold' : ''}`}>
+                        <h4
+                          className={`text-sm font-medium ${!notification.read ? "font-semibold" : ""}`}
+                        >
                           {notification.title}
                         </h4>
                         {!notification.read && (
@@ -183,8 +188,10 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
                               {notification.patientName}
                             </Badge>
                           )}
-                          <Badge 
-                            variant={getNotificationBadgeVariant(notification.type)}
+                          <Badge
+                            variant={getNotificationBadgeVariant(
+                              notification.type,
+                            )}
                             className="text-xs"
                           >
                             {notification.type}
@@ -198,7 +205,9 @@ export function NotificationsPopup({ open, onOpenChange }: NotificationsPopupPro
                     </div>
                   </div>
                 </div>
-                {index < notifications.length - 1 && <Separator className="my-1" />}
+                {index < notifications.length - 1 && (
+                  <Separator className="my-1" />
+                )}
               </div>
             ))
           )}

@@ -54,7 +54,11 @@ interface AddPatientFormProps {
   onAddPatient?: (patient: AddPatientFormValues) => void;
 }
 
-export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientFormProps) {
+export function AddPatientForm({
+  open,
+  onOpenChange,
+  onAddPatient,
+}: AddPatientFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,19 +81,19 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
 
   const onSubmit = async (data: AddPatientFormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Add patient to the list
       onAddPatient?.(data);
-      
+
       toast({
         title: "Patient added successfully",
         description: `${data.name} has been added to the system.`,
       });
-      
+
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -161,7 +165,10 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Gender *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select gender" />
@@ -184,7 +191,10 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Pathway *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select pathway" />
@@ -193,7 +203,9 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                       <SelectContent>
                         <SelectItem value="surgical">Surgical</SelectItem>
                         <SelectItem value="emergency">Emergency</SelectItem>
-                        <SelectItem value="consultation">Consultation</SelectItem>
+                        <SelectItem value="consultation">
+                          Consultation
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -207,7 +219,10 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assigned Doctor *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select doctor" />
@@ -261,7 +276,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                 <FormItem>
                   <FormLabel>Comorbidities</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="List any comorbidities (comma separated)"
                       className="resize-none"
                       {...field}
@@ -279,7 +294,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                 <FormItem>
                   <FormLabel>Allergies</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="List any known allergies"
                       className="resize-none"
                       {...field}

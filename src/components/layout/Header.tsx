@@ -8,6 +8,7 @@ interface HeaderProps {
   showBack?: boolean;
   showSearch?: boolean;
   showAdd?: boolean;
+  addButtonText?: string;
   onBack?: () => void;
   onAdd?: () => void;
   searchValue?: string;
@@ -21,12 +22,13 @@ export function Header({
   showBack = false,
   showSearch = false,
   showAdd = false,
+  addButtonText = "Add",
   onBack,
   onAdd,
   searchValue = "",
   onSearchChange,
   notificationCount = 0,
-  onNotificationClick
+  onNotificationClick,
 }: HeaderProps) {
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4">
@@ -51,22 +53,22 @@ export function Header({
             />
           </div>
         )}
-        
-        {showAdd && title === "Patients" && (
+
+        {showAdd && (
           <Button onClick={onAdd} size="sm" className="flex-shrink-0">
             <Plus className="h-4 w-4 mr-1 md:mr-2" />
-            <span className="hidden sm:inline">Add Patient</span>
+            <span className="hidden sm:inline">{addButtonText}</span>
             <span className="sm:hidden">Add</span>
           </Button>
         )}
-        
+
         <div className="relative">
           <Button variant="ghost" size="sm" onClick={onNotificationClick}>
             <Bell className="h-4 w-4" />
           </Button>
           {notificationCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-urgent text-urgent-foreground text-xs">
-              {notificationCount > 9 ? '9+' : notificationCount}
+              {notificationCount > 9 ? "9+" : notificationCount}
             </Badge>
           )}
         </div>

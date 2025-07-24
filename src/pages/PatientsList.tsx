@@ -12,6 +12,9 @@ import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { patientService, authService } from "@/services";
+import { SwipeableRow } from '@/components/SwipeableRow';
+import { RightActions } from '@/components/RightActions';
+import { FAB } from '@/components/ui/FAB';
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -273,11 +276,17 @@ export default function PatientsList() {
             {/* Patients Grid */}
             <div className="grid gap-3">
               {allFilteredPatients.map((patient) => (
-                <PatientCard
+                <SwipeableRow
                   key={patient.id}
-                  patient={patient}
-                  onClick={() => handlePatientClick(patient.id)}
-                />
+                  renderRightActions={(progress, dragX) => (
+                    <RightActions mrn={patient.id} close={() => {}} />
+                  )}
+                >
+                  <PatientCard
+                    patient={patient}
+                    onClick={() => handlePatientClick(patient.id)}
+                  />
+                </SwipeableRow>
               ))}
             </div>
 
@@ -351,6 +360,13 @@ export default function PatientsList() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <FAB
+        icon="plus"
+        label="Add Patient"
+        onPress={() => setShowAddPatientForm(true)}
+        accessibilityLabel="Add Patient"
+      />
 
       <AddPatientForm
         open={showAddPatientForm}

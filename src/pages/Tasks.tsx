@@ -12,6 +12,9 @@ import { AddTaskForm } from "@/components/task/AddTaskForm";
 import { TaskCard } from "@/components/task/TaskCard";
 import { taskService } from "@/services";
 import { useAuth } from "@/context/AuthContext";
+import { SwipeableRow } from '@/components/SwipeableRow';
+import { RightActions } from '@/components/RightActions';
+import { FAB } from '@/components/ui/FAB';
 
 // Mock data
 const mockTasks: Task[] = [
@@ -176,11 +179,6 @@ export default function Tasks() {
               My Tasks
             </Button>
           </div>
-
-          <Button size="sm" onClick={() => setShowAddTaskForm(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Task
-          </Button>
         </div>
 
         {/* Kanban Board */}
@@ -198,11 +196,17 @@ export default function Tasks() {
                 className={`min-h-[200px] p-3 rounded-lg ${column.color} space-y-2`}
               >
                 {groupedTasks[column.id]?.map((task) => (
-                  <TaskCard
+                  <SwipeableRow
                     key={task.taskId}
-                    task={task}
-                    onStatusChange={handleStatusChange}
-                  />
+                    renderRightActions={(progress, dragX) => (
+                      <RightActions mrn={task.patientId} close={() => {}} />
+                    )}
+                  >
+                    <TaskCard
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                    />
+                  </SwipeableRow>
                 ))}
 
                 {(!groupedTasks[column.id] ||
@@ -247,6 +251,13 @@ export default function Tasks() {
           </Card>
         </div>
       </div>
+
+      <FAB
+        icon="plus"
+        label="Add Task"
+        onPress={() => setShowAddTaskForm(true)}
+        accessibilityLabel="Add Task"
+      />
 
       <AddTaskForm
         open={showAddTaskForm}

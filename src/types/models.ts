@@ -3,6 +3,7 @@
 export interface PatientMeta {
   id: string;
   name: string;
+  mrn: string; // Medical Record Number for Labs and copy functionality
   qrCode: string;
   pathway: "surgical" | "consultation" | "emergency";
   currentState: string;

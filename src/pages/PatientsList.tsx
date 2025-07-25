@@ -5,6 +5,7 @@ import { PatientCard } from "@/components/patient/PatientCard";
 import { FilterPopup } from "@/components/patient/FilterPopup";
 import { AddPatientForm } from "@/components/patient/AddPatientForm";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
+import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,12 +13,14 @@ import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { patientService, authService } from "@/services";
+import { Plus } from "lucide-react";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
   {
     id: "27e8d1ad",
     name: "Jane Doe",
+    mrn: "MRN001234",
     qrCode: `${window.location.origin}/qr/27e8d1ad`,
     pathway: "surgical",
     currentState: "post-op",
@@ -30,6 +33,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "3b9f2c1e",
     name: "John Smith",
+    mrn: "MRN005678",
     qrCode: `${window.location.origin}/qr/3b9f2c1e`,
     pathway: "emergency",
     currentState: "ICU",
@@ -42,6 +46,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "8c4d5e2f",
     name: "Maria Garcia",
+    mrn: "MRN009012",
     qrCode: `${window.location.origin}/qr/8c4d5e2f`,
     pathway: "consultation",
     currentState: "stable",
@@ -54,6 +59,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "9d6e7f3g",
     name: "Robert Wilson",
+    mrn: "MRN003456",
     qrCode: `${window.location.origin}/qr/9d6e7f3g`,
     pathway: "surgical",
     currentState: "pre-op",
@@ -66,6 +72,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "1a2b3c4d",
     name: "Sarah Johnson",
+    mrn: "MRN007890",
     qrCode: `${window.location.origin}/qr/1a2b3c4d`,
     pathway: "emergency",
     currentState: "recovery",
@@ -78,6 +85,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "6f7g8h9i",
     name: "Michael Brown",
+    mrn: "MRN002345",
     qrCode: `${window.location.origin}/qr/6f7g8h9i`,
     pathway: "consultation",
     currentState: "stable",
@@ -90,6 +98,7 @@ let mockPatients: PatientMeta[] = [
   {
     id: "2j3k4l5m",
     name: "Lisa Davis",
+    mrn: "MRN006789",
     qrCode: `${window.location.origin}/qr/2j3k4l5m`,
     pathway: "emergency",
     currentState: "stable",
@@ -236,11 +245,8 @@ export default function PatientsList() {
       <Header
         title="Patients"
         showSearch
-        showAdd
-        addButtonText="Add Patient"
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => setShowAddPatientForm(true)}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -361,6 +367,12 @@ export default function PatientsList() {
       <NotificationsPopup
         open={showNotifications}
         onOpenChange={setShowNotifications}
+      />
+
+      <FloatingActionButton
+        icon={<Plus className="h-6 w-6" />}
+        label="Add Patient"
+        onClick={() => setShowAddPatientForm(true)}
       />
 
       <BottomBar />

@@ -2,6 +2,7 @@
 import { apiService, fetchWithFallback } from "./api";
 import { API_CONFIG, FEATURE_FLAGS } from "@/config/api";
 import { PatientMeta } from "@/types/models";
+import { toPatientMeta, fromPatientMeta, HmsPatient } from "./adapters/hmsPatients";
 
 // Mock patient data
 const mockPatients: PatientMeta[] = [
@@ -158,23 +159,28 @@ const mockTimelines: Record<string, any[]> = {
   ],
 };
 
+type ListParams = { department?: string };
+
 export const patientService = {
-  async getPatients(): Promise<PatientMeta[]> {
+  async getPatients(params?: ListParams): Promise<PatientMeta[]> {
     return fetchWithFallback(
-      () => apiService.get<PatientMeta[]>(API_CONFIG.PATIENTS.LIST),
+      async () => {
+        const { data } = await apiService.get(API_CONFIG.PATIENTS.LIST, params);
+        return { data: (data as HmsPatient[]).map(toPatientMeta), success: true };
+      },
       mockPatients,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
   },
 
-  async getPatientById(patientId: string): Promise<PatientMeta | null> {
-    const mockPatient = mockPatients.find((p) => p.id === patientId) || null;
+  async getPatientById(mrn: string): Promise<PatientMeta | null> {
+    const mockPatient = mockPatients.find((p) => p.id === mrn || p.mrn === mrn) || null;
 
     return fetchWithFallback(
-      () =>
-        apiService.get<PatientMeta>(API_CONFIG.PATIENTS.DETAIL, {
-          id: patientId,
-        }),
+      async () => {
+        const { data } = await apiService.get(API_CONFIG.PATIENTS.DETAIL, { id: mrn });
+        return { data: toPatientMeta(data as HmsPatient), success: true };
+      },
       mockPatient,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
@@ -202,47 +208,61 @@ export const patientService = {
     );
   },
 
-  async createPatient(
-    patientData: Omit<PatientMeta, "id" | "qrCode">,
-  ): Promise<PatientMeta> {
-    const newPatient: PatientMeta = {
-      ...patientData,
-      id: Math.random().toString(36).substr(2, 8),
-      qrCode: `${window.location.origin}/qr/${Math.random().toString(36).substr(2, 8)}`,
+  async createPatient(payload: {
+    mrn: string; name: string; department: string;
+    pathway?: string; current_state?: string; diagnosis?: string;
+    age?: number; sex?: string; comorbidities?: string[]; assigned_doctor?: string;
+    files_url?: string; qr_code?: string;
+  }): Promise<PatientMeta> {
+    const fallbackPatient: PatientMeta = {
+      id: payload.mrn,
+      name: payload.name,
+      mrn: payload.mrn,
+      qrCode: payload.qr_code || `${window.location.origin}/qr/${payload.mrn}`,
+      pathway: (payload.pathway as any) || "consultation",
+      currentState: payload.current_state || "stable",
+      diagnosis: payload.diagnosis || "",
+      comorbidities: payload.comorbidities || [],
+      updateCounter: 0,
+      lastUpdated: new Date().toISOString(),
+      assignedDoctor: payload.assigned_doctor || "",
+      department: payload.department,
+      status: "ACTIVE",
     };
 
     return fetchWithFallback(
-      () =>
-        apiService.post<PatientMeta>(API_CONFIG.PATIENTS.CREATE, patientData),
-      newPatient,
+      async () => {
+        const { data } = await apiService.post(API_CONFIG.PATIENTS.CREATE, payload);
+        return { data: toPatientMeta(data as HmsPatient), success: true };
+      },
+      fallbackPatient,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
   },
 
-  async updatePatient(
-    patientId: string,
-    updates: Partial<PatientMeta>,
-  ): Promise<PatientMeta> {
+  async updatePatient(mrn: string, updates: Partial<HmsPatient>): Promise<PatientMeta> {
     const mockUpdatedPatient = {
-      ...mockPatients.find((p) => p.id === patientId)!,
+      ...mockPatients.find((p) => p.id === mrn || p.mrn === mrn)!,
       ...updates,
       lastUpdated: new Date().toISOString(),
     };
 
     return fetchWithFallback(
-      () =>
-        apiService.put<PatientMeta>(API_CONFIG.PATIENTS.UPDATE, updates, {
-          id: patientId,
-        }),
+      async () => {
+        const { data } = await apiService.put(API_CONFIG.PATIENTS.UPDATE, updates, { id: mrn });
+        return { data: toPatientMeta(data as HmsPatient), success: true };
+      },
       mockUpdatedPatient,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
   },
 
-  async deletePatient(patientId: string): Promise<void> {
+  async deletePatient(mrn: string): Promise<void> {
     return fetchWithFallback(
-      () =>
-        apiService.delete<void>(API_CONFIG.PATIENTS.DELETE, { id: patientId }),
+      async () => {
+        await apiService.delete(API_CONFIG.PATIENTS.DELETE, { id: mrn });
+        return { data: undefined, success: true };
+      },
       undefined,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );

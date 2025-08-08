@@ -14,14 +14,16 @@ import {
   Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  dashboardService,
-  patientService,
+import { patientService } from "@/services";
+import { PatientMeta } from "@/types/models";
+import { 
+  deriveKpi, 
+  deriveStageHeatMap, 
+  deriveUpcomingProcedures,
   KPIData,
   UpcomingProcedure,
   StageHeatMapItem,
-} from "@/services";
-import { PatientMeta } from "@/types/models";
+} from "@/services/dashboardDerived";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -42,18 +44,13 @@ export default function Dashboard() {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        const [patients, kpi, procedures, heatMap] = await Promise.all([
-          patientService.getPatients(),
-          dashboardService.getKPIData(),
-          dashboardService.getUpcomingProcedures(),
-          dashboardService.getStageHeatMap(),
-        ]);
-
+        const patients = await patientService.getPatients();    // <-- one call
+        
         const active = patients.filter(p => p.status !== "INACTIVE");
         setActivePatients(active);
-        setKpiData({ ...kpi, totalPatients: active.length });
-        setUpcomingProcedures(procedures);
-        setStageHeatMap(heatMap);
+        setKpiData(deriveKpi(patients));
+        setStageHeatMap(deriveStageHeatMap(patients));
+        setUpcomingProcedures(deriveUpcomingProcedures(patients));
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {

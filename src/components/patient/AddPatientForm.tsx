@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 const addPatientSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   mrn: z.string().min(1, "MRN is required"),
+  department: z.string().min(1, "Department is required"),
   age: z.string().min(1, "Age is required"),
   gender: z.enum(["male", "female", "other"], {
     required_error: "Gender is required",
@@ -67,6 +68,7 @@ export function AddPatientForm({
     defaultValues: {
       name: "",
       mrn: "",
+      department: "",
       age: "",
       gender: undefined,
       pathway: undefined,
@@ -140,6 +142,35 @@ export function AddPatientForm({
                     <FormControl>
                       <Input placeholder="Medical Record Number" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="surgery1">Surgery 1</SelectItem>
+                        <SelectItem value="surgery2">Surgery 2</SelectItem>
+                        <SelectItem value="cardiology">Cardiology</SelectItem>
+                        <SelectItem value="orthopedics">Orthopedics</SelectItem>
+                        <SelectItem value="emergency">Emergency</SelectItem>
+                        <SelectItem value="icu">ICU</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

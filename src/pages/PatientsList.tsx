@@ -155,20 +155,22 @@ export default function PatientsList() {
   // Memoized handlers for stable references
   const handleAddPatient = useCallback(async (newPatient: any) => {
     try {
-      const patientData = {
+      const payload = {
+        mrn: newPatient.mrn,
         name: newPatient.name,
+        department: newPatient.department,
         pathway: newPatient.pathway,
-        currentState: "stable" as const,
+        current_state: "stable",
         diagnosis: newPatient.diagnosis,
+        age: parseInt(newPatient.age),
+        sex: newPatient.gender === "male" ? "M" : newPatient.gender === "female" ? "F" : "X",
         comorbidities: newPatient.comorbidities
           ? newPatient.comorbidities.split(",").map((c: string) => c.trim())
           : [],
-        updateCounter: 1,
-        lastUpdated: new Date().toISOString(),
-        assignedDoctor: newPatient.assignedDoctor,
+        assigned_doctor: newPatient.assignedDoctor,
       };
 
-      const createdPatient = await patientService.createPatient(patientData);
+      const createdPatient = await patientService.createPatient(payload);
       setPatients((prev) => [...prev, createdPatient]);
       setShowAddPatientForm(false);
     } catch (error) {

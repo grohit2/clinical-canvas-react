@@ -201,31 +201,32 @@ curl "$BASE_URL/patients"
 
 ### Option A — Tiny Express proxy
 
+The repository includes a small Express proxy (`dev-proxy.js`) that forwards
+`/api` requests to your deployed API Gateway endpoint. This avoids CORS errors
+when developing locally.
+
 ```js
-// dev-proxy.js
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import cors from "cors";
 
 const app = express();
 const target = process.env.API_BASE || "https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod";
 
+app.use(cors());
 app.use("/api", createProxyMiddleware({
   target,
   changeOrigin: true,
-  pathRewrite: { "^/api": "" },
-  onProxyReq: (proxyReq) => {
-    // set any headers if needed here
-  }
+  pathRewrite: { "^/api": "" }
 }));
 
-app.listen(8787, () => console.log("Dev proxy on http://localhost:8787 ->", target));
+app.listen(3001, () => console.log("Dev proxy on http://localhost:3001 ->", target));
 ```
 
-Run:
+Start the proxy with:
 
 ```bash
-npm i express http-proxy-middleware
-node dev-proxy.js
+npm run proxy
 ```
 
 ### Option B — Vite proxy

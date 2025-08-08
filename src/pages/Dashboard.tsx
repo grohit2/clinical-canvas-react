@@ -16,10 +16,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   dashboardService,
+  patientService,
   KPIData,
   UpcomingProcedure,
   StageHeatMapItem,
 } from "@/services";
+import { PatientMeta } from "@/types/models";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -33,19 +35,23 @@ export default function Dashboard() {
     UpcomingProcedure[]
   >([]);
   const [stageHeatMap, setStageHeatMap] = useState<StageHeatMapItem[]>([]);
+  const [activePatients, setActivePatients] = useState<PatientMeta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        const [kpi, procedures, heatMap] = await Promise.all([
+        const [patients, kpi, procedures, heatMap] = await Promise.all([
+          patientService.getPatients(),
           dashboardService.getKPIData(),
           dashboardService.getUpcomingProcedures(),
           dashboardService.getStageHeatMap(),
         ]);
 
-        setKpiData(kpi);
+        const active = patients.filter(p => p.status !== "INACTIVE");
+        setActivePatients(active);
+        setKpiData({ ...kpi, totalPatients: active.length });
         setUpcomingProcedures(procedures);
         setStageHeatMap(heatMap);
       } catch (error) {
@@ -113,6 +119,26 @@ export default function Dashboard() {
             onClick={() => navigate("/completed-today")}
           />
         </div>
+
+        {/* Active Patients */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Active Patients</h3>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/patients")}>
+              View All
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {activePatients.map((patient) => (
+              <div key={patient.mrn} className="p-2 rounded-lg border">
+                {patient.name}
+              </div>
+            ))}
+            {activePatients.length === 0 && (
+              <p className="text-sm text-muted-foreground">No active patients</p>
+            )}
+          </div>
+        </Card>
 
         {/* Stage Heat Map */}
         <Card className="p-4">

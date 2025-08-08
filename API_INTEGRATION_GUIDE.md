@@ -6,6 +6,8 @@ This guide explains how the application has been updated to fetch data from API 
 
 The application now includes a comprehensive service layer that handles API calls with intelligent fallback to mock data. This allows for seamless development and deployment whether you have a backend API ready or not.
 
+For the full HMS Patients API specification, see [HMS_PATIENTS_API.md](./HMS_PATIENTS_API.md).
+
 ## Key Features
 
 - **Automatic Fallback**: If API calls fail, the app automatically falls back to mock data

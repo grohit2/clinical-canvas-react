@@ -12,6 +12,8 @@ export interface PatientMeta {
   updateCounter: number;
   lastUpdated: string;
   assignedDoctor?: string;
+  department?: string;
+  status?: "ACTIVE" | "INACTIVE";
 }
 
 export interface TimelineEntry {

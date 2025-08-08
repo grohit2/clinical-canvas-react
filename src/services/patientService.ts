@@ -18,6 +18,8 @@ const mockPatients: PatientMeta[] = [
     updateCounter: 5,
     lastUpdated: "2025-07-19T14:30:09Z",
     assignedDoctor: "Dr. Sarah Wilson",
+    department: "surgery1",
+    status: "ACTIVE",
   },
   {
     id: "3b9f2c1e",
@@ -31,6 +33,8 @@ const mockPatients: PatientMeta[] = [
     updateCounter: 12,
     lastUpdated: "2025-07-19T16:45:22Z",
     assignedDoctor: "Dr. Johnson",
+    department: "cardiology",
+    status: "ACTIVE",
   },
   {
     id: "8c4d5e2f",
@@ -44,6 +48,8 @@ const mockPatients: PatientMeta[] = [
     updateCounter: 2,
     lastUpdated: "2025-07-19T11:20:45Z",
     assignedDoctor: "Dr. Sarah Wilson",
+    department: "orthopedics",
+    status: "ACTIVE",
   },
   {
     id: "9d6e7f3g",
@@ -57,6 +63,8 @@ const mockPatients: PatientMeta[] = [
     updateCounter: 1,
     lastUpdated: "2025-07-19T09:15:30Z",
     assignedDoctor: "Dr. Sarah Wilson",
+    department: "surgery1",
+    status: "INACTIVE",
   },
   {
     id: "1a2b3c4d",
@@ -70,6 +78,8 @@ const mockPatients: PatientMeta[] = [
     updateCounter: 8,
     lastUpdated: "2025-07-19T13:50:18Z",
     assignedDoctor: "Dr. Johnson",
+    department: "emergency",
+    status: "ACTIVE",
   },
 ];
 

@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { patientService, authService } from "@/services";
+import { patientService } from "@/services";
 import { Plus } from "lucide-react";
 
 // Mock data - replace with real API calls
@@ -112,11 +111,9 @@ let mockPatients: PatientMeta[] = [
 
 export default function PatientsList() {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
-  const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPathway, setSelectedPathway] = useState("all");
   const [selectedStage, setSelectedStage] = useState("all");
@@ -222,18 +219,10 @@ export default function PatientsList() {
     });
   }, [patients, searchQuery, selectedPathway, selectedStage, showUrgentOnly]);
 
-  // Memoized filtered results for each tab
+  // Memoized filtered results
   const allFilteredPatients = useMemo(() => {
     return baseFilteredPatients;
   }, [baseFilteredPatients]);
-
-  const myFilteredPatients = useMemo(() => {
-    if (!currentUser?.doctor?.name) return [];
-    return baseFilteredPatients.filter(
-      (patient) =>
-        patient.assignedDoctor.trim() === currentUser.doctor.name.trim(),
-    );
-  }, [baseFilteredPatients, currentUser?.doctor?.name]);
 
   // Memoized empty state check
   const hasActiveFiltersOrSearch = useMemo(() => {
@@ -252,10 +241,9 @@ export default function PatientsList() {
       />
 
       <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="all">All Patients</TabsTrigger>
-            <TabsTrigger value="my">My Patients</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4 mt-4">
@@ -303,58 +291,6 @@ export default function PatientsList() {
             )}
           </TabsContent>
 
-          <TabsContent value="my" className="space-y-4 mt-4">
-            {/* Filter Controls */}
-            <div className="flex items-center justify-between">
-              <FilterPopup
-                selectedPathway={selectedPathway}
-                selectedStage={selectedStage}
-                showUrgentOnly={showUrgentOnly}
-                onPathwayChange={setSelectedPathway}
-                onStageChange={setSelectedStage}
-                onUrgentToggle={setShowUrgentOnly}
-                onClearFilters={clearFilters}
-                activeFiltersCount={activeFiltersCount}
-              />
-              <Badge variant="secondary">
-                {myFilteredPatients.length} patients
-              </Badge>
-            </div>
-
-            {/* My Patients Grid */}
-            <div className="grid gap-3">
-              {myFilteredPatients.map((patient) => (
-                <PatientCard
-                  key={patient.id}
-                  patient={patient}
-                  onClick={() => handlePatientClick(patient.id)}
-                />
-              ))}
-            </div>
-
-            {myFilteredPatients.length === 0 && (
-              <div className="text-center py-12">
-                {hasActiveFiltersOrSearch ? (
-                  <>
-                    <p className="text-muted-foreground">
-                      No patients assigned to you matching your criteria
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={handleClearFiltersAndSearch}
-                    >
-                      Clear Filters
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">
-                    No patients allocated to you
-                  </p>
-                )}
-              </div>
-            )}
-          </TabsContent>
         </Tabs>
       </div>
 

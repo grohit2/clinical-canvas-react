@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { AddTaskForm } from "@/components/task/AddTaskForm";
 import { TaskCard } from "@/components/task/TaskCard";
 import { taskService } from "@/services";
-import { useAuth } from "@/context/AuthContext";
 
 // Mock data
 const mockTasks: Task[] = [
@@ -74,9 +73,7 @@ const mockStaff = [
 ];
 
 export default function Tasks() {
-  const { currentUser } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState<"all" | "my-tasks">("all");
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -124,27 +121,16 @@ export default function Tasks() {
     }
   }, []);
 
-  // Memoized filtered tasks
-  const filteredTasks = useMemo(() => {
-    if (filter === "all") return tasks;
-
-    // Use actual current user ID instead of hardcoded string
-    const currentUserId = currentUser?.doctor?.id || currentUser?.id;
-    return tasks.filter((task) => task.assigneeId === currentUserId);
-  }, [tasks, filter, currentUser]);
-
   // Memoized grouped tasks by status
   const groupedTasks = useMemo(() => {
     return kanbanColumns.reduce(
       (acc, column) => {
-        acc[column.id] = filteredTasks.filter(
-          (task) => task.status === column.id,
-        );
+        acc[column.id] = tasks.filter((task) => task.status === column.id);
         return acc;
       },
       {} as Record<string, Task[]>,
     );
-  }, [filteredTasks]);
+  }, [tasks]);
 
   if (isLoading) {
     return (
@@ -159,25 +145,8 @@ export default function Tasks() {
       <Header title="Tasks" />
 
       <div className="p-4 space-y-4">
-        {/* Filter Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button
-              variant={filter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("all")}
-            >
-              All Tasks
-            </Button>
-            <Button
-              variant={filter === "my-tasks" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("my-tasks")}
-            >
-              My Tasks
-            </Button>
-          </div>
-
+        {/* Add Task Button */}
+        <div className="flex items-center justify-end">
           <Button size="sm" onClick={() => setShowAddTaskForm(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Add Task
@@ -221,7 +190,7 @@ export default function Tasks() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-foreground">
-              {filteredTasks.length}
+              {tasks.length}
             </div>
             <div className="text-sm text-muted-foreground">Total Tasks</div>
           </Card>
@@ -242,7 +211,7 @@ export default function Tasks() {
 
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-urgent">
-              {filteredTasks.filter((t) => t.priority === "urgent").length}
+              {tasks.filter((t) => t.priority === "urgent").length}
             </div>
             <div className="text-sm text-muted-foreground">Urgent</div>
           </Card>

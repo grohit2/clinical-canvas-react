@@ -1,4 +1,4 @@
-import { Home, Users, CheckSquare, User } from "lucide-react";
+import { Home, Users, CheckSquare } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -6,7 +6,6 @@ const navigationItems = [
   { path: "/", icon: Home, label: "Dashboard" },
   { path: "/patients", icon: Users, label: "Patients" },
   { path: "/tasks", icon: CheckSquare, label: "Tasks" },
-  { path: "/profile", icon: User, label: "Profile" },
 ];
 
 export function BottomBar() {

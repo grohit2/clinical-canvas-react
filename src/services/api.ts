@@ -26,7 +26,6 @@ class ApiService {
     try {
       const defaultHeaders = {
         "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
       };
 
       const response = await fetch(url, {
@@ -66,20 +65,6 @@ class ApiService {
     }
   }
 
-  private getAuthHeaders(): Record<string, string> {
-    const userData = localStorage.getItem("currentUser");
-    if (userData) {
-      try {
-        const { token } = JSON.parse(userData);
-        return {
-          Authorization: `Bearer ${token}`,
-        };
-      } catch (error) {
-        console.warn("Failed to parse user data from localStorage");
-      }
-    }
-    return {};
-  }
 
   async get<T>(
     endpoint: string,

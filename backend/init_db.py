@@ -2,7 +2,6 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from app.database.dynamodb import db_service
-from app.auth.auth import get_password_hash
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,6 @@ async def create_sample_users():
             "name": "Dr. Sarah Wilson",
             "role": "doctor",
             "email": "sarah.wilson@hospital.com",
-            "password_hash": get_password_hash("password123"),
             "avatar": "https://avatars.dicebear.com/api/personas/sarah.svg",
             "contact_info": {"phone": "+1-555-0101", "pager": "101"},
             "permissions": ["prescribe", "approve", "discharge"]
@@ -26,7 +24,6 @@ async def create_sample_users():
             "name": "Emily Johnson",
             "role": "nurse",
             "email": "emily.johnson@hospital.com",
-            "password_hash": get_password_hash("password123"),
             "avatar": "https://avatars.dicebear.com/api/personas/emily.svg",
             "contact_info": {"phone": "+1-555-0102"},
             "permissions": ["assess", "medicate"]
@@ -36,7 +33,6 @@ async def create_sample_users():
             "name": "Michael Chen",
             "role": "technician",
             "email": "michael.chen@hospital.com",
-            "password_hash": get_password_hash("password123"),
             "avatar": "https://avatars.dicebear.com/api/personas/michael.svg",
             "contact_info": {"phone": "+1-555-0103"},
             "permissions": ["lab_results"]

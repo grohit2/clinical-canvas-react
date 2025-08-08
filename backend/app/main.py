@@ -5,7 +5,7 @@ import logging
 import os
 
 # Import routers
-from .api import auth, patients, tasks, dashboard, doctors
+from .api import patients, tasks, dashboard, doctors
 
 # Configure logging
 logging.basicConfig(
@@ -38,7 +38,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router, prefix="/api")
 app.include_router(patients.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")

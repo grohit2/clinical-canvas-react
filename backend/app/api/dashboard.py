@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 
 from ..models.base import KPIData, UpcomingProcedure, StageHeatMapItem
 from ..database.dynamodb import db_service
-from ..auth.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -14,7 +13,6 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/kpi", response_model=KPIData)
 async def get_kpi_data(
     doctor_id: Optional[str] = Query(None, description="Filter KPIs by doctor"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get KPI data for dashboard"""
     try:
@@ -27,9 +25,12 @@ async def get_kpi_data(
             patients = [p for p in patients if p.get('assigned_doctor') == doctor_id]
             total_patients = len(patients)
         
-        # Get tasks for current user or specified doctor
-        target_user = doctor_id or current_user['user_id']
-        tasks = await db_service.list_tasks_by_assignee(target_user, 1000)
+        # Get tasks for specified doctor if provided
+        tasks = (
+            await db_service.list_tasks_by_assignee(doctor_id, 1000)
+            if doctor_id
+            else []
+        )
         
         # Calculate KPIs
         now = datetime.utcnow()
@@ -97,7 +98,6 @@ async def get_kpi_data(
 async def get_upcoming_procedures(
     limit: int = Query(10, description="Maximum number of procedures to return"),
     doctor_id: Optional[str] = Query(None, description="Filter by surgeon"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get upcoming procedures"""
     try:
@@ -105,9 +105,7 @@ async def get_upcoming_procedures(
         if doctor_id:
             tasks = await db_service.list_tasks_by_assignee(doctor_id, 100)
         else:
-            # For demo purposes, get tasks from current user
-            # In production, you might scan all procedure tasks
-            tasks = await db_service.list_tasks_by_assignee(current_user['user_id'], 100)
+            tasks = []
         
         # Filter for procedure tasks that are upcoming
         now = datetime.utcnow()
@@ -163,7 +161,6 @@ async def get_upcoming_procedures(
 @router.get("/stage-heatmap", response_model=List[StageHeatMapItem])
 async def get_stage_heatmap(
     pathway: Optional[str] = Query(None, description="Filter by pathway"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get stage heat map data showing patient distribution across care states"""
     try:

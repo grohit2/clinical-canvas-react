@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 
 from ..models.base import Task, TaskCreateRequest, TaskUpdateRequest
 from ..database.dynamodb import db_service
-from ..auth.auth import get_current_user, require_any_role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -14,7 +13,6 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 @router.post("/", response_model=Task)
 async def create_task(
     task_request: TaskCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_any_role(['doctor', 'nurse', 'admin']))
 ):
     """Create a new task"""
     try:
@@ -45,7 +43,6 @@ async def list_tasks(
     priority: Optional[str] = Query(None, description="Filter by priority"),
     patient_id: Optional[str] = Query(None, description="Filter by patient"),
     limit: int = Query(50, description="Maximum number of tasks to return"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """List tasks with optional filtering"""
     try:
@@ -58,9 +55,8 @@ async def list_tasks(
             # Get tasks for specific patient
             tasks = await db_service.list_tasks_by_patient(patient_id)
         else:
-            # For now, get tasks by current user as assignee
-            # In production, you might want a different approach for admin users
-            tasks = await db_service.list_tasks_by_assignee(current_user['user_id'], limit)
+            # No specific filter provided
+            tasks = []
         
         # Apply additional filters
         if status_filter:
@@ -98,7 +94,6 @@ async def list_tasks(
 @router.get("/patient/{patient_id}", response_model=List[Task])
 async def get_tasks_by_patient(
     patient_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get all tasks for a specific patient"""
     try:
@@ -126,15 +121,14 @@ async def get_tasks_by_patient(
 @router.get("/due-today", response_model=List[Dict[str, Any]])
 async def get_tasks_due_today(
     assignee_id: Optional[str] = Query(None, description="Filter by assignee"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get tasks due today"""
     try:
-        # Use current user if no assignee specified
-        target_assignee = assignee_id or current_user['user_id']
-        
-        # Get tasks for assignee
-        tasks = await db_service.list_tasks_by_assignee(target_assignee, 100)
+        # Get tasks for specified assignee if provided
+        if assignee_id:
+            tasks = await db_service.list_tasks_by_assignee(assignee_id, 100)
+        else:
+            tasks = []
         
         # Filter for tasks due today
         today = datetime.utcnow().date()
@@ -178,15 +172,14 @@ async def get_tasks_due_today(
 @router.get("/completed-today", response_model=List[Dict[str, Any]])
 async def get_completed_tasks_today(
     assignee_id: Optional[str] = Query(None, description="Filter by assignee"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get tasks completed today"""
     try:
-        # Use current user if no assignee specified
-        target_assignee = assignee_id or current_user['user_id']
-        
-        # Get tasks for assignee
-        tasks = await db_service.list_tasks_by_assignee(target_assignee, 100)
+        # Get tasks for specified assignee if provided
+        if assignee_id:
+            tasks = await db_service.list_tasks_by_assignee(assignee_id, 100)
+        else:
+            tasks = []
         
         # Filter for tasks completed today
         today = datetime.utcnow().date()
@@ -227,15 +220,14 @@ async def get_completed_tasks_today(
 @router.get("/urgent-alerts", response_model=List[Dict[str, Any]])
 async def get_urgent_alerts(
     assignee_id: Optional[str] = Query(None, description="Filter by assignee"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get urgent alerts (tasks due within 10 minutes or marked urgent)"""
     try:
-        # Use current user if no assignee specified
-        target_assignee = assignee_id or current_user['user_id']
-        
-        # Get tasks for assignee
-        tasks = await db_service.list_tasks_by_assignee(target_assignee, 100)
+        # Get tasks for specified assignee if provided
+        if assignee_id:
+            tasks = await db_service.list_tasks_by_assignee(assignee_id, 100)
+        else:
+            tasks = []
         
         # Filter for urgent tasks
         now = datetime.utcnow()
@@ -299,7 +291,6 @@ async def get_urgent_alerts(
 async def update_task(
     task_id: str,
     task_update: TaskUpdateRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Update a task"""
     try:
@@ -344,7 +335,6 @@ async def update_task(
 async def update_task_status(
     task_id: str,
     status_update: Dict[str, str],
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Update task status"""
     try:
@@ -374,7 +364,6 @@ async def update_task_status(
 @router.delete("/{task_id}")
 async def delete_task(
     task_id: str,
-    current_user: Dict[str, Any] = Depends(require_any_role(['doctor', 'nurse', 'admin']))
 ):
     """Delete a task"""
     try:

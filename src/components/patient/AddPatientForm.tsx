@@ -85,10 +85,7 @@ export function AddPatientForm({
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Add patient to the list
+      // Immediately forward to parent for API-backed creation
       onAddPatient?.(data);
 
       toast({

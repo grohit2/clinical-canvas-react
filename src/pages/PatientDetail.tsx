@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { PatientMeta, TimelineEntry } from "@/types/models";
 import { patientService, taskService } from "@/services";
+import PatientMediaUploader from "@/components/PatientMediaUploader";
 
 // Mock data - replace with real API calls
 const mockPatients: PatientMeta[] = [
@@ -547,6 +548,9 @@ export default function PatientDetail() {
                     </div>
                   )}
               </Card>
+
+              {/* Media Uploader */}
+              <PatientMediaUploader mrn={currentPatient.mrn} />
 
               {/* Timeline */}
               {patientTimeline.length > 0 ? (

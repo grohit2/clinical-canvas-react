@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for the backend API
-  BASE_URL: process.env.VITE_API_BASE_URL || "http://localhost:3001/api",
+  BASE_URL: process.env.VITE_API_BASE_URL || "/api",
 
   // Patient-related endpoints
   PATIENTS: {
@@ -43,6 +43,14 @@ export const API_CONFIG = {
     UPDATE_PROFILE: "/doctors/:id",
   },
 
+  // NEW: Media endpoints
+  MEDIA: {
+    PRESIGN: "/media/presign-upload",
+    FINALIZE: "/media/finalize",
+    LIST_FOR_PATIENT: "/media/patients/:mrn/images",
+    VIEW_URL: "/media/view-url",
+  },
+
   // Settings and configuration
   SETTINGS: {
     NOTIFICATIONS: "/settings/notifications",
@@ -53,15 +61,42 @@ export const API_CONFIG = {
 // Helper function to build complete URLs
 export const buildUrl = (
   endpoint: string,
-  params?: Record<string, string>,
+  params?: Record<string, string | number | boolean>,
 ): string => {
-  let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const base = `${API_CONFIG.BASE_URL}${endpoint}`;
+
+  // Identify path params in endpoint
+  const pathParamKeys = new Set<string>();
+  const regex = /:([A-Za-z0-9_]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(endpoint)) !== null) {
+    pathParamKeys.add(match[1]);
+  }
 
   // Replace URL parameters (e.g., :id with actual values)
+  let url = base;
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
-      url = url.replace(`:${key}`, value);
+      if (pathParamKeys.has(key)) {
+        url = url.replace(`:${key}`, String(value));
+      }
     });
+  }
+
+  // Append remaining params as query string
+  const queryEntries: [string, string][] = [];
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (!pathParamKeys.has(key)) {
+        queryEntries.push([key, String(value)]);
+      }
+    });
+  }
+  if (queryEntries.length > 0) {
+    const qs = queryEntries
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join("&");
+    url += (url.includes("?") ? "&" : "?") + qs;
   }
 
   return url;
@@ -80,4 +115,5 @@ export const FEATURE_FLAGS = {
   ENABLE_PATIENTS_API: process.env.VITE_ENABLE_PATIENTS_API !== "false",
   ENABLE_TASKS_API: process.env.VITE_ENABLE_TASKS_API !== "false",
   ENABLE_DASHBOARD_API: process.env.VITE_ENABLE_DASHBOARD_API !== "false",
+  ENABLE_MEDIA: process.env.VITE_ENABLE_MEDIA !== "false",
 };

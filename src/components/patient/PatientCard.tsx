@@ -7,17 +7,18 @@ import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { PatientMeta } from "@/types/models";
-import { Calendar, MapPin, Clock, QrCode, TestTube, Copy, ImageIcon } from "lucide-react";
+import { Calendar, MapPin, Clock, QrCode, TestTube, Copy, ImageIcon, Trash2 } from "lucide-react";
 import { copyToClipboard, triggerHaptic, openInBrowser, generateLabsUrl, generateRadiologyUrl } from "@/utils/mobile";
 import { useToast } from "@/hooks/use-toast";
 
 interface PatientCardProps {
   patient: PatientMeta;
   onClick?: () => void;
+  onDelete?: (patient: PatientMeta) => void;
 }
 
 export const PatientCard = React.memo<PatientCardProps>(
-  ({ patient, onClick }) => {
+  ({ patient, onClick, onDelete }) => {
     const [showQR, setShowQR] = useState(false);
     const { toast } = useToast();
 
@@ -114,7 +115,18 @@ export const PatientCard = React.memo<PatientCardProps>(
           });
         },
       },
-    ];
+      onDelete && {
+        id: "delete",
+        label: "Delete",
+        icon: <Trash2 className="h-4 w-4" />,
+        color: "bg-red-600 hover:bg-red-700",
+        onClick: () => {
+          if (window.confirm("Mark this patient as inactive?")) {
+            onDelete(patient);
+          }
+        },
+      },
+    ].filter(Boolean) as any[];
 
     return (
       <SwipeableCard 

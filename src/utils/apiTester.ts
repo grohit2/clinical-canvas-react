@@ -49,9 +49,6 @@ class ApiTester {
 
   async testAllEndpoints(): Promise<ApiTestResult[]> {
     const endpoints = [
-      // Authentication endpoints
-      { endpoint: API_CONFIG.AUTH.CURRENT_USER, method: "GET" as const },
-
       // Patient endpoints
       { endpoint: API_CONFIG.PATIENTS.LIST, method: "GET" as const },
       { endpoint: API_CONFIG.PATIENTS.ASSIGNMENTS, method: "GET" as const },

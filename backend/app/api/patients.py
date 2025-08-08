@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import List, Dict, Any, Optional
+from fastapi import APIRouter, HTTPException, status, Query
+from typing import List, Optional
 import logging
 
 from ..models.base import (
@@ -7,7 +7,6 @@ from ..models.base import (
     TimelineEntry, Note, NoteCreateRequest
 )
 from ..database.dynamodb import db_service
-from ..auth.auth import get_current_user, require_any_role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -16,7 +15,6 @@ router = APIRouter(prefix="/patients", tags=["patients"])
 @router.post("/", response_model=PatientMeta)
 async def create_patient(
     patient_request: PatientCreateRequest,
-    current_user: Dict[str, Any] = Depends(require_any_role(['doctor', 'nurse', 'admin']))
 ):
     """Create a new patient"""
     try:
@@ -43,7 +41,6 @@ async def list_patients(
     urgent: Optional[bool] = Query(None, description="Filter urgent patients"),
     search: Optional[str] = Query(None, description="Search by name or diagnosis"),
     limit: int = Query(50, description="Maximum number of patients to return"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """List patients with optional filtering"""
     try:
@@ -80,7 +77,6 @@ async def list_patients(
 @router.get("/{patient_id}", response_model=PatientMeta)
 async def get_patient(
     patient_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get patient details"""
     try:
@@ -108,7 +104,6 @@ async def get_patient(
 async def update_patient(
     patient_id: str,
     patient_update: PatientUpdateRequest,
-    current_user: Dict[str, Any] = Depends(require_any_role(['doctor', 'nurse', 'admin']))
 ):
     """Update patient information"""
     try:
@@ -142,7 +137,6 @@ async def update_patient(
 @router.delete("/{patient_id}")
 async def delete_patient(
     patient_id: str,
-    current_user: Dict[str, Any] = Depends(require_any_role(['doctor', 'admin']))
 ):
     """Delete patient and all related data"""
     try:
@@ -170,7 +164,6 @@ async def delete_patient(
 @router.get("/{patient_id}/qr")
 async def get_patient_qr_data(
     patient_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get patient QR code data for bedside scanning"""
     try:
@@ -226,7 +219,6 @@ async def get_patient_qr_data(
 @router.get("/{patient_id}/timeline", response_model=List[TimelineEntry])
 async def get_patient_timeline(
     patient_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get patient timeline entries"""
     try:
@@ -269,7 +261,6 @@ async def get_patient_timeline(
 async def get_patient_notes(
     patient_id: str,
     after: Optional[str] = Query(None, description="Get notes after this timestamp"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get patient notes"""
     try:
@@ -303,7 +294,6 @@ async def get_patient_notes(
 async def create_patient_note(
     patient_id: str,
     note_request: NoteCreateRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Create a new note for a patient"""
     try:
@@ -341,7 +331,6 @@ async def create_patient_note(
 @router.get("/assignments")
 async def get_patient_assignments(
     doctor_id: str = Query(..., description="Doctor ID to get assignments for"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get patients assigned to a specific doctor"""
     try:

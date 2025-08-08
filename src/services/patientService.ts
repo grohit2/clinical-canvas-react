@@ -2,7 +2,6 @@
 import { apiService, fetchWithFallback } from "./api";
 import { API_CONFIG, FEATURE_FLAGS } from "@/config/api";
 import { PatientMeta } from "@/types/models";
-import { patientAssignments } from "@/data/authData";
 
 // Mock patient data
 const mockPatients: PatientMeta[] = [
@@ -249,12 +248,4 @@ export const patientService = {
     );
   },
 
-  async getPatientAssignments(): Promise<Record<string, string>> {
-    return fetchWithFallback(
-      () =>
-        apiService.get<Record<string, string>>(API_CONFIG.PATIENTS.ASSIGNMENTS),
-      patientAssignments,
-      FEATURE_FLAGS.ENABLE_PATIENTS_API,
-    );
-  },
 };

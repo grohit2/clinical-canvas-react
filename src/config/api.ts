@@ -5,13 +5,6 @@ export const API_CONFIG = {
   // Base URL for the backend API
   BASE_URL: process.env.VITE_API_BASE_URL || "http://localhost:3001/api",
 
-  // Authentication endpoints
-  AUTH: {
-    LOGIN: "/auth/login",
-    LOGOUT: "/auth/logout",
-    CURRENT_USER: "/auth/me",
-  },
-
   // Patient-related endpoints
   PATIENTS: {
     LIST: "/patients",
@@ -81,10 +74,9 @@ export const API_TIMEOUT = {
   LONG_RUNNING: 60000, // 1 minute for long-running operations
 };
 
-// Feature flags for enabling/disabling API calls vs mock data
+  // Feature flags for enabling/disabling API calls vs mock data
 export const FEATURE_FLAGS = {
   USE_REAL_API: process.env.VITE_USE_REAL_API === "true",
-  ENABLE_AUTH_API: process.env.VITE_ENABLE_AUTH_API !== "false",
   ENABLE_PATIENTS_API: process.env.VITE_ENABLE_PATIENTS_API !== "false",
   ENABLE_TASKS_API: process.env.VITE_ENABLE_TASKS_API !== "false",
   ENABLE_DASHBOARD_API: process.env.VITE_ENABLE_DASHBOARD_API !== "false",

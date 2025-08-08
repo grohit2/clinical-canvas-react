@@ -6,7 +6,6 @@ A comprehensive backend system for the Clinical Canvas patient management applic
 
 - **API Framework**: FastAPI with automatic OpenAPI documentation
 - **Database**: AWS DynamoDB with single-table design
-- **Authentication**: JWT-based authentication with role-based access control
 - **Deployment**: AWS Lambda + API Gateway using AWS CDK
 - **Infrastructure as Code**: AWS CDK (Python)
 
@@ -22,9 +21,6 @@ A comprehensive backend system for the Clinical Canvas patient management applic
 ### API Endpoints
 
 #### Authentication
-- `POST /api/auth/login` - User authentication
-- `GET /api/auth/me` - Get current user profile
-- `POST /api/auth/logout` - User logout
 
 #### Patients
 - `GET /api/patients` - List patients with filtering
@@ -179,7 +175,6 @@ clinical-canvas-backend/
 ├── backend/                 # FastAPI application
 │   ├── app/
 │   │   ├── api/            # API route handlers
-│   │   ├── auth/           # Authentication logic
 │   │   ├── database/       # DynamoDB service layer
 │   │   ├── models/         # Pydantic data models
 │   │   └── main.py         # FastAPI application entry point
@@ -297,7 +292,6 @@ VITE_ENABLE_DASHBOARD_API=true
 ### Data Privacy
 - Patient data is encrypted at rest in DynamoDB
 - JWT tokens contain minimal user information
-- API endpoints require authentication
 - Role-based access controls limit data access
 
 ## 🔄 CI/CD Pipeline (Future Enhancement)

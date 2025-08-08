@@ -1,10 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 import logging
 
 from ..models.base import StaffProfile
 from ..database.dynamodb import db_service
-from ..auth.auth import get_current_user, require_any_role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/doctors", tags=["doctors"])
@@ -13,7 +12,6 @@ router = APIRouter(prefix="/doctors", tags=["doctors"])
 @router.get("/", response_model=List[StaffProfile])
 async def list_doctors(
     role: Optional[str] = Query("doctor", description="Filter by role"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """List all doctors/staff members"""
     try:
@@ -49,7 +47,6 @@ async def list_doctors(
 @router.get("/{doctor_id}", response_model=StaffProfile)
 async def get_doctor_profile(
     doctor_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get doctor profile by ID"""
     try:
@@ -88,7 +85,6 @@ async def get_doctor_profile(
 async def update_doctor_profile(
     doctor_id: str,
     profile_updates: Dict[str, Any],
-    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Update doctor profile"""
     try:
@@ -98,14 +94,6 @@ async def update_doctor_profile(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Doctor not found"
-            )
-        
-        # Only allow users to update their own profile or admin users
-        if (current_user['user_id'] != doctor_id and 
-            current_user.get('role') != 'admin'):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to update this profile"
             )
         
         # Filter allowed updates (exclude sensitive fields)

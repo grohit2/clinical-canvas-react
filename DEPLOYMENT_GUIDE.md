@@ -93,7 +93,6 @@ python -m app.main
 
 3. **Test Authentication**
    ```bash
-   curl -X POST http://localhost:8000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email": "sarah.wilson@hospital.com", "password": "password123"}'
    ```
@@ -169,7 +168,6 @@ This script will:
 
 3. **Test Authentication**
    ```bash
-   curl -X POST $API_URL/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email": "sarah.wilson@hospital.com", "password": "password123"}'
    ```
@@ -263,7 +261,6 @@ If the automated scripts don't work for your environment, here's how to set up m
 
 1. **Login and Get Token**
    ```bash
-   TOKEN=$(curl -s -X POST $API_URL/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email": "sarah.wilson@hospital.com", "password": "password123"}' \
      | jq -r '.token')

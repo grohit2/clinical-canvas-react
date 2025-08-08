@@ -92,22 +92,18 @@ Your backend API should implement the following endpoints:
 
 1. **apiService** (`src/services/api.ts`)
    - Low-level HTTP client with timeout handling
-   - Automatic authentication header injection
+   - Configurable HTTP headers
    - Error handling and logging
 
-2. **authService** (`src/services/authService.ts`)
-   - Login, logout, and user management
-   - Doctor profile management
-
-3. **patientService** (`src/services/patientService.ts`)
+2. **patientService** (`src/services/patientService.ts`)
    - Patient CRUD operations
    - QR code data and timeline management
 
-4. **taskService** (`src/services/taskService.ts`)
+3. **taskService** (`src/services/taskService.ts`)
    - Task management and status updates
    - Urgent alerts and due date tracking
 
-5. **dashboardService** (`src/services/dashboardService.ts`)
+4. **dashboardService** (`src/services/dashboardService.ts`)
    - KPI data and dashboard metrics
    - Upcoming procedures and heat maps
 

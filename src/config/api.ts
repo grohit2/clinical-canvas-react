@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for the backend API
-  BASE_URL: process.env.VITE_API_BASE_URL || "/api",
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || "/api",
 
   // Patient-related endpoints
   PATIENTS: {
@@ -111,9 +111,9 @@ export const API_TIMEOUT = {
 
   // Feature flags for enabling/disabling API calls vs mock data
 export const FEATURE_FLAGS = {
-  USE_REAL_API: process.env.VITE_USE_REAL_API === "true",
-  ENABLE_PATIENTS_API: process.env.VITE_ENABLE_PATIENTS_API !== "false",
-  ENABLE_TASKS_API: process.env.VITE_ENABLE_TASKS_API !== "false",
-  ENABLE_DASHBOARD_API: process.env.VITE_ENABLE_DASHBOARD_API !== "false",
-  ENABLE_MEDIA: process.env.VITE_ENABLE_MEDIA !== "false",
+  USE_REAL_API: import.meta.env.VITE_USE_REAL_API === "true",
+  ENABLE_PATIENTS_API: import.meta.env.VITE_ENABLE_PATIENTS_API !== "false",
+  ENABLE_TASKS_API: import.meta.env.VITE_ENABLE_TASKS_API !== "false",
+  ENABLE_DASHBOARD_API: import.meta.env.VITE_ENABLE_DASHBOARD_API !== "false",
+  ENABLE_MEDIA: import.meta.env.VITE_ENABLE_MEDIA !== "false",
 };

@@ -14,106 +14,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { patientService } from "@/services";
 import { Plus } from "lucide-react";
 
-// Mock data - replace with real API calls
-let mockPatients: PatientMeta[] = [
-  {
-    id: "27e8d1ad",
-    name: "Jane Doe",
-    mrn: "MRN001234",
-    qrCode: `${window.location.origin}/qr/27e8d1ad`,
-    pathway: "surgical",
-    currentState: "post-op",
-    diagnosis: "Cholecystitis",
-    comorbidities: ["HTN", "DM"],
-    updateCounter: 5,
-    lastUpdated: "2025-07-19T14:30:09Z",
-    assignedDoctor: "Dr. Sarah Wilson",
-  },
-  {
-    id: "3b9f2c1e",
-    name: "John Smith",
-    mrn: "MRN005678",
-    qrCode: `${window.location.origin}/qr/3b9f2c1e`,
-    pathway: "emergency",
-    currentState: "ICU",
-    diagnosis: "Acute MI",
-    comorbidities: ["CAD", "HTN"],
-    updateCounter: 12,
-    lastUpdated: "2025-07-19T16:45:22Z",
-    assignedDoctor: "Dr. Johnson",
-  },
-  {
-    id: "8c4d5e2f",
-    name: "Maria Garcia",
-    mrn: "MRN009012",
-    qrCode: `${window.location.origin}/qr/8c4d5e2f`,
-    pathway: "consultation",
-    currentState: "stable",
-    diagnosis: "Osteoarthritis",
-    comorbidities: ["Obesity"],
-    updateCounter: 2,
-    lastUpdated: "2025-07-19T11:20:15Z",
-    assignedDoctor: "Dr. Sarah Wilson",
-  },
-  {
-    id: "9d6e7f3g",
-    name: "Robert Wilson",
-    mrn: "MRN003456",
-    qrCode: `${window.location.origin}/qr/9d6e7f3g`,
-    pathway: "surgical",
-    currentState: "pre-op",
-    diagnosis: "Appendicitis",
-    comorbidities: [],
-    updateCounter: 8,
-    lastUpdated: "2025-07-19T13:15:30Z",
-    assignedDoctor: "Dr. Sarah Wilson",
-  },
-  {
-    id: "1a2b3c4d",
-    name: "Sarah Johnson",
-    mrn: "MRN007890",
-    qrCode: `${window.location.origin}/qr/1a2b3c4d`,
-    pathway: "emergency",
-    currentState: "recovery",
-    diagnosis: "Pneumonia",
-    comorbidities: ["COPD", "HTN"],
-    updateCounter: 3,
-    lastUpdated: "2025-07-19T09:45:18Z",
-    assignedDoctor: "Dr. Johnson",
-  },
-  {
-    id: "6f7g8h9i",
-    name: "Michael Brown",
-    mrn: "MRN002345",
-    qrCode: `${window.location.origin}/qr/6f7g8h9i`,
-    pathway: "consultation",
-    currentState: "stable",
-    diagnosis: "Diabetes Type 2",
-    comorbidities: ["HTN", "Obesity"],
-    updateCounter: 4,
-    lastUpdated: "2025-07-19T10:20:30Z",
-    assignedDoctor: "Dr. Emily Chen",
-  },
-  {
-    id: "2j3k4l5m",
-    name: "Lisa Davis",
-    mrn: "MRN006789",
-    qrCode: `${window.location.origin}/qr/2j3k4l5m`,
-    pathway: "emergency",
-    currentState: "stable",
-    diagnosis: "Chest Pain",
-    comorbidities: [],
-    updateCounter: 1,
-    lastUpdated: "2025-07-19T15:45:12Z",
-    assignedDoctor: "Dr. Emily Chen",
-  },
-];
-
 export default function PatientsList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+  const [patients, setPatients] = useState<PatientMeta[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPathway, setSelectedPathway] = useState("all");
   const [selectedStage, setSelectedStage] = useState("all");
@@ -126,12 +31,15 @@ export default function PatientsList() {
   useEffect(() => {
     const loadPatients = async () => {
       try {
-        const params = selectedDepartment !== "all" ? { department: selectedDepartment } : undefined;
+        const params =
+          selectedDepartment !== "all"
+            ? { department: selectedDepartment }
+            : undefined;
         const data = await patientService.getPatients(params);
         setPatients(data);
       } catch (error) {
         console.error("Failed to load patients:", error);
-        setPatients(mockPatients);
+        setPatients([]);
       }
     };
 
@@ -156,30 +64,25 @@ export default function PatientsList() {
   }, [searchParams]);
 
   // Memoized handlers for stable references
-  const handleAddPatient = useCallback(async (newPatient: any) => {
-    try {
-      const payload = {
-        mrn: newPatient.mrn,
-        name: newPatient.name,
-        department: newPatient.department,
-        pathway: newPatient.pathway,
-        current_state: "stable",
-        diagnosis: newPatient.diagnosis,
-        age: parseInt(newPatient.age),
-        sex: newPatient.gender === "male" ? "M" : newPatient.gender === "female" ? "F" : "X",
-        comorbidities: newPatient.comorbidities
-          ? newPatient.comorbidities.split(",").map((c: string) => c.trim())
-          : [],
-        assigned_doctor: newPatient.assignedDoctor,
-      };
+  const handleAddPatient = useCallback(
+    async (newPatient: { mrn: string; name: string; department: string }) => {
+      try {
+        const payload = {
+          mrn: newPatient.mrn,
+          name: newPatient.name,
+          department: newPatient.department,
+        };
 
-      const createdPatient = await patientService.createPatient(payload);
-      setPatients((prev) => [...prev, createdPatient]);
+      await patientService.createPatient(payload);
+      const refreshed = await patientService.getPatients(
+        selectedDepartment !== "all" ? { department: selectedDepartment } : undefined,
+      );
+      setPatients(refreshed);
       setShowAddPatientForm(false);
     } catch (error) {
       console.error("Failed to create patient:", error);
     }
-  }, []);
+  }, [selectedDepartment]);
 
   const clearFilters = useCallback(() => {
     setSelectedPathway("all");
@@ -272,7 +175,19 @@ export default function PatientsList() {
                 <select
                   className="border rounded-md h-9 px-2 text-sm"
                   value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedDepartment(value);
+                    const params = Object.fromEntries(
+                      searchParams.entries(),
+                    );
+                    if (value !== "all") {
+                      params.department = value;
+                    } else {
+                      delete params.department;
+                    }
+                    setSearchParams(params);
+                  }}
                 >
                   <option value="all">All Departments</option>
                   <option value="surgery1">Surgery 1</option>

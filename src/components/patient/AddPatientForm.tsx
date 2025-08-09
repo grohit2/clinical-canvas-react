@@ -153,6 +153,7 @@ export function AddPatientForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      required
                     >
                       <FormControl>
                         <SelectTrigger>

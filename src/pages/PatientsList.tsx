@@ -11,11 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { patientService } from "@/services";
 import { Plus } from "lucide-react";
 
 export default function PatientsList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [patients, setPatients] = useState<PatientMeta[]>([]);
@@ -37,6 +39,7 @@ export default function PatientsList() {
             : undefined;
         const data = await patientService.getPatients(params);
         setPatients(data);
+        queryClient.setQueryData(["patients"], data);
       } catch (error) {
         console.error("Failed to load patients:", error);
         setPatients([]);
@@ -44,7 +47,7 @@ export default function PatientsList() {
     };
 
     loadPatients();
-  }, [selectedDepartment]);
+  }, [selectedDepartment, queryClient]);
 
   useEffect(() => {
     const stageParam = searchParams.get("stage");
@@ -78,11 +81,12 @@ export default function PatientsList() {
         selectedDepartment !== "all" ? { department: selectedDepartment } : undefined,
       );
       setPatients(refreshed);
+      queryClient.setQueryData(["patients"], refreshed);
       setShowAddPatientForm(false);
     } catch (error) {
       console.error("Failed to create patient:", error);
     }
-  }, [selectedDepartment]);
+  }, [selectedDepartment, queryClient]);
 
   const clearFilters = useCallback(() => {
     setSelectedPathway("all");
@@ -93,10 +97,11 @@ export default function PatientsList() {
   }, []);
 
   const handlePatientClick = useCallback(
-    (patientId: string) => {
-      navigate(`/patients/${patientId}`);
+    (patient: PatientMeta) => {
+      queryClient.setQueryData(["patient", patient.id], patient);
+      navigate(`/patients/${patient.id}`, { state: { patient } });
     },
-    [navigate],
+    [navigate, queryClient],
   );
 
   const handleClearFiltersAndSearch = useCallback(() => {
@@ -227,11 +232,15 @@ export default function PatientsList() {
                 <PatientCard
                   key={patient.id}
                   patient={patient}
-                  onClick={() => handlePatientClick(patient.id)}
+                  onClick={() => handlePatientClick(patient)}
                   onDelete={async (p) => {
                     try {
                       await patientService.deletePatient(p.mrn);
-                      setPatients(prev => prev.filter(x => x.mrn !== p.mrn));
+                      setPatients((prev) => {
+                        const updated = prev.filter((x) => x.mrn !== p.mrn);
+                        queryClient.setQueryData(["patients"], updated);
+                        return updated;
+                      });
                     } catch (e) {
                       console.error("Failed to delete patient", e);
                     }

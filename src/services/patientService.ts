@@ -178,8 +178,8 @@ export const patientService = {
     return fetchWithFallback(
       async () => {
         const { data } = await apiService.get<PatientMeta>(
-          API_CONFIG.PATIENTS.DETAIL,
-          { id: mrn }
+          API_CONFIG.PATIENTS.LIST,
+          { mrn }
         );
         return { data, success: true };
       },

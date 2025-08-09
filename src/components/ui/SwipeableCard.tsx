@@ -130,7 +130,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
             )}
             onClick={() => handleActionClick(action)}
             whileTap={{ scale: 0.95 }}
-            accessibilityRole="button"
+            role="button"
             aria-label={action.label}
             initial={isOpen ? { scale: 1 } : { scale: 0.8 }}
             animate={isOpen ? { scale: 1 } : { scale: 0.8 }}

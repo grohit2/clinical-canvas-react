@@ -220,7 +220,7 @@ app.use("/api", createProxyMiddleware({
   pathRewrite: { "^/api": "" }
 }));
 
-app.listen(3001, () => console.log("Dev proxy on http://localhost:3001 ->", target));
+app.listen(3000, () => console.log("Dev proxy on http://localhost:3000 ->", target));
 ```
 
 Start the proxy with:

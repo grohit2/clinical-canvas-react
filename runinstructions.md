@@ -40,7 +40,7 @@ npm install           # installs 496 pkgs, ~30 s on fast net
 ```ts
 define: {
   'process.env': {
-    VITE_API_BASE_URL: JSON.stringify('http://localhost:3001/api'),
+    VITE_API_BASE_URL: JSON.stringify('http://localhost:3000/api'),
     VITE_USE_REAL_API: JSON.stringify('false'),
     /* feature flags … */
   },
@@ -56,7 +56,7 @@ define: {
 2. Add keys:
 
    ```
-   VITE_API_BASE_URL=http://localhost:3001/api
+   VITE_API_BASE_URL=http://localhost:3000/api
    VITE_USE_REAL_API=false
    ```
 
@@ -69,28 +69,28 @@ define: {
 ## 3 Run the Dev Server
 
 ```bash
-npm run dev -- --host 127.0.0.1 --port 5173
+npm run dev -- --host 127.0.0.1 --port 8080
 ```
 
 Output should show:
 
 ```
 VITE v5.x  ready in 200 ms
-➜  Local:   http://127.0.0.1:5173/
-➜  Network: http://<LAN-IP>:5173/
+➜  Local:   http://127.0.0.1:8080/
+➜  Network: http://<LAN-IP>:8080/
 ```
 
 **Verify the bind**
 
 ```bash
-netstat -an | grep 5173   # should show LISTEN
+netstat -an | grep 8080   # should show LISTEN
 ```
 
 ---
 
 ## 4 Open the App
 
-1. Navigate to **`http://127.0.0.1:5173/login`** (root redirects to /login).
+1. Navigate to **`http://127.0.0.1:8080/login`** (root redirects to /login).
 2. Use any demo credential:
    `sarah.wilson@hospital.com / password123` etc.
 3. You should land on the dashboard.
@@ -122,7 +122,7 @@ netstat -an | grep 5173   # should show LISTEN
 | Goal                                        | Command                             |         |
 | ------------------------------------------- | ----------------------------------- | ------- |
 | Kill every Vite / Node proc on current user | \`pkill -f "vite                    | node"\` |
-| Verify nothing else owns the port           | `lsof -i :5173`                     |         |
+| Verify nothing else owns the port           | `lsof -i :8080`                     |         |
 | Change port quickly                         | `npm run dev -- --port 6006`        |         |
 | Watch env vars in build                     | `grep -R "VITE_API_BASE_URL" dist/` |         |
 
@@ -136,7 +136,7 @@ netstat -an | grep 5173   # should show LISTEN
 | **Blank page @ root**                   | Auth redirect → /login                                      | Go straight to `/login`                                                             |
 | **“process is not defined”** in console | Missing `define` shim or used `import.meta.env` incorrectly | Keep `define` block or refactor env usage                                           |
 | CSS not updating                        | Cached Tailwind JIT output                                  | Save the file again or restart dev server                                           |
-| 404 on API calls                        | Backend not running / using mock mode                       | Set `VITE_USE_REAL_API=true` & start backend at 3001, or keep `false` for mock data |
+| 404 on API calls                        | Backend not running / using mock mode                       | Set `VITE_USE_REAL_API=true` & start backend at 3000, or keep `false` for mock data |
 
 ---
 
@@ -144,7 +144,7 @@ netstat -an | grep 5173   # should show LISTEN
 
 ```bash
 # From project root
-pkill -f "vite|node" 2>/dev/null; npm run dev -- --host 127.0.0.1 --port 5173 &
+pkill -f "vite|node" 2>/dev/null; npm run dev -- --host 127.0.0.1 --port 8080 &
 ```
 
 The ampersand (`&`) backgrounds Vite so your terminal stays free for git commands.

@@ -29,7 +29,7 @@ cp .env.example .env
 Configure your environment variables in `.env`:
 ```env
 # API Configuration
-VITE_API_BASE_URL=http://localhost:3001/api
+VITE_API_BASE_URL=http://localhost:3000/api
 VITE_USE_REAL_API=false
 
 # Individual API endpoint flags
@@ -240,7 +240,7 @@ export const API_TIMEOUT = {
 
 ### Development Setup
 ```env
-VITE_API_BASE_URL=http://localhost:3001/api
+VITE_API_BASE_URL=http://localhost:3000/api
 VITE_USE_REAL_API=false  # Use mock data during development
 ```
 

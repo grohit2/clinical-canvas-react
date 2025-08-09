@@ -27,7 +27,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Vite dev server
+        "http://localhost:8080",  # Vite dev server
         "http://localhost:3000",  # Alternative dev port
         "https://clinical-canvas.com",  # Production domain
         "*"  # Allow all origins for development (remove in production)

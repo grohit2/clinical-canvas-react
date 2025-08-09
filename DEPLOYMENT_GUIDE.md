@@ -399,7 +399,7 @@ cdk deploy
 **Development**
 ```env
 JWT_SECRET_KEY=dev-secret-key
-CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
+CORS_ORIGINS=["http://localhost:3000", "http://localhost:8080"]
 LOG_LEVEL=DEBUG
 ```
 

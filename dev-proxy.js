@@ -3,7 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import cors from 'cors';
 
 const app = express();
-const target = process.env.API_BASE || 'https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod';
+const target = process.env.API_BASE || 'https://o7ykvdqu5pbnr2fhtuoddbgj3y0peneo.lambda-url.us-east-1.on.aws';
 
 app.use(cors());
 

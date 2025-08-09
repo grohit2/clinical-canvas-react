@@ -24,6 +24,7 @@ class ApiService {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
+      console.log(`🌐 Making ${options.method || 'GET'} request to:`, url);
       const defaultHeaders = {
         "Content-Type": "application/json",
       };
@@ -36,6 +37,8 @@ class ApiService {
         },
         signal: controller.signal,
       });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
 
       clearTimeout(timeoutId);
 
@@ -135,11 +138,12 @@ export async function fetchWithFallback<T>(
   }
 
   try {
+    console.log("🔥 Making API call...");
     const response = await apiCall();
-    console.log("Successfully fetched data from API");
+    console.log("✅ Successfully fetched data from API:", response.data);
     return response.data;
   } catch (error) {
-    console.warn("API call failed, falling back to mock data:", error);
+    console.error("❌ API call failed, falling back to mock data:", error);
     return mockDataFallback;
   }
 }

@@ -8,11 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Settings, Bell, Shield, LogOut, Phone, Mail, Clock, QrCode, Edit2, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Settings, Bell, Shield, Phone, Mail, Clock, QrCode, Edit2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 const mockUser = {
   id: 'user123',
@@ -157,8 +154,6 @@ const mockUser = {
   },
   securityInfo: {
     lastLogin: '2024-07-23 09:30:00',
-    loginDevice: 'Chrome on Windows 11',
-    loginLocation: 'Mumbai, Maharashtra, India',
     twoFactorEnabled: true,
     securityQuestions: ['What was your first pet\'s name?', 'What city were you born in?'],
     sessionHistory: [
@@ -190,25 +185,18 @@ const mockUser = {
 };
 
 export default function Profile() {
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
-  const [newEmail, setNewEmail] = useState(currentUser?.doctor.email || '');
+  const [newEmail, setNewEmail] = useState(mockUser.email);
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerification, setShowVerification] = useState(false);
 
-  if (!currentUser) {
-    navigate('/login');
-    return null;
-  }
-
-  const doctor = currentUser.doctor;
+  const doctor = mockUser;
 
   const handleEmailChange = () => {
     setIsEditingEmail(true);
@@ -218,12 +206,6 @@ export default function Profile() {
   const handlePasswordChange = () => {
     setIsEditingPassword(true);
     setShowVerification(true);
-  };
-
-  const handleSignOut = () => {
-    logout();
-    toast.success('Signed out successfully');
-    navigate('/login');
   };
 
   const verifyAndSave = () => {
@@ -248,7 +230,7 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-background pb-20">
         <Header title="Notifications" />
-        
+
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-2 mb-6">
             <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)}>
@@ -289,7 +271,7 @@ export default function Profile() {
             </Card>
           )}
         </div>
-        
+
         <BottomBar />
       </div>
     );
@@ -606,15 +588,6 @@ export default function Profile() {
             <Button variant="ghost" className="w-full justify-start h-12">
               <Shield className="h-5 w-5 mr-3" />
               Privacy & Security
-            </Button>
-            <Separator />
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start h-12 text-red-600 hover:text-red-700"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Sign Out
             </Button>
           </div>
         </Card>

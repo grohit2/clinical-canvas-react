@@ -10,8 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientMeta } from "@/types/models";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { patientAssignments, doctorsDatabase } from "@/data/authData";
 
 // Mock data - replace with real API calls
 let mockPatients: PatientMeta[] = [
@@ -101,10 +99,17 @@ let mockPatients: PatientMeta[] = [
   }
 ];
 
+interface NewPatient {
+  name: string;
+  pathway: string;
+  diagnosis: string;
+  comorbidities?: string;
+  assignedDoctor: string;
+}
+
 export default function PatientsList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPathway, setSelectedPathway] = useState('all');
   const [selectedStage, setSelectedStage] = useState('all');
@@ -114,10 +119,7 @@ export default function PatientsList() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
 
-  if (!currentUser) {
-    navigate('/login');
-    return null;
-  }
+  const currentDoctorName = 'Dr. Sarah Wilson';
 
   // Handle URL parameters for stage filtering
   useEffect(() => {
@@ -137,7 +139,7 @@ export default function PatientsList() {
     }
   }, [searchParams]);
 
-  const handleAddPatient = (newPatient: any) => {
+  const handleAddPatient = (newPatient: NewPatient) => {
     const patientId = Math.random().toString(36).substr(2, 8);
     const patient: PatientMeta = {
       id: patientId,
@@ -178,7 +180,7 @@ export default function PatientsList() {
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
       // Fix doctor filtering - ensure exact name match
-      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor.trim() === currentUser.doctor.name.trim();
+      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor.trim() === currentDoctorName.trim();
       
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
     });

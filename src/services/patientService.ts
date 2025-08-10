@@ -171,18 +171,18 @@ export const patientService = {
   async getPatientById(mrn: string): Promise<PatientMeta | null> {
     const mockPatient = mockPatients.find((p) => p.id === mrn || p.mrn === mrn) || null;
 
-    return fetchWithFallback(
-      async () => {
-        const { data } = await apiService.get<PatientMeta>(
-          API_CONFIG.PATIENTS.LIST,
-          { mrn }
-        );
-        return { data, success: true };
-      },
-      mockPatient,
-      FEATURE_FLAGS.ENABLE_PATIENTS_API,
-    );
-  },
+      return fetchWithFallback(
+        async () => {
+          const { data } = await apiService.get<PatientMeta>(
+            API_CONFIG.PATIENTS.DETAIL,
+            { id: mrn }
+          );
+          return { data, success: true };
+        },
+        mockPatient,
+        FEATURE_FLAGS.ENABLE_PATIENTS_API,
+      );
+    },
 
   // QR temporarily disabled
   // async getPatientQRData(patientId: string): Promise<unknown> {

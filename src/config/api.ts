@@ -16,6 +16,7 @@ export const API_CONFIG = {
     QR_DATA: "/patients/:id/qr",
     TIMELINE: "/patients/:id/timeline",
     ASSIGNMENTS: "/patients/assignments",
+    NOTES: "/patients/:id/notes",
   },
 
   // Task-related endpoints
@@ -117,4 +118,7 @@ export const FEATURE_FLAGS = {
   ENABLE_TASKS_API: import.meta.env.VITE_ENABLE_TASKS_API !== "false",
   ENABLE_DASHBOARD_API: import.meta.env.VITE_ENABLE_DASHBOARD_API !== "false",
   ENABLE_MEDIA: import.meta.env.VITE_ENABLE_MEDIA !== "false",
+  ENABLE_DEMOGRAPHICS_API: import.meta.env.VITE_ENABLE_DEMOGRAPHICS_API !== "false",
+  ENABLE_TIMELINE_API: import.meta.env.VITE_ENABLE_TIMELINE_API !== "false",
+  ENABLE_NOTES_API: import.meta.env.VITE_ENABLE_NOTES_API !== "false",
 };

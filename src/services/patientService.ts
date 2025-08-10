@@ -1,7 +1,7 @@
 // Patient Service - handles patient data management
 import { apiService, fetchWithFallback } from "./api";
 import { API_CONFIG, FEATURE_FLAGS } from "@/config/api";
-import { PatientMeta, TimelineEntry, PatientDemographics } from "@/types/models";
+import { PatientMeta, TimelineEntry, PatientDemographics, Note } from "@/types/models";
 import { MOCK_PATIENT_DEMOGRAPHICS, MOCK_TIMELINES } from "@/mocks/patientExtras";
 
 // Mock patient data
@@ -208,7 +208,7 @@ export const patientService = {
       () =>
         apiService.get<TimelineEntry[]>(API_CONFIG.PATIENTS.TIMELINE, { id: patientId }),
       mockTimeline,
-      FEATURE_FLAGS.ENABLE_PATIENTS_API,
+      FEATURE_FLAGS.ENABLE_TIMELINE_API,
     );
   },
 
@@ -233,8 +233,42 @@ export const patientService = {
         return r;
       },
       mock,
-      FEATURE_FLAGS.ENABLE_PATIENTS_API,
+      FEATURE_FLAGS.ENABLE_DEMOGRAPHICS_API,
     );
+  },
+
+  async listPatientNotes(mrn: string): Promise<Note[]> {
+    const { data } = await (FEATURE_FLAGS.ENABLE_NOTES_API
+      ? apiService.get<any[]>(API_CONFIG.PATIENTS.NOTES, { id: mrn })
+      : Promise.resolve({ data: [], success: true }));
+    // Map snake_case to camelCase
+    return (data as any[]).map((n) => ({
+      noteId: n.note_id ?? n.noteId,
+      patientId: n.patient_id ?? n.patientId ?? mrn,
+      authorId: n.author_id ?? n.authorId,
+      category: n.category,
+      content: n.content,
+      createdAt: n.created_at ?? n.createdAt,
+    })) as Note[];
+  },
+
+  async createPatientNote(mrn: string, input: { content: string; category: Note["category"]; authorId: string }): Promise<Note> {
+    const payload = {
+      patient_id: mrn,
+      author_id: input.authorId,
+      category: input.category,
+      content: input.content,
+    };
+    const { data } = await apiService.post<any>(API_CONFIG.PATIENTS.NOTES, payload, { id: mrn });
+    const n = data as any;
+    return {
+      noteId: n.note_id ?? n.noteId,
+      patientId: n.patient_id ?? n.patientId ?? mrn,
+      authorId: n.author_id ?? n.authorId,
+      category: n.category,
+      content: n.content,
+      createdAt: n.created_at ?? n.createdAt,
+    } as Note;
   },
 
   async createPatient(

@@ -430,33 +430,109 @@ If you encounter issues not covered in this guide:
 
 ---
 
+## New Features (Latest Updates)
+
+### Enhanced Patient Detail Experience
+- **Collapsible Hero Header**: 1/3 screen hero that compacts to sticky bar on scroll
+- **Tabbed Interface**: Overview, Journey, Meds, Images, Tasks tabs
+- **Cache Seeding**: Instant navigation with React Query cache optimization
+- **Lazy Loading**: Demographics and timeline load after initial render
+
+### All/My Patients Filter
+- **Profile-Based Filtering**: Switch between all patients and assigned patients
+- **No Extra Network Calls**: Uses existing cached patient data
+- **Default Profile**: Dr. Sarah Wilson (surgery1 department)
+
+### Service Layer Enhancements
+- **Demographics API**: `getPatientDemographics()` with mock fallbacks
+- **Timeline API**: Typed `TimelineEntry[]` with mock data
+- **Media Services**: Image upload/gallery with S3 integration
+- **Medications Service**: Placeholder service ready for backend
+
+### Testing the New Features
+1. **Patient List**: Toggle "All/My Patients" tabs - no loading states
+2. **Patient Detail**: Click any patient card to see collapsible header
+3. **Tab Navigation**: Switch between Overview, Journey, Meds, Images, Tasks
+4. **Mock Data**: All tabs show relevant mock data when APIs unavailable
+5. **Images Tab**: Media uploader + gallery (empty state until backend wired)
+
+## Environment Configuration
+
+### Required Environment Variables
+Create `.env.development` in project root:
+
+```ini
+# Core API Configuration
+VITE_API_BASE_URL=/api
+VITE_USE_REAL_API=true
+VITE_ENABLE_PATIENTS_API=true
+
+# Feature Flags
+VITE_ENABLE_DASHBOARD_API=false
+VITE_ENABLE_TASKS_API=false
+VITE_ENABLE_MEDIA=true
+VITE_ENABLE_QR=false
+
+# Optional: Override proxy target for local backend
+# VITE_LOCAL_BACKEND_URL=http://localhost:3000
+```
+
+### Vite Proxy Configuration
+The `vite.config.ts` automatically proxies `/api` requests:
+- **Default Target**: HMS Lambda URL
+- **Local Override**: Set `VITE_LOCAL_BACKEND_URL` for local backend
+- **Mobile Access**: Change `host: "127.0.0.1"` to `host: "0.0.0.0"`
+
+## API Endpoints
+
+### Patient Endpoints
+- `GET /api/patients` - List patients (supports `?department=` filter)
+- `GET /api/patients?mrn=patient-001` - Get patient by MRN
+- `GET /api/patients/:id/demographics` - Patient demographics (fallback to mock)
+- `GET /api/patients/:id/timeline` - Patient timeline (fallback to mock)
+- `POST /api/patients` - Create patient
+- `PUT /api/patients/:id` - Update patient
+- `DELETE /api/patients/:id` - Delete patient
+
+### Media Endpoints
+- `POST /api/media/presign-upload` - Get S3 presigned upload URL
+- `POST /api/media/finalize` - Finalize uploaded media
+- `GET /api/media/patients/:mrn/images` - List patient images
+- `POST /api/media/view-url` - Get signed view URL
+
+## Quick Test Guide
+
+### 1. Patient List Features
+```bash
+# Test All/My Patients filter
+curl -s http://127.0.0.1:5173/api/patients | jq '.[] | {mrn, name, assignedDoctor}'
+# Should show: patient-001 (Dr. Sarah Wilson), patient-002 (null)
+```
+
+### 2. Patient Detail Features
+```bash
+# Test MRN-based query (used by patient detail)
+curl -s "http://127.0.0.1:5173/api/patients?mrn=patient-001" | jq '{name, department, assignedDoctor}'
+```
+
+### 3. Mock Data Fallbacks
+```bash
+# These should return "Route not found" and fallback to mocks in UI
+curl -s "http://127.0.0.1:5173/api/patients/patient-001/demographics"
+curl -s "http://127.0.0.1:5173/api/patients/patient-001/timeline"
+```
+
+### 4. Browser Testing Checklist
+1. Open http://127.0.0.1:5173/
+2. **Patients List**: Toggle "All Patients" ↔ "My Patients" (instant switch)
+3. **Patient Detail**: Click "Jane Doe" → scroll to see header collapse
+4. **Tabs**: Click Overview → Journey → Meds → Images → Tasks
+5. **Demographics**: Overview tab shows Age: 46, Gender: Female, Room: 204B
+6. **Timeline**: Journey tab shows Surgery → Post-Op timeline
+7. **Images**: Images tab shows uploader + "No images uploaded" message
+
+---
+
 **Last Updated:** January 2025  
 **Vite Version:** 5.4.10  
 **Node Version:** 20 LTS Recommended
-
-## HMS API wiring (frontend)
-
-- Base URL: the app defaults to `/api` so local dev should use the Vite proxy and Amplify should add a rewrite for `/api/*`.
-- Env vars (see `.env.example`):
-  - `VITE_API_BASE_URL` (optional). Leave empty locally to use proxy.
-  - `VITE_API_AUTH_TOKEN` (optional Bearer token)
-  - `VITE_ENABLE_QR=false` (QR disabled temporarily)
-  - `VITE_LOCAL_BACKEND_URL` used by Vite dev proxy if you want to override the default target.
-
-### Local proxy
-
-- Vite is configured to proxy `/api` to your Lambda URL in `vite.config.ts`.
-- To use a different local/tunnel URL, create `.env.local` and set `VITE_LOCAL_BACKEND_URL`.
-
-### Amplify rewrites
-
-- Add two rules in Amplify Console Rewrites & Redirects:
-  1. Source `/api/<*>` → Target `<<<LAMBDA_URL_OR_API_GW>>>/<*>` (Status 200, forward all headers/query)
-  2. Source `/<*>` → Target `/index.html` (Status 200)
-- Reference `infrastructure/amplify-rewrites.json` for a JSON copy.
-
-### Smoke test
-
-- Start dev server: `npm run dev`
-- Visit `/patients` and verify `GET /api/patients` calls your backend.
-- Open a patient → tasks/meds/notes should query the corresponding `/api/patients/{mrn}/...` endpoints.

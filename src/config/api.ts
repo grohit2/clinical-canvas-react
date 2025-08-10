@@ -9,6 +9,7 @@ export const API_CONFIG = {
   PATIENTS: {
     LIST: "/patients",
     DETAIL: "/patients/:id",
+    DEMOGRAPHICS: "/patients/:id/demographics",
     CREATE: "/patients",
     UPDATE: "/patients/:id",
     DELETE: "/patients/:id",

@@ -4,10 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
-import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { PatientMeta } from "@/types/models";
-import { Calendar, MapPin, Clock, QrCode, TestTube, Copy, ImageIcon, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Clock, TestTube, Copy, ImageIcon, Trash2 } from "lucide-react";
 import { copyToClipboard, triggerHaptic, openInBrowser, generateLabsUrl, generateRadiologyUrl } from "@/utils/mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -192,30 +191,12 @@ export const PatientCard = React.memo<PatientCardProps>(
                   <span className="truncate max-w-24">
                     {patient.assignedDoctor}
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowQR(!showQR);
-                    }}
-                    className="p-1 hover:bg-muted rounded"
-                  >
-                    <QrCode className="h-3 w-3" />
-                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* QR Code Popup */}
-          {showQR && (
-            <div className="mt-4 pt-4 border-t">
-              <QRCodeGenerator
-                patientId={patient.id}
-                patientName={patient.name}
-                onClose={() => setShowQR(false)}
-              />
-            </div>
-          )}
+
         </Card>
       </SwipeableCard>
     );

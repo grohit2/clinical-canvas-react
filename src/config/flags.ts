@@ -1,0 +1,1 @@
+export const ENABLE_QR = (import.meta.env.VITE_ENABLE_QR ?? "false") === "true";

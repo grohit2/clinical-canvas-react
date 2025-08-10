@@ -51,6 +51,7 @@ const mockPatientData = {
   },
 };
 
+// QR features removed temporarily
 export default function PatientQRView() {
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<any>(null);
@@ -63,8 +64,8 @@ export default function PatientQRView() {
 
       try {
         setIsLoading(true);
-        const patientData = await patientService.getPatientQRData(id);
-        setPatient(patientData);
+                 // QR data fetch disabled
+         setPatient(null);
       } catch (error) {
         console.error("Failed to load patient QR data:", error);
       } finally {

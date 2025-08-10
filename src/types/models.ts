@@ -4,7 +4,7 @@ export interface PatientMeta {
   id: string;
   name: string;
   mrn: string; // Medical Record Number for Labs and copy functionality
-  qrCode: string;
+  // qrCode removed while QR features are disabled
   pathway: "surgical" | "consultation" | "emergency";
   currentState: string;
   diagnosis: string;

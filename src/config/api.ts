@@ -12,7 +12,7 @@ export const API_CONFIG = {
     CREATE: "/patients",
     UPDATE: "/patients/:id",
     DELETE: "/patients/:id",
-    QR_DATA: "/patients/:id/qr",
+    // QR_DATA temporarily disabled
     TIMELINE: "/patients/:id/timeline",
     ASSIGNMENTS: "/patients/assignments",
   },

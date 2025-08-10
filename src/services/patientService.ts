@@ -10,7 +10,6 @@ const mockPatients: PatientMeta[] = [
     id: "27e8d1ad",
     name: "Jane Doe",
     mrn: "MRN001234",
-    qrCode: `${window.location.origin}/qr/27e8d1ad`,
     pathway: "surgical",
     currentState: "post-op",
     diagnosis: "Cholecystitis",
@@ -25,7 +24,6 @@ const mockPatients: PatientMeta[] = [
     id: "3b9f2c1e",
     name: "John Smith",
     mrn: "MRN005678",
-    qrCode: `${window.location.origin}/qr/3b9f2c1e`,
     pathway: "emergency",
     currentState: "ICU",
     diagnosis: "Acute MI",
@@ -40,7 +38,6 @@ const mockPatients: PatientMeta[] = [
     id: "8c4d5e2f",
     name: "Maria Garcia",
     mrn: "MRN009012",
-    qrCode: `${window.location.origin}/qr/8c4d5e2f`,
     pathway: "consultation",
     currentState: "stable",
     diagnosis: "Osteoarthritis",
@@ -55,7 +52,6 @@ const mockPatients: PatientMeta[] = [
     id: "9d6e7f3g",
     name: "Robert Wilson",
     mrn: "MRN003456",
-    qrCode: `${window.location.origin}/qr/9d6e7f3g`,
     pathway: "surgical",
     currentState: "pre-op",
     diagnosis: "Appendicitis",
@@ -70,7 +66,6 @@ const mockPatients: PatientMeta[] = [
     id: "1a2b3c4d",
     name: "Sarah Johnson",
     mrn: "MRN007890",
-    qrCode: `${window.location.origin}/qr/1a2b3c4d`,
     pathway: "emergency",
     currentState: "stable",
     diagnosis: "Pneumonia",
@@ -189,16 +184,16 @@ export const patientService = {
     );
   },
 
-  async getPatientQRData(patientId: string): Promise<unknown> {
-    const mockData =
-      mockPatientData[patientId as keyof typeof mockPatientData] || null;
-
-    return fetchWithFallback(
-      () => apiService.get(API_CONFIG.PATIENTS.QR_DATA, { id: patientId }),
-      mockData,
-      FEATURE_FLAGS.ENABLE_PATIENTS_API,
-    );
-  },
+  // QR temporarily disabled
+  // async getPatientQRData(patientId: string): Promise<unknown> {
+  //   const mockData =
+  //     mockPatientData[patientId as keyof typeof mockPatientData] || null;
+  //   return fetchWithFallback(
+  //     () => apiService.get(API_CONFIG.PATIENTS.QR_DATA, { id: patientId }),
+  //     mockData,
+  //     FEATURE_FLAGS.ENABLE_PATIENTS_API,
+  //   );
+  // },
 
   // Updated: typed timeline with fallback to mocks
   async getPatientTimeline(patientId: string): Promise<TimelineEntry[]> {
@@ -248,7 +243,6 @@ export const patientService = {
       id: payload.mrn,
       name: payload.name,
       mrn: payload.mrn,
-      qrCode: payload.qrCode || `${window.location.origin}/qr/${payload.mrn}`,
       pathway: payload.pathway || "consultation",
       currentState: payload.currentState || "stable",
       diagnosis: payload.diagnosis || "",

@@ -28,7 +28,6 @@ export function toPatientMeta(p: HmsPatient): PatientMeta {
     id: p.mrn,                      // <-- route by MRN
     name: p.name,
     mrn: p.mrn,
-    qrCode: p.qr_code ?? "",
     pathway: (p.pathway as any) ?? "consultation",
     currentState: p.current_state ?? "stable",
     diagnosis: p.diagnosis ?? "",
@@ -52,7 +51,6 @@ export function fromPatientMeta(p: Partial<PatientMeta>): Partial<HmsPatient> {
     diagnosis: p.diagnosis,
     comorbidities: p.comorbidities,
     assigned_doctor: p.assignedDoctor,
-    qr_code: p.qrCode,
     update_counter: p.updateCounter,
     last_updated: p.lastUpdated,
   };

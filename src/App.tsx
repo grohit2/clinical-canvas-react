@@ -13,7 +13,7 @@ const Tasks = React.lazy(() => import("./pages/Tasks"));
 const TasksDue = React.lazy(() => import("./pages/TasksDue"));
 const UrgentAlerts = React.lazy(() => import("./pages/UrgentAlerts"));
 const CompletedToday = React.lazy(() => import("./pages/CompletedToday"));
-const PatientQRView = React.lazy(() => import("./pages/PatientQRView"));
+const DoctorsList = React.lazy(() => import("./pages/DoctorsList"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -33,11 +33,12 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            <Route path="/qr/:id" element={<PatientQRView />} />
+            {/* QR temporarily disabled */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/patients" element={<PatientsList />} />
             <Route path="/patients/:id" element={<PatientDetail />} />
             <Route path="/tasks" element={<Tasks />} />
+            <Route path="/doctors" element={<DoctorsList />} />
             <Route path="/tasks-due" element={<TasksDue />} />
             <Route path="/urgent-alerts" element={<UrgentAlerts />} />
             <Route path="/completed-today" element={<CompletedToday />} />

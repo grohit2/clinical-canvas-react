@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "https://o7ykvdqu5pbnr2fhtuoddbgj3y0peneo.lambda-url.us-east-1.on.aws",
+        target: process.env.VITE_LOCAL_BACKEND_URL || "https://o7ykvdqu5pbnr2fhtuoddbgj3y0peneo.lambda-url.us-east-1.on.aws",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
       },

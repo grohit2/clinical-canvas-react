@@ -433,3 +433,30 @@ If you encounter issues not covered in this guide:
 **Last Updated:** January 2025  
 **Vite Version:** 5.4.10  
 **Node Version:** 20 LTS Recommended
+
+## HMS API wiring (frontend)
+
+- Base URL: the app defaults to `/api` so local dev should use the Vite proxy and Amplify should add a rewrite for `/api/*`.
+- Env vars (see `.env.example`):
+  - `VITE_API_BASE_URL` (optional). Leave empty locally to use proxy.
+  - `VITE_API_AUTH_TOKEN` (optional Bearer token)
+  - `VITE_ENABLE_QR=false` (QR disabled temporarily)
+  - `VITE_LOCAL_BACKEND_URL` used by Vite dev proxy if you want to override the default target.
+
+### Local proxy
+
+- Vite is configured to proxy `/api` to your Lambda URL in `vite.config.ts`.
+- To use a different local/tunnel URL, create `.env.local` and set `VITE_LOCAL_BACKEND_URL`.
+
+### Amplify rewrites
+
+- Add two rules in Amplify Console Rewrites & Redirects:
+  1. Source `/api/<*>` → Target `<<<LAMBDA_URL_OR_API_GW>>>/<*>` (Status 200, forward all headers/query)
+  2. Source `/<*>` → Target `/index.html` (Status 200)
+- Reference `infrastructure/amplify-rewrites.json` for a JSON copy.
+
+### Smoke test
+
+- Start dev server: `npm run dev`
+- Visit `/patients` and verify `GET /api/patients` calls your backend.
+- Open a patient → tasks/meds/notes should query the corresponding `/api/patients/{mrn}/...` endpoints.

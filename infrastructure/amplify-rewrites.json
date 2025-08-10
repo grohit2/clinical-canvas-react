@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/<*>",
+      "target": "<<<LAMBDA_URL_OR_API_GW>>>/<*>",
+      "status": 200,
+      "condition": null
+    },
+    {
+      "source": "/<*>",
+      "target": "/index.html",
+      "status": 200,
+      "condition": null
+    }
+  ]
+}

@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import PatientMediaUploader from "@/components/PatientMediaUploader";
 import PatientGallery from "@/components/patient/PatientGallery";
 import { Timeline } from "@/components/patient/Timeline";
+import TaskList from "@/features/tasks/components/TaskList";
+import MedicationList from "@/features/meds/components/MedicationList";
+import NotesList from "@/features/notes/components/NotesList";
 
 import type { PatientMeta, PatientDemographics, TimelineEntry } from "@/types/models";
 
@@ -87,7 +90,7 @@ export default function PatientDetail() {
             <div className="text-sm text-muted-foreground">{patient.mrn}</div>
             <div className="font-semibold truncate">{patient.name}</div>
           </div>
-          <div className="text-xs text-muted-foreground">{patient.department}</div>
+          <div className="text-right text-sm text-muted-foreground">{patient.department}</div>
         </div>
       </div>
 
@@ -112,7 +115,7 @@ export default function PatientDetail() {
 
       {/* Tabs */}
       <div className="max-w-screen-xl mx-auto px-4">
-        <Tabs defaultValue="overview">
+        <Tabs defaultValue="tasks">
           <TabsList className="h-auto p-1 rounded-lg bg-muted/50 mt-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
@@ -157,7 +160,7 @@ export default function PatientDetail() {
           </TabsContent>
 
           <TabsContent value="meds" className="mt-6">
-            <Card className="p-4 text-sm text-muted-foreground">Meds list coming soon</Card>
+            <MedicationList mrn={mrn} />
           </TabsContent>
 
           <TabsContent value="images" className="mt-6">
@@ -168,7 +171,12 @@ export default function PatientDetail() {
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-6">
-            <Card className="p-4 text-sm text-muted-foreground">Tasks tab placeholder</Card>
+            <Card className="p-4">
+              <TaskList mrn={mrn} />
+            </Card>
+            <Card className="p-4 mt-4">
+              <NotesList mrn={mrn} />
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

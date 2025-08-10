@@ -12,6 +12,7 @@ export interface ApiError {
   message: string;
   status?: number;
   code?: string;
+  body?: any;
 }
 
 class ApiService {
@@ -27,6 +28,7 @@ class ApiService {
       console.log(`🌐 Making ${options.method || 'GET'} request to:`, url);
       const defaultHeaders = {
         "Content-Type": "application/json",
+        ...(import.meta.env.VITE_API_AUTH_TOKEN ? { Authorization: `Bearer ${import.meta.env.VITE_API_AUTH_TOKEN}` } : {}),
       };
 
       const response = await fetch(url, {
@@ -43,7 +45,12 @@ class ApiService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        let errBody: any | undefined = undefined;
+        try { errBody = await response.clone().json(); } catch {}
+        const err = new Error(`HTTP ${response.status}: ${response.statusText}`) as any;
+        err.status = response.status;
+        (err as any).body = errBody;
+        throw err;
       }
 
       const contentType = response.headers.get("content-type") || "";

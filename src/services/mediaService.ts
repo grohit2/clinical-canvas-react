@@ -1,5 +1,14 @@
-import { apiService } from "./api";
+import { apiService, fetchWithFallback } from "./api";
 import { API_CONFIG, FEATURE_FLAGS } from "@/config/api";
+
+export type MediaItem = {
+  id?: string;
+  s3_key: string;
+  mime?: string;
+  size?: number;
+  created_at?: string;
+  variants?: { thumb_128?: string; thumb_512?: string; preview?: string };
+};
 
 export const mediaService = {
   async presignUpload(mrn: string, file: File) {
@@ -56,5 +65,30 @@ export const mediaService = {
     }
     const r = await apiService.post(API_CONFIG.MEDIA.VIEW_URL, { s3_key, variant });
     return r.data as { url: string; expires_in: number };
+  },
+
+  // New: listPatientImages compatible with Images tab spec
+  async listPatientImages(mrn: string): Promise<MediaItem[]> {
+    return fetchWithFallback(
+      async () => {
+        const r = await apiService.get<MediaItem[]>(API_CONFIG.MEDIA.LIST_FOR_PATIENT, { mrn });
+        return r;
+      },
+      [],
+      FEATURE_FLAGS.ENABLE_MEDIA,
+    );
+  },
+
+  // New: getSignedImageUrl compatible with Images tab spec
+  async getSignedImageUrl(s3_key: string): Promise<string> {
+    const res = await fetchWithFallback(
+      async () => {
+        const r = await apiService.post<{ url: string }>(API_CONFIG.MEDIA.VIEW_URL, { s3_key });
+        return r;
+      },
+      { url: "" } as any,
+      FEATURE_FLAGS.ENABLE_MEDIA,
+    );
+    return (res as any).url || "";
   },
 };

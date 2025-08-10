@@ -14,6 +14,9 @@ export interface PatientMeta {
   assignedDoctor?: string;
   department?: string;
   status?: "ACTIVE" | "INACTIVE";
+  // Additions for UI convenience
+  age?: number;
+  sex?: "M" | "F" | "O";
 }
 
 export interface TimelineEntry {
@@ -108,4 +111,19 @@ export interface KanbanColumn {
   id: string;
   title: string;
   tasks: Task[];
+}
+
+// Additions for Patient Detail extras
+export interface PatientDemographics {
+  mrn: string;
+  dob?: string;
+  age?: number;
+  gender?: string;
+  room?: string;
+  admissionDate?: string;
+  lengthOfStay?: number;
+  nextMilestone?: string;
+  nextMilestoneTime?: string;
+  allergies?: string[];
+  emergencyContact?: { name: string; phone?: string } | null;
 }

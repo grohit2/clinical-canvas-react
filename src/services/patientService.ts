@@ -1,7 +1,8 @@
 // Patient Service - handles patient data management
 import { apiService, fetchWithFallback } from "./api";
 import { API_CONFIG, FEATURE_FLAGS } from "@/config/api";
-import { PatientMeta } from "@/types/models";
+import { PatientMeta, TimelineEntry, PatientDemographics } from "@/types/models";
+import { MOCK_PATIENT_DEMOGRAPHICS, MOCK_TIMELINES } from "@/mocks/patientExtras";
 
 // Mock patient data
 const mockPatients: PatientMeta[] = [
@@ -199,13 +200,39 @@ export const patientService = {
     );
   },
 
-  async getPatientTimeline(patientId: string): Promise<unknown[]> {
-    const mockTimeline = mockTimelines[patientId] || [];
+  // Updated: typed timeline with fallback to mocks
+  async getPatientTimeline(patientId: string): Promise<TimelineEntry[]> {
+    const mockTimeline = MOCK_TIMELINES[patientId] || [];
 
     return fetchWithFallback(
       () =>
-        apiService.get<unknown[]>(API_CONFIG.PATIENTS.TIMELINE, { id: patientId }),
+        apiService.get<TimelineEntry[]>(API_CONFIG.PATIENTS.TIMELINE, { id: patientId }),
       mockTimeline,
+      FEATURE_FLAGS.ENABLE_PATIENTS_API,
+    );
+  },
+
+  // New: demographics with fallback to mocks
+  async getPatientDemographics(mrn: string): Promise<PatientDemographics> {
+    const mock =
+      MOCK_PATIENT_DEMOGRAPHICS[mrn] ?? {
+        mrn,
+        age: undefined,
+        room: undefined,
+        allergies: [],
+        nextMilestone: undefined,
+        nextMilestoneTime: undefined,
+        lengthOfStay: undefined,
+        admissionDate: undefined,
+        emergencyContact: undefined,
+      };
+
+    return fetchWithFallback(
+      async () => {
+        const r = await apiService.get<PatientDemographics>(API_CONFIG.PATIENTS.DEMOGRAPHICS, { id: mrn });
+        return r;
+      },
+      mock,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
   },
@@ -281,7 +308,7 @@ export const patientService = {
         await apiService.delete(API_CONFIG.PATIENTS.DELETE, { id: mrn });
         return { data: undefined, success: true };
       },
-      undefined,
+      undefined as unknown as void,
       FEATURE_FLAGS.ENABLE_PATIENTS_API,
     );
   },

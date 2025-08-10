@@ -14,11 +14,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { patientService } from "@/services";
 import { Plus } from "lucide-react";
+import { useProfile } from "@/stores/useProfile";
 
 export default function PatientsList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const profile = useProfile();
 
   const [patients, setPatients] = useState<PatientMeta[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +31,7 @@ export default function PatientsList() {
   const [showInactive, setShowInactive] = useState(false);
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [tab, setTab] = useState<"all" | "mine">("all");
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -120,7 +123,7 @@ export default function PatientsList() {
     return count;
   }, [selectedPathway, selectedStage, showUrgentOnly, selectedDepartment, showInactive]);
 
-  // Memoized base filtering logic
+  // Base filter
   const baseFilteredPatients = useMemo(() => {
     return patients.filter((patient) => {
       const matchesSearch =
@@ -146,10 +149,15 @@ export default function PatientsList() {
     });
   }, [patients, searchQuery, selectedPathway, selectedStage, showUrgentOnly, selectedDepartment, showInactive]);
 
-  // Memoized filtered results
-  const allFilteredPatients = useMemo(() => {
-    return baseFilteredPatients;
-  }, [baseFilteredPatients]);
+  // Mine filter overlay
+  const visiblePatients = useMemo(() => {
+    if (tab !== "mine") return baseFilteredPatients;
+    if (!profile?.doctorName && !profile?.doctorId) return baseFilteredPatients;
+    return baseFilteredPatients.filter((p: any) =>
+      (profile.doctorId && p.assignedDoctorId === profile.doctorId) ||
+      (profile.doctorName && p.assignedDoctor?.toLowerCase() === profile.doctorName.toLowerCase())
+    );
+  }, [baseFilteredPatients, tab, profile]);
 
   // Memoized empty state check
   const hasActiveFiltersOrSearch = useMemo(() => {
@@ -168,12 +176,13 @@ export default function PatientsList() {
       />
 
       <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="all">All Patients</TabsTrigger>
+            <TabsTrigger value="mine">My Patients</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4 mt-4">
+          <TabsContent value={tab} className="space-y-4 mt-4">
             {/* Filter Controls */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -222,13 +231,13 @@ export default function PatientsList() {
                 </label>
               </div>
               <Badge variant="secondary">
-                {allFilteredPatients.length} patients
+                {visiblePatients.length} patients
               </Badge>
             </div>
 
             {/* Patients Grid */}
             <div className="grid gap-3">
-              {allFilteredPatients.map((patient) => (
+              {visiblePatients.map((patient) => (
                 <PatientCard
                   key={patient.id}
                   patient={patient}
@@ -249,7 +258,7 @@ export default function PatientsList() {
               ))}
             </div>
 
-            {allFilteredPatients.length === 0 && (
+            {visiblePatients.length === 0 && (
                              <div className="text-center py-12">
                 <p className="text-muted-foreground">
                   No patients found matching your criteria

@@ -13,15 +13,6 @@ export interface PatientMeta {
   assignedDoctor?: string;
 }
 
-export interface TimelineEntry {
-  patientId: string;
-  state: string;
-  dateIn: string;
-  dateOut?: string;
-  checklistIn: string[];
-  checklistOut: string[];
-}
-
 export interface Task {
   taskId: string;
   patientId: string;

@@ -37,6 +37,7 @@ export default function PatientsList() {
           id: p.id || p.mrn,
           qrCode: `${window.location.origin}/qr/${p.mrn}`,
           updateCounter: 0,
+          comorbidities: p.comorbidities || [],
         }));
         setPatients(withUi);
         mockPatients = withUi;
@@ -68,6 +69,7 @@ export default function PatientsList() {
       id: patient.id || patient.mrn,
       qrCode: `${window.location.origin}/qr/${patient.mrn}`,
       updateCounter: 0,
+      comorbidities: patient.comorbidities || [],
     };
     setPatients((prev) => [...prev, withUi]);
     mockPatients = [...mockPatients, withUi];

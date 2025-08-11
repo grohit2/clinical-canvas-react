@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, Clock } from "lucide-react";
-import { TimelineEntry } from "@/types/models";
+import { TimelineEntry } from "@/types/api";
 import { cn } from "@/lib/utils";
 
 interface TimelineProps {

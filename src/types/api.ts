@@ -11,8 +11,17 @@ export interface Patient {
   diagnosis?: string;
   age?: number;
   sex?: string;
-  comorbidities: string[];
+  comorbidities?: string[];
+  assignedDoctor?: string;
   assignedDoctorId?: string;
+  isUrgent?: boolean;
+  urgentReason?: string;
+  urgentUntil?: string;
+  emergencyContact?: {
+    name: string;
+    relationship?: string;
+    phone?: string;
+  };
   filesUrl?: string | null;
   lastUpdated?: string;
   // UI-specific optional fields
@@ -76,6 +85,22 @@ export interface Doctor {
   contactInfo: Record<string, string>;
   permissions: string[];
   email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TimelineEntry {
+  timelineId: string;
+  patientId: string;
+  state: string;
+  dateIn: string;
+  dateOut?: string | null;
+  requiredIn: string[];
+  requiredOut: string[];
+  checklistIn: string[];
+  checklistOut: string[];
+  actorId?: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }

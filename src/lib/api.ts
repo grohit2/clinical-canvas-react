@@ -1,4 +1,4 @@
-import type { Patient, Task, Note, Medication, Doctor } from '@/types/api';
+import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -28,6 +28,7 @@ export const api = {
     list: (department?: string) =>
       request<Patient[]>(`/patients${department ? `?department=${encodeURIComponent(department)}` : ''}`),
     get: (mrn: string) => request<Patient>(`/patients/${mrn}`),
+    timeline: (mrn: string) => request<TimelineEntry[]>(`/patients/${mrn}/timeline`),
     create: (data: Omit<Patient, 'id' | 'lastUpdated' | 'status'> & { mrn: string; name: string; department: string }) =>
       request<{ message: string; mrn: string; patient: Patient }>(`/patients`, {
         method: 'POST',

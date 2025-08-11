@@ -99,7 +99,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </div>
 
           {/* Comorbidities */}
-          {patient.comorbidities.length > 0 && (
+          {patient.comorbidities && patient.comorbidities.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {patient.comorbidities.slice(0, 3).map((comorbidity) => (
                 <Badge key={comorbidity} variant="secondary" className="text-xs">

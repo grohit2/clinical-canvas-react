@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
+import type { Patient } from "@/types/api";
 
 const addPatientSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -51,7 +53,7 @@ type AddPatientFormValues = z.infer<typeof addPatientSchema>;
 interface AddPatientFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddPatient?: (patient: AddPatientFormValues) => void;
+  onAddPatient?: (patient: Patient) => void;
 }
 
 export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientFormProps) {
@@ -77,19 +79,29 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
 
   const onSubmit = async (data: AddPatientFormValues) => {
     setIsSubmitting(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Add patient to the list
-      onAddPatient?.(data);
-      
+      const res = await api.patients.create({
+        mrn: data.mrn,
+        name: data.name,
+        department: "General",
+        age: parseInt(data.age, 10),
+        sex: data.gender,
+        pathway: data.pathway,
+        diagnosis: data.diagnosis,
+        comorbidities: data.comorbidities
+          ? data.comorbidities.split(",").map((c) => c.trim())
+          : [],
+        assignedDoctorId: data.assignedDoctor,
+      });
+
+      onAddPatient?.(res.patient);
+
       toast({
         title: "Patient added successfully",
         description: `${data.name} has been added to the system.`,
       });
-      
+
       form.reset();
       onOpenChange(false);
     } catch (error) {

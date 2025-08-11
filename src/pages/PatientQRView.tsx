@@ -36,11 +36,13 @@ const mockPatientData = {
       { time: '08:30', note: 'Patient awake and responsive', type: 'observation' }
     ]
   }
-};
+} as const;
+
+type MockPatient = (typeof mockPatientData)[keyof typeof mockPatientData];
 
 export default function PatientQRView() {
   const { id } = useParams<{ id: string }>();
-  const [patient, setPatient] = useState<any>(null);
+  const [patient, setPatient] = useState<MockPatient | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
 
   useEffect(() => {
@@ -190,7 +192,8 @@ export default function PatientQRView() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="space-y-3">
-              {patient.recentUpdates.map((update: any, index: number) => (
+              {patient.recentUpdates.map(
+                (update: MockPatient['recentUpdates'][number], index: number) => (
                 <div key={index} className="flex items-start gap-3 pb-3 border-b last:border-b-0 last:pb-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -203,7 +206,8 @@ export default function PatientQRView() {
                     </Badge>
                   </div>
                 </div>
-              ))}
+              )
+              )}
             </div>
           </CardContent>
         </Card>

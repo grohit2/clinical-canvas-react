@@ -8,104 +8,12 @@ import { NotificationsPopup } from "@/components/notifications/NotificationsPopu
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PatientMeta } from "@/types/models";
+import api from "@/lib/api";
+import type { Patient } from "@/types/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-// Mock data - replace with real API calls
-let mockPatients: PatientMeta[] = [
-  {
-    id: '27e8d1ad',
-    name: 'Jane Doe',
-    qrCode: `${window.location.origin}/qr/27e8d1ad`,
-    pathway: 'surgical',
-    currentState: 'post-op',
-    diagnosis: 'Cholecystitis',
-    comorbidities: ['HTN', 'DM'],
-    updateCounter: 5,
-    lastUpdated: '2025-07-19T14:30:09Z',
-    assignedDoctor: 'Dr. Sarah Wilson'
-  },
-  {
-    id: '3b9f2c1e',
-    name: 'John Smith',
-    qrCode: `${window.location.origin}/qr/3b9f2c1e`,
-    pathway: 'emergency',
-    currentState: 'ICU',
-    diagnosis: 'Acute MI',
-    comorbidities: ['CAD', 'HTN'],
-    updateCounter: 12,
-    lastUpdated: '2025-07-19T16:45:22Z',
-    assignedDoctor: 'Dr. Johnson'
-  },
-  {
-    id: '8c4d5e2f',
-    name: 'Maria Garcia',
-    qrCode: `${window.location.origin}/qr/8c4d5e2f`,
-    pathway: 'consultation',
-    currentState: 'stable',
-    diagnosis: 'Osteoarthritis',
-    comorbidities: ['Obesity'],
-    updateCounter: 2,
-    lastUpdated: '2025-07-19T11:20:15Z',
-    assignedDoctor: 'Dr. Sarah Wilson'
-  },
-  {
-    id: '9d6e7f3g',
-    name: 'Robert Wilson',
-    qrCode: `${window.location.origin}/qr/9d6e7f3g`,
-    pathway: 'surgical',
-    currentState: 'pre-op',
-    diagnosis: 'Appendicitis',
-    comorbidities: [],
-    updateCounter: 8,
-    lastUpdated: '2025-07-19T13:15:30Z',
-    assignedDoctor: 'Dr. Sarah Wilson'
-  },
-  {
-    id: '1a2b3c4d',
-    name: 'Sarah Johnson',
-    qrCode: `${window.location.origin}/qr/1a2b3c4d`,
-    pathway: 'emergency',
-    currentState: 'recovery',
-    diagnosis: 'Pneumonia',
-    comorbidities: ['COPD', 'HTN'],
-    updateCounter: 3,
-    lastUpdated: '2025-07-19T09:45:18Z',
-    assignedDoctor: 'Dr. Johnson'
-  },
-  {
-    id: '6f7g8h9i',
-    name: 'Michael Brown',
-    qrCode: `${window.location.origin}/qr/6f7g8h9i`,
-    pathway: 'consultation',
-    currentState: 'stable',
-    diagnosis: 'Diabetes Type 2',
-    comorbidities: ['HTN', 'Obesity'],
-    updateCounter: 4,
-    lastUpdated: '2025-07-19T10:20:30Z',
-    assignedDoctor: 'Dr. Emily Chen'
-  },
-  {
-    id: '2j3k4l5m',
-    name: 'Lisa Davis',
-    qrCode: `${window.location.origin}/qr/2j3k4l5m`,
-    pathway: 'emergency',
-    currentState: 'stable',
-    diagnosis: 'Chest Pain',
-    comorbidities: [],
-    updateCounter: 1,
-    lastUpdated: '2025-07-19T15:45:12Z',
-    assignedDoctor: 'Dr. Emily Chen'
-  }
-];
-
-interface NewPatient {
-  name: string;
-  pathway: string;
-  diagnosis: string;
-  comorbidities?: string;
-  assignedDoctor: string;
-}
+// Initial empty list; will be populated from API
+let mockPatients: Patient[] = [];
 
 export default function PatientsList() {
   const navigate = useNavigate();
@@ -117,9 +25,24 @@ export default function PatientsList() {
   const [activeTab, setActiveTab] = useState('all');
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [patients, setPatients] = useState<PatientMeta[]>(mockPatients);
+  const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  const currentDoctorId = 'doc-abc123';
 
-  const currentDoctorName = 'Dr. Sarah Wilson';
+  useEffect(() => {
+    api.patients
+      .list()
+      .then((data) => {
+        const withUi = data.map((p) => ({
+          ...p,
+          id: p.id || p.mrn,
+          qrCode: `${window.location.origin}/qr/${p.mrn}`,
+          updateCounter: 0,
+        }));
+        setPatients(withUi);
+        mockPatients = withUi;
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   // Handle URL parameters for stage filtering
   useEffect(() => {
@@ -139,22 +62,15 @@ export default function PatientsList() {
     }
   }, [searchParams]);
 
-  const handleAddPatient = (newPatient: NewPatient) => {
-    const patientId = Math.random().toString(36).substr(2, 8);
-    const patient: PatientMeta = {
-      id: patientId,
-      name: newPatient.name,
-      qrCode: `${window.location.origin}/qr/${patientId}`,
-      pathway: newPatient.pathway,
-      currentState: 'stable',
-      diagnosis: newPatient.diagnosis,
-      comorbidities: newPatient.comorbidities ? newPatient.comorbidities.split(',').map((c: string) => c.trim()) : [],
-      updateCounter: 1,
-      lastUpdated: new Date().toISOString(),
-      assignedDoctor: newPatient.assignedDoctor
+  const handleAddPatient = (patient: Patient) => {
+    const withUi = {
+      ...patient,
+      id: patient.id || patient.mrn,
+      qrCode: `${window.location.origin}/qr/${patient.mrn}`,
+      updateCounter: 0,
     };
-    setPatients(prev => [...prev, patient]);
-    mockPatients = [...mockPatients, patient];
+    setPatients((prev) => [...prev, withUi]);
+    mockPatients = [...mockPatients, withUi];
   };
 
   const getActiveFiltersCount = () => {
@@ -180,7 +96,8 @@ export default function PatientsList() {
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
       // Fix doctor filtering - ensure exact name match
-      const matchesDoctor = tabFilter === 'all' || patient.assignedDoctor.trim() === currentDoctorName.trim();
+      const matchesDoctor =
+        tabFilter === 'all' || patient.assignedDoctorId === currentDoctorId;
       
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
     });

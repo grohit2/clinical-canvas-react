@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
-import { PatientMeta } from "@/types/models";
+import type { Patient } from "@/types/api";
 import { Calendar, MapPin, Clock, QrCode } from "lucide-react";
 
 interface PatientCardProps {
-  patient: PatientMeta;
+  patient: Patient;
   onClick?: () => void;
 }
 

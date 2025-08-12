@@ -1,6 +1,6 @@
 import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};

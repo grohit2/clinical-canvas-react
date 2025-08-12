@@ -24,7 +24,7 @@ What it does (in order):
 
 Usage:
     pip install requests  (and optionally boto3 if you need the Dynamo fallback)
-    python seed_and_test.py --base https://<your-lambda-url> [--prefix myrun] [--region us-east-1] [--table HMS]
+    python seed_and_test.py --base https://o7ykvdqu5pbnr2fhtuoddbgj3y0peneo.lambda-url.us-east-1.on.aws [--prefix myrun] [--region us-east-1] [--table HMS]
 """
 
 import argparse

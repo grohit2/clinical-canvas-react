@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Users,
   AlertTriangle,
-  CheckCircle,
   Clock,
   TrendingUp,
   Calendar,
@@ -15,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
+import { MindfulnessTile } from "@/components/dashboard/MindfulnessTile";
 
 type StageEntry = {
   stage: string;
@@ -52,7 +52,6 @@ export default function Dashboard() {
     totalPatients: 0,
     tasksDue: 0,
     urgentAlerts: 0,
-    completedToday: 0,
   });
   const [stageHeatMap, setStageHeatMap] = useState<StageEntry[]>([]);
 
@@ -68,18 +67,10 @@ export default function Dashboard() {
         const totalPatients = patients.length;
         const tasksDue = allTasks.filter((t) => t.status !== "done").length;
         const urgentAlerts = patients.filter((p) => p.isUrgent).length;
-        const today = new Date().toDateString();
-        const completedToday = allTasks.filter(
-          (t) =>
-            t.status === "done" &&
-            new Date(t.updatedAt).toDateString() === today
-        ).length;
-
         setKpiData({
           totalPatients,
           tasksDue,
           urgentAlerts,
-          completedToday,
         });
 
         const stageCounts: Record<string, number> = {};
@@ -164,14 +155,7 @@ export default function Dashboard() {
             variant="urgent"
             onClick={() => navigate('/urgent-alerts')}
           />
-          <KPITile
-            title="Completed Today"
-            value={kpiData.completedToday}
-            icon={CheckCircle}
-            variant="stable"
-            trend={{ value: 12, isPositive: true }}
-            onClick={() => navigate('/completed-today')}
-          />
+          <MindfulnessTile />
         </div>
 
         {/* Stage Heat Map */}

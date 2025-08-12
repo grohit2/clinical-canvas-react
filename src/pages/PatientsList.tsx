@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { PatientCard } from "@/components/patient/PatientCard";
+import { PatientGridCard } from "@/components/patient/PatientGridCard";
+import { ViewToggle } from "@/components/patient/ViewToggle";
 import { FilterPopup } from "@/components/patient/FilterPopup";
 import { AddPatientForm } from "@/components/patient/AddPatientForm";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
@@ -26,6 +28,9 @@ export default function PatientsList() {
   const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(
+    () => (localStorage.getItem('patientViewMode') as 'list' | 'grid') || 'list'
+  );
   const currentDoctorId = 'doc-abc123';
 
   useEffect(() => {
@@ -44,6 +49,10 @@ export default function PatientsList() {
       })
       .catch((err) => console.error(err));
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('patientViewMode', viewMode);
+  }, [viewMode]);
 
   // Handle URL parameters for stage filtering
   useEffect(() => {
@@ -140,27 +149,42 @@ export default function PatientsList() {
                 onClearFilters={clearFilters}
                 activeFiltersCount={getActiveFiltersCount()}
               />
-              <Badge variant="secondary">
-                {getFilteredPatients('all').length} patients
-              </Badge>
+              <div className="flex items-center gap-2">
+                <ViewToggle mode={viewMode} onChange={setViewMode} />
+                <Badge variant="secondary">
+                  {getFilteredPatients('all').length} patients
+                </Badge>
+              </div>
             </div>
 
-            {/* Patients Grid */}
-            <div className="grid gap-3">
-              {getFilteredPatients('all').map((patient) => (
-                <PatientCard
-                  key={patient.id}
-                  patient={patient}
-                  onClick={() => navigate(`/patients/${patient.id}`)}
-                />
-              ))}
-            </div>
+            {/* Patients */}
+            {viewMode === 'list' ? (
+              <div className="space-y-3">
+                {getFilteredPatients('all').map((patient) => (
+                  <PatientCard
+                    key={patient.id}
+                    patient={patient}
+                    onClick={() => navigate(`/patients/${patient.id}`)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {getFilteredPatients('all').map((patient) => (
+                  <PatientGridCard
+                    key={patient.id}
+                    patient={patient}
+                    onClick={() => navigate(`/patients/${patient.id}`)}
+                  />
+                ))}
+              </div>
+            )}
 
             {getFilteredPatients('all').length === 0 && (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No patients found matching your criteria</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="mt-4"
                   onClick={() => {
                     setSearchQuery('');
@@ -186,29 +210,44 @@ export default function PatientsList() {
                 onClearFilters={clearFilters}
                 activeFiltersCount={getActiveFiltersCount()}
               />
-              <Badge variant="secondary">
-                {getFilteredPatients('my').length} patients
-              </Badge>
+              <div className="flex items-center gap-2">
+                <ViewToggle mode={viewMode} onChange={setViewMode} />
+                <Badge variant="secondary">
+                  {getFilteredPatients('my').length} patients
+                </Badge>
+              </div>
             </div>
 
-            {/* My Patients Grid */}
-            <div className="grid gap-3">
-              {getFilteredPatients('my').map((patient) => (
-                <PatientCard
-                  key={patient.id}
-                  patient={patient}
-                  onClick={() => navigate(`/patients/${patient.id}`)}
-                />
-              ))}
-            </div>
+            {/* My Patients */}
+            {viewMode === 'list' ? (
+              <div className="space-y-3">
+                {getFilteredPatients('my').map((patient) => (
+                  <PatientCard
+                    key={patient.id}
+                    patient={patient}
+                    onClick={() => navigate(`/patients/${patient.id}`)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {getFilteredPatients('my').map((patient) => (
+                  <PatientGridCard
+                    key={patient.id}
+                    patient={patient}
+                    onClick={() => navigate(`/patients/${patient.id}`)}
+                  />
+                ))}
+              </div>
+            )}
 
             {getFilteredPatients('my').length === 0 && (
               <div className="text-center py-12">
                 {getActiveFiltersCount() > 0 || searchQuery ? (
                   <>
                     <p className="text-muted-foreground">No patients assigned to you matching your criteria</p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="mt-4"
                       onClick={() => {
                         setSearchQuery('');

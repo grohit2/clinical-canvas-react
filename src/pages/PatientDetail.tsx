@@ -11,7 +11,8 @@ import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
-import { QrCode, Copy, Phone, Mail, Calendar } from "lucide-react";
+import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill } from "lucide-react";
+import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
 
@@ -283,6 +284,28 @@ export default function PatientDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      <ArcSpeedDial
+        items={[
+          {
+            key: "note",
+            label: "Add note",
+            Icon: FileText,
+            onClick: () => navigate(`/patients/${id}/add-note`),
+          },
+          {
+            key: "task",
+            label: "Add task",
+            Icon: ListTodo,
+            onClick: () => navigate(`/patients/${id}/add-task`),
+          },
+          {
+            key: "med",
+            label: "Add medication",
+            Icon: Pill,
+            onClick: () => navigate(`/patients/${id}/add-med`),
+          },
+        ]}
+      />
 
       <BottomBar />
     </div>

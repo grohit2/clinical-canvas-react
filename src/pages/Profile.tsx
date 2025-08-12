@@ -307,7 +307,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Gender</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{doctor.gender}</span>
+                  <span className="font-medium text-right">{doctor.personalInfo?.gender ?? '—'}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -342,7 +342,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Date of Birth</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{new Date(doctor.dateOfBirth).toLocaleDateString()}</span>
+                  <span className="font-medium text-right">{doctor.personalInfo?.dateOfBirth ? new Date(doctor.personalInfo.dateOfBirth).toLocaleDateString() : '—'}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -358,7 +358,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Specialization</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.specialization}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.professionalInfo?.specialization ?? '—'}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Experience</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{doctor.yearsOfExperience} years</span>
+                  <span className="font-medium text-right">{doctor.professionalInfo?.yearsOfExperience ?? '—'} years</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -382,7 +382,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Registration</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.medicalRegistrationNumber}</span>
+                  <span className="font-medium text-right break-words max-w-[200px] sm:max-w-none">{doctor.professionalInfo?.medicalRegistrationNumber ?? '—'}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>
@@ -390,7 +390,7 @@ export default function Profile() {
               <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Consultation Fee</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">₹{doctor.consultationFee}</span>
+                  <span className="font-medium text-right">₹{doctor.professionalInfo?.consultationFee ?? '—'}</span>
                   <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
                 </div>
               </div>

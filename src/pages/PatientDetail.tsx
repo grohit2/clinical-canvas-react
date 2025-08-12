@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StageChip } from "@/components/patient/StageChip";
 import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
+import { PatientNotes } from "@/components/patient/PatientNotes";
+import { PatientMeds } from "@/components/patient/PatientMeds";
 import { QrCode, Copy, Phone, Mail, Calendar } from "lucide-react";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
@@ -243,12 +245,7 @@ export default function PatientDetail() {
             <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
               <div className="space-y-4">
                 <h3 className="font-semibold text-base sm:text-lg">Clinical Notes</h3>
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
-                    <p className="text-center py-8">Clinical notes will be displayed here</p>
-                    <p className="text-center text-xs">Patient: {patient.name} • ID: {patient.mrn}</p>
-                  </div>
-                </div>
+                <PatientNotes patientId={patient.mrn} />
               </div>
             </Card>
           </TabsContent>
@@ -271,12 +268,7 @@ export default function PatientDetail() {
             <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
               <div className="space-y-4">
                 <h3 className="font-semibold text-base sm:text-lg">Medications</h3>
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
-                    <p className="text-center py-8">Medication list will be displayed here</p>
-                    <p className="text-center text-xs">Patient: {patient.name} • ID: {patient.mrn}</p>
-                  </div>
-                </div>
+                <PatientMeds patientId={patient.mrn} />
               </div>
             </Card>
           </TabsContent>

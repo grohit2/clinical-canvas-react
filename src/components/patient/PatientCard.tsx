@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
-import { PatientMeta } from "@/types/models";
+import type { Patient } from "@/types/api";
 import { Calendar, MapPin, Clock, QrCode } from "lucide-react";
 
 interface PatientCardProps {
-  patient: PatientMeta;
+  patient: Patient;
   onClick?: () => void;
 }
 
@@ -99,7 +99,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </div>
 
           {/* Comorbidities */}
-          {patient.comorbidities.length > 0 && (
+          {patient.comorbidities && patient.comorbidities.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {patient.comorbidities.slice(0, 3).map((comorbidity) => (
                 <Badge key={comorbidity} variant="secondary" className="text-xs">

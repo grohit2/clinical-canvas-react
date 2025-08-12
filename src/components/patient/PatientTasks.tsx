@@ -1,59 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Task } from "@/types/models";
+import { Task } from "@/types/api";
 import { Clock, User, Calendar, Flag, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Mock tasks data
-const mockTasks: Task[] = [
-  {
-    taskId: 'task1',
-    patientId: '27e8d1ad',
-    title: 'Review CBC results',
-    type: 'lab',
-    due: '2025-07-19T15:00:00Z',
-    assigneeId: 'doctor1',
-    status: 'open',
-    priority: 'high',
-    recurring: false
-  },
-  {
-    taskId: 'task2',
-    patientId: '3b9f2c1e',
-    title: 'Administer medication',
-    type: 'medication',
-    due: '2025-07-19T16:30:00Z',
-    assigneeId: 'nurse1',
-    status: 'in-progress',
-    priority: 'urgent',
-    recurring: true
-  },
-  {
-    taskId: 'task3',
-    patientId: '27e8d1ad',
-    title: 'Pre-op assessment',
-    type: 'assessment',
-    due: '2025-07-20T09:00:00Z',
-    assigneeId: 'doctor2',
-    status: 'open',
-    priority: 'medium',
-    recurring: false
-  },
-  {
-    taskId: 'task4',
-    patientId: '27e8d1ad',
-    title: 'Post-surgery check',
-    type: 'assessment',
-    due: '2025-07-19T12:00:00Z',
-    assigneeId: 'doctor1',
-    status: 'done',
-    priority: 'high',
-    recurring: false
-  }
-];
+import api from "@/lib/api";
 
 interface PatientTasksProps {
   patientId: string;
@@ -149,18 +102,28 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
 }
 
 export function PatientTasks({ patientId }: PatientTasksProps) {
-  const [tasks, setTasks] = useState(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    api.tasks
+      .list(patientId)
+      .then((data) => setTasks(data))
+      .catch((err) => console.error(err));
+  }, [patientId]);
 
   const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
-    setTasks(prev => prev.map(task => 
-      task.taskId === taskId ? { ...task, status: newStatus } : task
-    ));
+    api.tasks
+      .update(patientId, taskId, { status: newStatus })
+      .then(() => {
+        setTasks(prev => prev.map(task =>
+          task.taskId === taskId ? { ...task, status: newStatus } : task
+        ));
+      })
+      .catch((err) => console.error(err));
   };
 
-  // Filter tasks for the specific patient
-  const patientTasks = tasks.filter(task => task.patientId === patientId);
-  const pendingTasks = patientTasks.filter(task => task.status !== 'done');
-  const completedTasks = patientTasks.filter(task => task.status === 'done');
+  const pendingTasks = tasks.filter(task => task.status !== 'done');
+  const completedTasks = tasks.filter(task => task.status === 'done');
 
   return (
     <div className="space-y-4">

@@ -12,6 +12,22 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   const [isPressing, setIsPressing] = useState(false);
   const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
 
+  const getCardColorClass = (stage: string) => {
+    switch (stage.toLowerCase()) {
+      case 'icu':
+      case 'critical':
+        return 'ring-2 ring-urgent';
+      case 'post-op':
+      case 'recovery':
+        return 'ring-2 ring-caution';
+      case 'discharge':
+      case 'stable':
+        return 'ring-2 ring-stable';
+      default:
+        return 'ring-2 ring-medical';
+    }
+  };
+
   const startPress = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
     setIsPressing(true);
@@ -39,31 +55,19 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       onTouchEnd={cancelPress}
       onContextMenu={(e) => e.preventDefault()}
       className={`p-3 hover:shadow-sm transition-all cursor-pointer select-none ${
-        isPressing ? "scale-95 ring-2 ring-primary" : ""
+        isPressing ? "scale-95 ring-2 ring-primary" : getCardColorClass(patient.currentState)
       } h-[160px] flex flex-col`}
     >
       <div className="flex items-baseline gap-2">
         <span className="font-semibold text-sm truncate">{patient.name}</span>
-        <span className="text-[11px] text-muted-foreground truncate">
-          MRN: {patient.mrn}
-        </span>
       </div>
 
       <div className="mt-1 text-xs space-y-1 flex-1">
         {patient.diagnosis && (
           <p className="line-clamp-2 leading-snug">{patient.diagnosis}</p>
         )}
-        {patient.comorbidities?.length ? (
-          <p className="line-clamp-2 leading-snug text-muted-foreground">
-            {patient.comorbidities.join(", ")}
-          </p>
-        ) : null}
       </div>
 
-      <div className="pt-2 mt-auto text-[11px] text-muted-foreground flex justify-between">
-        <span className="truncate">{patient.currentState ?? "—"}</span>
-        <span className="truncate">{patient.pathway ?? "—"}</span>
-      </div>
     </Card>
   );
 }

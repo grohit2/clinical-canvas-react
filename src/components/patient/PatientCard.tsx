@@ -37,7 +37,10 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
     if (touchStartX.current !== null) {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (diff > 50) {
-        window.open(labsUrl, "_blank");
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = labsUrl;
+        return;
       }
     }
     setTranslateX(0);

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent, type TouchEvent } from "react";
 import { Card } from "@/components/ui/card";
 import type { Patient } from "@/types/api";
 
@@ -12,7 +12,24 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   const [isPressing, setIsPressing] = useState(false);
   const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
 
-  const startPress = () => {
+  const getCardColorClass = (stage: string) => {
+    switch (stage.toLowerCase()) {
+      case 'icu':
+      case 'critical':
+        return 'ring-2 ring-urgent';
+      case 'post-op':
+      case 'recovery':
+        return 'ring-2 ring-caution';
+      case 'discharge':
+      case 'stable':
+        return 'ring-2 ring-stable';
+      default:
+        return 'ring-2 ring-medical';
+    }
+  };
+
+  const startPress = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault();
     setIsPressing(true);
     pressTimer.current = setTimeout(() => {
       setIsPressing(false);
@@ -36,23 +53,21 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       onMouseLeave={cancelPress}
       onTouchStart={startPress}
       onTouchEnd={cancelPress}
-      className={`aspect-square p-2 hover:shadow-sm transition-all cursor-pointer ${isPressing ? "scale-95 ring-2 ring-primary" : ""}`}
+      onContextMenu={(e) => e.preventDefault()}
+      className={`p-3 hover:shadow-sm transition-all cursor-pointer select-none ${
+        isPressing ? "scale-95 ring-2 ring-primary" : getCardColorClass(patient.currentState)
+      } h-[160px] flex flex-col`}
     >
-      <div className="flex h-full flex-col justify-between text-xs space-y-1">
-        <div className="space-y-1">
-          <span className="font-bold truncate">{patient.name}</span>
-          <span className="text-muted-foreground">MRN: {patient.mrn}</span>
-          {patient.diagnosis && (
-            <span className="line-clamp-2">{patient.diagnosis}</span>
-          )}
-          {patient.comorbidities && patient.comorbidities.length > 0 && (
-            <span className="line-clamp-2">
-              {patient.comorbidities.join(", ")}
-            </span>
-          )}
-        </div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-semibold text-sm truncate">{patient.name}</span>
       </div>
+
+      <div className="mt-1 text-xs space-y-1 flex-1">
+        {patient.diagnosis && (
+          <p className="line-clamp-2 leading-snug">{patient.diagnosis}</p>
+        )}
+      </div>
+
     </Card>
   );
 }
-

@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Task } from "@/types/api";
-import { Clock, User, Calendar, Flag, CheckCircle2 } from "lucide-react";
+import { Clock, User, Calendar, Flag, CheckCircle2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 interface PatientTasksProps {
   patientId: string;
@@ -15,9 +16,10 @@ interface PatientTasksProps {
 interface TaskCardProps {
   task: Task;
   onStatusChange: (taskId: string, newStatus: Task['status']) => void;
+  onEdit: (taskId: string) => void;
 }
 
-function TaskCard({ task, onStatusChange }: TaskCardProps) {
+function TaskCard({ task, onStatusChange, onEdit }: TaskCardProps) {
   const getPriorityColor = (priority: Task['priority']) => {
     switch (priority) {
       case 'urgent': return 'text-urgent';
@@ -83,8 +85,16 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
             {task.assigneeId.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-xs"
+            onClick={() => onEdit(task.taskId)}
+          >
+            <Pencil className="h-3 w-3" />
+          </Button>
           {task.status !== 'done' && (
             <Button
               size="sm"
@@ -103,6 +113,7 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
 
 export function PatientTasks({ patientId }: PatientTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.tasks
@@ -122,6 +133,10 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
       .catch((err) => console.error(err));
   };
 
+  const handleEdit = (taskId: string) => {
+    navigate(`/patients/${patientId}/tasks/${taskId}/edit`);
+  };
+
   const pendingTasks = tasks.filter(task => task.status !== 'done');
   const completedTasks = tasks.filter(task => task.status === 'done');
 
@@ -137,6 +152,7 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
                 key={task.taskId}
                 task={task}
                 onStatusChange={handleStatusChange}
+                onEdit={handleEdit}
               />
             ))}
           </div>
@@ -157,6 +173,7 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
                 key={task.taskId}
                 task={task}
                 onStatusChange={handleStatusChange}
+                onEdit={handleEdit}
               />
             ))}
           </div>

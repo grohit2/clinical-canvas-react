@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Medication } from "@/types/api";
 import api from "@/lib/api";
+import { useNavigate } from "react-router-dom";
+import { Pencil } from "lucide-react";
 
 interface PatientMedsProps {
   patientId: string;
@@ -10,6 +13,7 @@ interface PatientMedsProps {
 
 export function PatientMeds({ patientId }: PatientMedsProps) {
   const [meds, setMeds] = useState<Medication[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.meds
@@ -50,6 +54,16 @@ export function PatientMeds({ patientId }: PatientMedsProps) {
               Times: {med.scheduleTimes.join(", ")}
             </div>
           )}
+          <div className="flex justify-end mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-xs"
+              onClick={() => navigate(`/patients/${patientId}/meds/${med.medId}/edit`)}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </div>
         </Card>
       ))}
     </div>

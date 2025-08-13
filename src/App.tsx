@@ -16,6 +16,10 @@ import PatientQRView from "./pages/PatientQRView";
 import AddNote from "./pages/AddNote";
 import AddMedication from "./pages/AddMedication";
 import AddTask from "./pages/AddTask";
+import EditPatient from "./pages/EditPatient";
+import EditTask from "./pages/EditTask";
+import EditNote from "./pages/EditNote";
+import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,9 +36,13 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
+          <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />
+          <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />
           <Route path="/patients/:id/add-med" element={<AddMedication />} />
           <Route path="/patients/:id/add-task" element={<AddTask />} />
+          <Route path="/patients/:id/tasks/:taskId/edit" element={<EditTask />} />
+          <Route path="/patients/:id/meds/:medId/edit" element={<EditMedication />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/tasks-due" element={<TasksDue />} />
           <Route path="/urgent-alerts" element={<UrgentAlerts />} />

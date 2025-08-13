@@ -11,7 +11,7 @@ import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
-import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill } from "lucide-react";
+import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill, Pencil, Trash2 } from "lucide-react";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
@@ -125,10 +125,39 @@ export default function PatientDetail() {
                 </div>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="flex-shrink-0 w-full sm:w-auto">
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Code
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0 w-full sm:w-auto"
+                onClick={() => navigate(`/patients/${id}/edit`)}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex-shrink-0 w-full sm:w-auto"
+                onClick={async () => {
+                  if (!id) return;
+                  if (!confirm("Delete this patient?")) return;
+                  try {
+                    await api.patients.remove(id);
+                    navigate("/patients");
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+              <Button variant="outline" size="sm" className="flex-shrink-0 w-full sm:w-auto">
+                <QrCode className="h-4 w-4 mr-2" />
+                QR Code
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3 sm:space-y-4">

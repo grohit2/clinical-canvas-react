@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import type { Medication } from "@/types/api";
 
 export default function AddMedication() {
   const { id } = useParams();
@@ -39,7 +40,7 @@ export default function AddMedication() {
     if (!id) return;
     setSubmitting(true);
     try {
-      const payload: any = {
+      const payload: Omit<Medication, "medId" | "patientId" | "createdAt" | "updatedAt"> = {
         name: form.name,
         dose: form.dose,
         route: form.route,
@@ -47,7 +48,7 @@ export default function AddMedication() {
         start: form.start || new Date().toISOString(),
         end: form.end || null,
         priority: form.priority,
-        scheduleTimes: form.scheduleTimes ? form.scheduleTimes.split(",").map((s) => s.trim()) : []
+        scheduleTimes: form.scheduleTimes ? form.scheduleTimes.split(",").map((s) => s.trim()) : [],
       };
       await api.meds.create(id, payload);
       navigate(`/patients/${id}`);
@@ -95,7 +96,7 @@ export default function AddMedication() {
             </div>
             <div className="space-y-2">
               <Label>Priority</Label>
-              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as any })}>
+              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as "routine" | "important" | "critical" })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

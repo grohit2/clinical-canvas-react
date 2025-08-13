@@ -18,6 +18,7 @@ export default function EditPatient() {
     sex: "" as string,
     diagnosis: "",
     pathway: "" as "surgical" | "consultation" | "emergency" | "",
+    currentState: "",
     assignedDoctor: "",
     assignedDoctorId: "",
   });
@@ -34,6 +35,7 @@ export default function EditPatient() {
         sex: p.sex || "",
         diagnosis: p.diagnosis || "",
         pathway: (p.pathway as "surgical" | "consultation" | "emergency" | "") || "",
+        currentState: p.currentState || "",
         assignedDoctor: p.assignedDoctor || "",
         assignedDoctorId: p.assignedDoctorId || "",
       });
@@ -54,6 +56,7 @@ export default function EditPatient() {
       if (form.age) payload.age = Number(form.age);
       if (form.sex) payload.sex = form.sex;
       if (form.pathway) payload.pathway = form.pathway;
+      if (form.currentState) payload.currentState = form.currentState;
       await api.patients.update(id, payload);
       navigate(`/patients/${id}`);
     } catch (e) {
@@ -109,6 +112,10 @@ export default function EditPatient() {
                   <SelectItem value="emergency">Emergency</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Current State</Label>
+              <Input value={form.currentState} onChange={e => setForm({ ...form, currentState: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Assigned Doctor</Label>

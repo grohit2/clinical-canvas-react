@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
-import type { Doctor } from "@/types/api";
+import type { Doctor, Task } from "@/types/api";
 
 export default function AddTask() {
   const { id } = useParams();
@@ -49,14 +49,14 @@ export default function AddTask() {
     setSubmitting(true);
     try {
       const due = new Date(`${form.date}T${form.time}`);
-      const payload: any = {
+      const payload: Omit<Task, "taskId" | "patientId" | "createdAt" | "updatedAt"> = {
         title: form.title || `${form.type[0].toUpperCase()}${form.type.slice(1)} task`,
         type: form.type,
         due: due.toISOString(),
         assigneeId: form.assigneeId,
         status: "open",
         priority: form.priority,
-        recurring: false
+        recurring: false,
       };
       await api.tasks.create(id, payload);
       navigate(`/patients/${id}`);
@@ -76,7 +76,7 @@ export default function AddTask() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Task Type</Label>
-              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as any })}>
+              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as "lab" | "medication" | "procedure" | "assessment" | "discharge" })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -118,7 +118,7 @@ export default function AddTask() {
             </div>
             <div className="space-y-2">
               <Label>Priority</Label>
-              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as any })}>
+              <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as "low" | "medium" | "high" | "urgent" })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

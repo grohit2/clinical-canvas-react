@@ -56,7 +56,7 @@ export default function AddNote() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as any)}>
+              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy" | "discharge")}> 
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>

@@ -38,21 +38,31 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       onTouchStart={startPress}
       onTouchEnd={cancelPress}
       onContextMenu={(e) => e.preventDefault()}
-      className={`aspect-square p-2 hover:shadow-sm transition-all cursor-pointer select-none ${isPressing ? "scale-95 ring-2 ring-primary" : ""}`}
+      className={`p-3 hover:shadow-sm transition-all cursor-pointer select-none ${
+        isPressing ? "scale-95 ring-2 ring-primary" : ""
+      } h-[160px] flex flex-col`}
     >
-      <div className="flex h-full flex-col justify-between text-xs space-y-1">
-        <div className="space-y-1">
-          <span className="font-bold truncate">{patient.name}</span>
-          <span className="text-muted-foreground">MRN: {patient.mrn}</span>
-          {patient.diagnosis && (
-            <span className="line-clamp-2">{patient.diagnosis}</span>
-          )}
-          {patient.comorbidities && patient.comorbidities.length > 0 && (
-            <span className="line-clamp-2">
-              {patient.comorbidities.join(", ")}
-            </span>
-          )}
-        </div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-semibold text-sm truncate">{patient.name}</span>
+        <span className="text-[11px] text-muted-foreground truncate">
+          MRN: {patient.mrn}
+        </span>
+      </div>
+
+      <div className="mt-1 text-xs space-y-1 flex-1">
+        {patient.diagnosis && (
+          <p className="line-clamp-2 leading-snug">{patient.diagnosis}</p>
+        )}
+        {patient.comorbidities?.length ? (
+          <p className="line-clamp-2 leading-snug text-muted-foreground">
+            {patient.comorbidities.join(", ")}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="pt-2 mt-auto text-[11px] text-muted-foreground flex justify-between">
+        <span className="truncate">{patient.currentState ?? "—"}</span>
+        <span className="truncate">{patient.pathway ?? "—"}</span>
       </div>
     </Card>
   );

@@ -100,8 +100,9 @@ export default function PatientsList() {
 
   const getFilteredPatients = (tabFilter: string) => {
     return patients.filter(patient => {
-      const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           patient.diagnosis.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        (patient.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (patient.diagnosis ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
@@ -169,7 +170,7 @@ export default function PatientsList() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
                 {getFilteredPatients('all').map((patient) => (
                   <PatientGridCard
                     key={patient.id}
@@ -230,7 +231,7 @@ export default function PatientsList() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
                 {getFilteredPatients('my').map((patient) => (
                   <PatientGridCard
                     key={patient.id}

@@ -1,6 +1,5 @@
-import { useRef } from "react";
+import { useRef, useState, type MouseEvent, type TouchEvent } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import type { Patient } from "@/types/api";
 
 interface PatientGridCardProps {
@@ -10,15 +9,20 @@ interface PatientGridCardProps {
 
 export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isPressing, setIsPressing] = useState(false);
   const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
 
-  const startPress = () => {
+  const startPress = (e: MouseEvent | TouchEvent) => {
+    e.preventDefault();
+    setIsPressing(true);
     pressTimer.current = setTimeout(() => {
+      setIsPressing(false);
       window.open(labsUrl, "_blank");
     }, 600);
   };
 
   const cancelPress = () => {
+    setIsPressing(false);
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
       pressTimer.current = null;
@@ -33,7 +37,8 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       onMouseLeave={cancelPress}
       onTouchStart={startPress}
       onTouchEnd={cancelPress}
-      className="aspect-square p-2 hover:shadow-sm transition-shadow cursor-pointer"
+      onContextMenu={(e) => e.preventDefault()}
+      className={`aspect-square p-2 hover:shadow-sm transition-all cursor-pointer select-none ${isPressing ? "scale-95 ring-2 ring-primary" : ""}`}
     >
       <div className="flex h-full flex-col justify-between text-xs space-y-1">
         <div className="space-y-1">
@@ -48,16 +53,6 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
             </span>
           )}
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(labsUrl, "_blank");
-          }}
-        >
-          Labs
-        </Button>
       </div>
     </Card>
   );

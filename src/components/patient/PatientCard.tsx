@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
@@ -16,19 +15,36 @@ interface PatientCardProps {
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const [translateX, setTranslateX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
   const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.changedTouches[0].clientX;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current !== null) {
+      const diff = touchStartX.current - e.changedTouches[0].clientX;
+      if (diff > 0) {
+        setTranslateX(Math.min(diff, 80));
+      }
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current !== null) {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (diff > 50) {
-        window.open(labsUrl, "_blank");
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = labsUrl;
+        return;
       }
     }
+    setTranslateX(0);
+    setIsSwiping(false);
   };
   const getStageVariant = (stage: string) => {
     switch (stage.toLowerCase()) {
@@ -74,12 +90,20 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   };
 
   return (
-    <Card
-      className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${getCardColorClass(patient.currentState)}`}
-      onClick={onClick}
+    <div
+      className="relative"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      <div className="absolute inset-0 flex items-center justify-end pr-4 bg-primary text-primary-foreground rounded-lg">
+        Labs
+      </div>
+      <Card
+        className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${getCardColorClass(patient.currentState)}`}
+        onClick={onClick}
+        style={{ transform: `translateX(-${translateX}px)`, transition: isSwiping ? "none" : "transform 0.2s ease-out" }}
+      >
       <div className="flex items-start gap-3">
         {/* Update Ring */}
         <div className="flex-shrink-0">
@@ -146,7 +170,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </button>
         </div>
       </div>
-      
+
       {showQR && (
         <div className="mt-4 p-4 bg-muted/50 rounded-lg flex flex-col items-center gap-2">
           <QRCodeGenerator value={patient.qrCode} size={120} />
@@ -155,19 +179,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </p>
         </div>
       )}
-
-      <div className="mt-4 flex">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(labsUrl, "_blank");
-          }}
-        >
-          Labs
-        </Button>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }

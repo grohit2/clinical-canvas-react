@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
@@ -14,6 +15,21 @@ interface PatientCardProps {
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.changedTouches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current !== null) {
+      const diff = touchStartX.current - e.changedTouches[0].clientX;
+      if (diff > 50) {
+        window.open(labsUrl, "_blank");
+      }
+    }
+  };
   const getStageVariant = (stage: string) => {
     switch (stage.toLowerCase()) {
       case 'icu':
@@ -58,9 +74,11 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   };
 
   return (
-    <Card 
+    <Card
       className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${getCardColorClass(patient.currentState)}`}
       onClick={onClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="flex items-start gap-3">
         {/* Update Ring */}
@@ -82,16 +100,17 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </div>
 
           <div className="space-y-1 text-sm text-muted-foreground">
+            <div>MRN: {patient.mrn}</div>
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               <span className="capitalize">{patient.pathway}</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               <span>{patient.diagnosis}</span>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               <span>{formatLastUpdated(patient.lastUpdated)}</span>
@@ -136,6 +155,19 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </p>
         </div>
       )}
+
+      <div className="mt-4 flex">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(labsUrl, "_blank");
+          }}
+        >
+          Labs
+        </Button>
+      </div>
     </Card>
   );
 }

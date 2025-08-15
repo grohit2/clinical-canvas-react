@@ -1,85 +1,153 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StageChip } from "@/components/patient/StageChip";
-import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
-import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill, Pencil, Trash2, User, UserCheck } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  QrCode,
+  Copy,
+  ListTodo,
+  FileText,
+  Pill,
+  Pencil,
+  User,
+  UserCheck,
+  ArrowLeft,
+  MoreVertical,
+  Bell,
+  Cake,
+  Route,
+  FolderOpen,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
 
+/* ----------------------------- helpers/utils ----------------------------- */
+
+type TabKey = "overview" | "notes" | "meds" | "tasks";
+
+function getGenderIcon(sex?: string) {
+  return sex?.toLowerCase() === "female" ? UserCheck : User;
+}
+
+function formatTime(dateString: string) {
+  const d = new Date(dateString);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function getStateColors(state: string) {
+  const s = state?.toLowerCase();
+  if (["preop", "pre-op"].includes(s))
+    return { dot: "bg-emerald-50 border-emerald-200", text: "text-emerald-800" };
+  if (["op", "surgery", "operative"].includes(s))
+    return { dot: "bg-orange-50 border-orange-200", text: "text-orange-800" };
+  if (["postop", "post-op", "recovery"].includes(s))
+    return { dot: "bg-purple-50 border-purple-200", text: "text-purple-800" };
+  if (s === "onboarding")
+    return { dot: "bg-indigo-50 border-indigo-200", text: "text-indigo-800" };
+  if (s === "discharge")
+    return { dot: "bg-rose-50 border-rose-200", text: "text-rose-800" };
+  return { dot: "bg-gray-50 border-gray-200", text: "text-gray-800" };
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+}
+
+/* ------------------------------- component ------------------------------- */
+
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isScrolled, setIsScrolled] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteText, setDeleteText] = useState("");
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      // Could add a toast notification here
-    });
-  };
+  // Robust, scroll-container-safe collapse using an IntersectionObserver
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [isCompactHeader, setIsCompactHeader] = useState(false);
 
-  const handleDelete = async () => {
-    if (deleteText.toLowerCase() !== 'delete') return;
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsCompactHeader(!entry.isIntersecting),
+      { root: null, threshold: 0 }
+    );
+    io.observe(sentinelRef.current);
+    return () => io.disconnect();
+  }, []);
+
+  // Fetch patient + timeline
+  useEffect(() => {
+    let cancelled = false;
     if (!id) return;
+    (async () => {
+      try {
+        const p = await api.patients.get(id);
+        if (cancelled) return;
+        setPatient(p);
+        const t = await api.patients.timeline(id);
+        if (!cancelled) setTimeline(t);
+      } catch (e) {
+        console.error(e);
+        navigate("/patients");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, navigate]);
+
+  const dobText = useMemo(() => {
+    if (!patient?.dob) return "—";
+    const d = new Date(patient.dob);
+    return isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+  }, [patient?.dob]);
+
+  const ageText = useMemo(() => {
+    if (typeof patient?.age === "number") return `${patient.age} years old`;
+    return "";
+  }, [patient?.age]);
+
+  const onDelete = useCallback(async () => {
+    if (deleteText.toLowerCase() !== "delete" || !id) return;
     try {
       await api.patients.remove(id);
       navigate("/patients");
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     }
-  };
-
-  const getGenderIcon = (sex: string) => {
-    return sex?.toLowerCase() === 'female' ? UserCheck : User;
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 100);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (!id) return;
-    api.patients
-      .get(id)
-      .then((data) => {
-        setPatient(data);
-        return api.patients.timeline(id);
-      })
-      .then(setTimeline)
-      .catch(() => navigate("/patients"));
-  }, [id, navigate]);
+  }, [deleteText, id, navigate]);
 
   if (!patient) {
     return (
       <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-        <Header
-          title="Patient Details"
-          showBack
-          onBack={() => navigate("/patients")}
-          notificationCount={2}
-        />
         <div className="p-4 text-sm text-muted-foreground">Loading...</div>
         <BottomBar />
       </div>
@@ -87,257 +155,292 @@ export default function PatientDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header
-        title="Patient Details"
-        showBack
-        onBack={() => navigate("/patients")}
-        notificationCount={2}
-      />
+    <div className="min-h-screen pb-20 max-w-md mx-auto bg-white">
+      {/* Sticky Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="p-4">
+          <div className="flex justify-between items-center">
+            <button className="flex items-center" onClick={() => navigate("/patients")}>
+              <ArrowLeft className="h-6 w-6" />
+            </button>
 
-      {isScrolled && (
-        <div className="fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-          <div className="px-3 sm:px-4 lg:px-6 py-2">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm sm:text-base font-semibold text-foreground truncate">
-                  {patient.name}
-                </h2>
-                <p className="text-xs text-muted-foreground truncate">
-                  {patient.mrn} • {patient.currentState}
-                </p>
+            {/* Compact title when scrolled */}
+            <div
+              className={`text-center transition-opacity duration-300 ${
+                isCompactHeader ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <h1 className="text-xl font-medium text-gray-800">
+                {patient.name.length > 20 ? `${patient.name.slice(0, 20)}…` : patient.name}
+              </h1>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button onClick={() => navigate(`/patients/${id}/edit`)}>
+                <Pencil className="h-6 w-6" />
+              </button>
+              <div className="relative">
+                <button>
+                  <Bell className="h-6 w-6" />
+                  <span className="absolute -top-1 -right-1 flex justify-center items-center w-5 h-5 bg-red-500 text-white text-xs rounded-full">
+                    2
+                  </span>
+                </button>
               </div>
-              <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
+              <button onClick={() => setShowDeleteDialog(true)}>
+                <MoreVertical className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Smoothly collapsible header details:
+              grid-rows-[1fr]->grid-rows-[0fr] + overflow-hidden avoids max-h jank */}
+          <div
+            className={`mt-4 transition-all duration-300 grid ${
+              isCompactHeader ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">{patient.name}</h2>
+                  <div className="flex items-center">
+                    <p className="text-sm text-gray-500 mt-1">MRN: {patient.mrn}</p>
+                    <button
+                      className="ml-2 text-gray-500 hover:text-gray-700"
+                      onClick={() => copyToClipboard(patient.mrn)}
+                      title="Copy MRN"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <button className="text-gray-500 hover:text-gray-700">
+                  <QrCode className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Badges */}
+              <div className="flex items-center space-x-2 mt-4">
+                {patient.pathway && (
+                  <Badge variant="secondary" className="bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1 rounded-full">
+                    {patient.pathway}
+                  </Badge>
+                )}
+                <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
+              </div>
+
+              {/* Patient Info */}
+              <div className="mt-4 text-sm text-gray-600 space-y-2">
+                {/* Personal Details Row */}
+                <div className="flex items-center flex-wrap gap-x-6 gap-y-2">
+                  {patient.sex && (
+                    <div className="flex items-center">
+                      {(() => {
+                        const Icon = getGenderIcon(patient.sex);
+                        return <Icon className="h-4 w-4 mr-2" />;
+                      })()}
+                      <span className="font-medium text-gray-800 capitalize">{patient.sex}</span>
+                    </div>
+                  )}
+                  
+                  {dobText && dobText !== "—" && (
+                    <div className="flex items-center">
+                      <Cake className="h-4 w-4 mr-2" />
+                      <span className="font-medium text-gray-800">{dobText}</span>
+                    </div>
+                  )}
+                  
+                  {ageText && (
+                    <div className="flex items-center">
+                      <span className="font-medium text-gray-800">{ageText}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Diagnosis Section */}
+                {(patient.diagnosis || (patient.comorbidities?.length ?? 0) > 0) && (
+                  <div className="mt-2">
+                    {patient.diagnosis && (
+                      <p className="text-gray-800 font-medium">{patient.diagnosis}</p>
+                    )}
+                    {patient.comorbidities && patient.comorbidities.length > 0 && (
+                      <p className="text-gray-500">{patient.comorbidities.join(", ")}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Additional Info Section */}
+                {(patient.assignedDoctor || patient.lastUpdated) && (
+                  <div className="mt-2 text-sm text-gray-600 space-y-1">
+                    {patient.assignedDoctor && (
+                      <div className="flex items-center">
+                        <span className="font-medium text-gray-800 w-28">Assigned Doctor:</span>
+                        <span>{patient.assignedDoctor}</span>
+                      </div>
+                    )}
+                    {patient.lastUpdated && (
+                      <div className="flex items-center">
+                        <span className="font-medium text-gray-800 w-28">Last Updated:</span>
+                        <span>{new Date(patient.lastUpdated).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      )}
 
-      <div className={`p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 ${isScrolled ? "pt-20" : ""}`}>
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words mb-2">{patient.name}</h1>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize">
-                      {patient.pathway}
-                    </Badge>
-                    <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => navigate(`/patients/${id}/edit`)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">MRN:</span>
-                  <span className="font-medium">{patient.mrn}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(patient.mrn)}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-                
-                {patient.age !== undefined && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span>{patient.age} years old</span>
-                  </div>
-                )}
-                
-                {patient.sex && (
-                  <div className="flex items-center gap-1">
-                    {(() => {
-                      const IconComponent = getGenderIcon(patient.sex);
-                      return <IconComponent className="h-3 w-3 text-muted-foreground" />;
-                    })()}
-                    <span className="capitalize">{patient.sex}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        {/* The sentinel sits just under the expandable block.
+            When it scrolls off-screen (covered by sticky header), we compact. */}
+        <div ref={sentinelRef} className="h-1" />
+      </header>
 
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <span className="text-sm text-muted-foreground">Primary Diagnosis:</span>
-              <div className="font-medium mt-1 break-words">{patient.diagnosis}</div>
-            </div>
-
-            {patient.comorbidities && patient.comorbidities.length > 0 && (
-              <div>
-                <span className="text-sm text-muted-foreground">Comorbidities:</span>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
-                  {patient.comorbidities.map((comorbidity) => (
-                    <Badge key={comorbidity} variant="secondary" className="text-xs">
-                      {comorbidity}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {patient.emergencyContact && (
-              <div className="mt-4 sm:mt-6 pt-4 border-t">
-                <span className="text-sm text-muted-foreground">Emergency Contact:</span>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
-                  <span className="font-medium break-words">
-                    {patient.emergencyContact.name}
-                    {patient.emergencyContact.relationship ? ` (${patient.emergencyContact.relationship})` : ""}
-                  </span>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Mail className="h-3 w-3 mr-1" />
-                      Email
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-lg border">
-            <TabsTrigger
-              value="overview"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200 px-6">
+        <div className="flex space-x-6">
+          {(["overview", "notes", "meds", "tasks"] as TabKey[]).map((tab) => (
+            <button
+              key={tab}
+              className={`py-3 text-sm font-medium ${
+                activeTab === tab ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab(tab)}
             >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="notes"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Notes
-            </TabsTrigger>
-            <TabsTrigger
-              value="meds"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Meds
-            </TabsTrigger>
-            <TabsTrigger
-              value="tasks"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Tasks
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4 mt-6">
-            <div className="space-y-4">
-              <Card className="p-4 sm:p-6 border-l-4 border-l-primary">
-                <h3 className="font-semibold mb-3 text-base sm:text-lg">Patient Overview</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Diagnosis:</span>
-                    <p className="font-medium mt-1">{patient.diagnosis}</p>
-                  </div>
-                  {patient.assignedDoctor && (
-                    <div>
-                      <span className="text-muted-foreground">Assigned Doctor:</span>
-                      <p className="font-medium mt-1">{patient.assignedDoctor}</p>
-                    </div>
-                  )}
-                  {patient.lastUpdated && (
-                    <div>
-                      <span className="text-muted-foreground">Last Updated:</span>
-                      <p className="font-medium mt-1">{new Date(patient.lastUpdated).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {timeline.length > 0 ? (
-                <Timeline entries={timeline} currentState={patient.currentState || ""} />
-              ) : (
-                <Card className="p-4 sm:p-6">
-                  <p className="text-muted-foreground text-center text-sm sm:text-base">No timeline data available for this patient</p>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="notes" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Clinical Notes</h3>
-                <PatientNotes patientId={patient.mrn} />
-              </div>
-            </Card>
-          </TabsContent>
-
-
-          <TabsContent value="meds" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Medications</h3>
-                <PatientMeds patientId={patient.mrn} />
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tasks" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Patient Tasks</h3>
-                <PatientTasks patientId={patient.mrn} />
-              </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              {tab[0].toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Main */}
+      <main className="p-6">
+        {/* Overview */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Current State */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-xl font-medium text-gray-900">Current State</h3>
+              </div>
+
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 capitalize">
+                      {patient.currentState}
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {patient.currentState === "onboarding"
+                        ? "Patient has been added to the system"
+                        : patient.currentState === "preop" || patient.currentState === "pre-op"
+                        ? "Patient is in pre-operative stage"
+                        : patient.currentState === "op" || patient.currentState === "surgery"
+                        ? "Patient is in operating room"
+                        : patient.currentState === "postop" || patient.currentState === "post-op"
+                        ? "Patient is in recovery"
+                        : patient.currentState === "discharge"
+                        ? "Patient is ready for discharge"
+                        : `Patient is in ${patient.currentState} stage`}
+                    </p>
+                  </div>
+                  <StageChip stage={patient.currentState || ""} variant="caution" size="md" />
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => navigate(`/patients/${id}/journey`)}
+                    className="flex items-center justify-center p-4 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                    <Route className="h-5 w-5 mr-2" />
+                    <span className="text-sm font-medium">View Journey</span>
+                  </button>
+
+                  <button
+                    onClick={() => {/* TODO: navigate to documents */}}
+                    className="flex items-center justify-center p-4 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+                  >
+                    <FolderOpen className="h-5 w-5 mr-2" />
+                    <span className="text-sm font-medium">Documents</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            {timeline.length > 0 && (
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+                <div className="p-4 border-b border-gray-200">
+                  <h3 className="text-xl font-medium text-gray-900">Recent Activity</h3>
+                </div>
+
+                <div className="p-4">
+                  {timeline.slice(0, 3).map((entry) => {
+                    const colors = getStateColors(entry.state);
+                    const date = new Date(entry.dateIn);
+                    return (
+                      <div
+                        key={entry.timelineId}
+                        className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full ${colors.dot} border mr-3`} />
+                          <div>
+                            <h4 className={`font-medium capitalize ${colors.text}`}>{entry.state}</h4>
+                            <p className="text-sm text-gray-500">{date.toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500">{formatTime(entry.dateIn)}</p>
+                      </div>
+                    );
+                  })}
+
+                  {timeline.length > 3 && (
+                    <button
+                      onClick={() => navigate(`/patients/${id}/journey`)}
+                      className="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      View all {timeline.length} entries →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notes */}
+        {activeTab === "notes" && (
+          <section className="bg-white rounded-lg p-4 border border-gray-200 min-h-[400px]">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Clinical Notes</h3>
+            <PatientNotes patientId={patient.mrn} />
+          </section>
+        )}
+
+        {/* Meds */}
+        {activeTab === "meds" && (
+          <section className="bg-white rounded-lg p-4 border border-gray-200 min-h-[400px]">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Medications</h3>
+            <PatientMeds patientId={patient.mrn} />
+          </section>
+        )}
+
+        {/* Tasks */}
+        {activeTab === "tasks" && (
+          <section className="bg-white rounded-lg p-4 border border-gray-200 min-h-[400px]">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Patient Tasks</h3>
+            <PatientTasks patientId={patient.mrn} />
+          </section>
+        )}
+      </main>
+
       <ArcSpeedDial
         items={[
-          {
-            key: "note",
-            label: "Add note",
-            Icon: FileText,
-            onClick: () => navigate(`/patients/${id}/add-note`),
-          },
-          {
-            key: "task",
-            label: "Add task",
-            Icon: ListTodo,
-            onClick: () => navigate(`/patients/${id}/add-task`),
-          },
-          {
-            key: "med",
-            label: "Add medication",
-            Icon: Pill,
-            onClick: () => navigate(`/patients/${id}/add-med`),
-          },
+          { key: "note", label: "Add note", Icon: FileText, onClick: () => navigate(`/patients/${id}/add-note`) },
+          { key: "task", label: "Add task", Icon: ListTodo, onClick: () => navigate(`/patients/${id}/add-task`) },
+          { key: "med",  label: "Add medication", Icon: Pill, onClick: () => navigate(`/patients/${id}/add-med`) },
         ]}
       />
 
@@ -348,7 +451,7 @@ export default function PatientDetail() {
           <DialogHeader>
             <DialogTitle>Delete Patient</DialogTitle>
             <DialogDescription>
-              This is a critical action that cannot be undone. To confirm deletion, type "delete" below and click submit.
+              This is a critical action that cannot be undone. To confirm deletion, type <b>delete</b> below and click submit.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -360,16 +463,19 @@ export default function PatientDetail() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowDeleteDialog(false);
-              setDeleteText("");
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setDeleteText("");
+              }}
+            >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={deleteText.toLowerCase() !== 'delete'}
+            <Button
+              variant="destructive"
+              onClick={onDelete}
+              disabled={deleteText.toLowerCase() !== "delete"}
             >
               Delete Patient
             </Button>

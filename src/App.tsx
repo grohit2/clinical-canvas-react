@@ -7,6 +7,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import Dashboard from "./pages/Dashboard";
 import PatientsList from "./pages/PatientsList";
 import PatientDetail from "./pages/PatientDetail";
+import PatientJourney from "./pages/PatientJourney";
 import Tasks from "./pages/Tasks";
 import TasksDue from "./pages/TasksDue";
 import UrgentAlerts from "./pages/UrgentAlerts";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
+          <Route path="/patients/:id/journey" element={<PatientJourney />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />
           <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />

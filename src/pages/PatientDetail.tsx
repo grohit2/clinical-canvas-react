@@ -11,7 +11,9 @@ import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
-import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill, Pencil, Trash2 } from "lucide-react";
+import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill, Pencil, Trash2, User, UserCheck } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
@@ -23,6 +25,29 @@ export default function PatientDetail() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Could add a toast notification here
+    });
+  };
+
+  const handleDelete = async () => {
+    if (deleteText.toLowerCase() !== 'delete') return;
+    if (!id) return;
+    try {
+      await api.patients.remove(id);
+      navigate("/patients");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const getGenderIcon = (sex: string) => {
+    return sex?.toLowerCase() === 'female' ? UserCheck : User;
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,73 +115,72 @@ export default function PatientDetail() {
 
       <div className={`p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 ${isScrolled ? "pt-20" : ""}`}>
         <Card className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="flex items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-3 break-words">{patient.name}</h1>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-muted-foreground whitespace-nowrap">MRN:</span>
-                    <span className="font-medium break-all">{patient.mrn}</span>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 flex-shrink-0">
-                      <Copy className="h-3 w-3" />
-                    </Button>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words mb-2">{patient.name}</h1>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">
+                      {patient.pathway}
+                    </Badge>
+                    <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
                   </div>
-                  {patient.age !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="whitespace-nowrap">{patient.age} years old</span>
-                    </div>
-                  )}
-                  {patient.sex && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Sex:</span>
-                      <span className="break-words capitalize">{patient.sex}</span>
-                    </div>
-                  )}
                 </div>
-                <div className="space-y-2">
-                  <div className="text-muted-foreground">Pathway:</div>
-                  <Badge variant="outline" className="capitalize w-fit">
-                    {patient.pathway}
-                  </Badge>
-                  <div className="text-muted-foreground">Current Stage:</div>
-                  <StageChip stage={patient.currentState || ""} variant="caution" />
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => navigate(`/patients/${id}/edit`)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <QrCode className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-shrink-0 w-full sm:w-auto"
-                onClick={() => navigate(`/patients/${id}/edit`)}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="flex-shrink-0 w-full sm:w-auto"
-                onClick={async () => {
-                  if (!id) return;
-                  if (!confirm("Delete this patient?")) return;
-                  try {
-                    await api.patients.remove(id);
-                    navigate("/patients");
-                  } catch (err) {
-                    console.error(err);
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-              <Button variant="outline" size="sm" className="flex-shrink-0 w-full sm:w-auto">
-                <QrCode className="h-4 w-4 mr-2" />
-                QR Code
-              </Button>
+              
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">MRN:</span>
+                  <span className="font-medium">{patient.mrn}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0"
+                    onClick={() => copyToClipboard(patient.mrn)}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {patient.age !== undefined && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span>{patient.age} years old</span>
+                  </div>
+                )}
+                
+                {patient.sex && (
+                  <div className="flex items-center gap-1">
+                    {(() => {
+                      const IconComponent = getGenderIcon(patient.sex);
+                      return <IconComponent className="h-3 w-3 text-muted-foreground" />;
+                    })()}
+                    <span className="capitalize">{patient.sex}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -204,7 +228,7 @@ export default function PatientDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50 rounded-lg border">
+          <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-lg border">
             <TabsTrigger
               value="overview"
               className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
@@ -216,12 +240,6 @@ export default function PatientDetail() {
               className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
             >
               Notes
-            </TabsTrigger>
-            <TabsTrigger
-              value="labs"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Labs
             </TabsTrigger>
             <TabsTrigger
               value="meds"
@@ -280,19 +298,6 @@ export default function PatientDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="labs" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Laboratory Results</h3>
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-dashed">
-                    <p className="text-center py-8">Lab results will be displayed here</p>
-                    <p className="text-center text-xs">Patient: {patient.name} • ID: {patient.mrn}</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="meds" className="mt-6">
             <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
@@ -337,6 +342,40 @@ export default function PatientDetail() {
       />
 
       <BottomBar />
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Patient</DialogTitle>
+            <DialogDescription>
+              This is a critical action that cannot be undone. To confirm deletion, type "delete" below and click submit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={deleteText}
+              onChange={(e) => setDeleteText(e.target.value)}
+              placeholder="Type 'delete' to confirm"
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowDeleteDialog(false);
+              setDeleteText("");
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteText.toLowerCase() !== 'delete'}
+            >
+              Delete Patient
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

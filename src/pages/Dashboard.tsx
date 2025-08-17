@@ -109,7 +109,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header 
-        title="Dashboard" 
+        title="Happy badrakalli day 💃🍰" 
         notificationCount={5}
       />
       

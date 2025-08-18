@@ -2,7 +2,11 @@
 // Firebase initialization. Replace the config object with your Firebase project credentials.
 
 import { initializeApp } from 'firebase/app';
-import { initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
+import {
+    initializeAuth,
+    indexedDBLocalPersistence,
+    inMemoryPersistence,
+} from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -16,12 +20,23 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
+
 export const auth = initializeAuth(app, {
-    persistence: indexedDBLocalPersistence,
+    // During server-side rendering environments like Vercel's build step,
+    // IndexedDB is unavailable. Fall back to an in-memory store so that
+    // initialization doesn't throw and the client can rehydrate normally.
+    persistence:
+        typeof window === 'undefined'
+            ? inMemoryPersistence
+            : indexedDBLocalPersistence,
 });
+
 export const db = getFirestore(app);
 
-// Enable offline persistence for Firestore
-enableIndexedDbPersistence(db).catch((err) => {
-    console.warn('Failed to enable persistence', err);
-});
+// Enable offline persistence only in the browser. Some hosting environments
+// (e.g. server-side rendering) lack IndexedDB and would otherwise throw.
+if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(db).catch((err) => {
+        console.warn('Failed to enable persistence', err);
+    });
+}

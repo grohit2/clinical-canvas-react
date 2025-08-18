@@ -11,15 +11,25 @@ const AuthContext = createContext<AuthContextType>({ user: null, loading: true }
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  // If a user is already cached by Firebase, skip the initial loading state.
-  const [loading, setLoading] = useState(!auth.currentUser);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, currentUser => {
-      setUser(currentUser);
+    let isMounted = true;
+    // Wait for Firebase to resolve the initial auth state from persistence.
+    auth.authStateReady().then(() => {
+      if (!isMounted) return;
+      setUser(auth.currentUser);
       setLoading(false);
     });
-    return unsubscribe;
+
+    const unsubscribe = onAuthStateChanged(auth, currentUser => {
+      if (isMounted) setUser(currentUser);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   return (

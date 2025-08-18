@@ -1,6 +1,14 @@
 import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+
+async function authHeader(): Promise<HeadersInit> {
+  const { auth } = await import('@/firebase');
+  const u = auth.currentUser;
+  if (!u) return {};
+  const token = await u.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
 
 function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -12,10 +20,11 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
+  const baseHeaders = new Headers(options.headers || {});
+  if (!baseHeaders.has('Content-Type')) baseHeaders.set('Content-Type', 'application/json');
+  const ah = await authHeader();
+  Object.entries(ah).forEach(([k, v]) => baseHeaders.set(k, String(v)));
+  const res = await fetch(`${API_BASE}${path}`, { headers: baseHeaders, ...options });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || res.statusText);

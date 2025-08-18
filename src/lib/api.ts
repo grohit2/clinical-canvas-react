@@ -1,6 +1,7 @@
 import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
+import { auth } from "@/firebase";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -12,9 +13,18 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  });
+  const u = auth.currentUser;
+  if (u) {
+    const token = await u.getIdToken();
+    headers.set('Authorization', `Bearer ${token}`);
+  }
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

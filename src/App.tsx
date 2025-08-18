@@ -21,6 +21,8 @@ import EditTask from "./pages/EditTask";
 import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import RequireAuth from "@/components/auth/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -33,21 +35,22 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/qr/:id" element={<PatientQRView />} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/patients" element={<PatientsList />} />
-          <Route path="/patients/:id" element={<PatientDetail />} />
-          <Route path="/patients/:id/edit" element={<EditPatient />} />
-          <Route path="/patients/:id/add-note" element={<AddNote />} />
-          <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />
-          <Route path="/patients/:id/add-med" element={<AddMedication />} />
-          <Route path="/patients/:id/add-task" element={<AddTask />} />
-          <Route path="/patients/:id/tasks/:taskId/edit" element={<EditTask />} />
-          <Route path="/patients/:id/meds/:medId/edit" element={<EditMedication />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/tasks-due" element={<TasksDue />} />
-          <Route path="/urgent-alerts" element={<UrgentAlerts />} />
-          <Route path="/completed-today" element={<CompletedToday />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/patients" element={<RequireAuth><PatientsList /></RequireAuth>} />
+          <Route path="/patients/:id" element={<RequireAuth><PatientDetail /></RequireAuth>} />
+          <Route path="/patients/:id/edit" element={<RequireAuth><EditPatient /></RequireAuth>} />
+          <Route path="/patients/:id/add-note" element={<RequireAuth><AddNote /></RequireAuth>} />
+          <Route path="/patients/:id/notes/:noteId/edit" element={<RequireAuth><EditNote /></RequireAuth>} />
+          <Route path="/patients/:id/add-med" element={<RequireAuth><AddMedication /></RequireAuth>} />
+          <Route path="/patients/:id/add-task" element={<RequireAuth><AddTask /></RequireAuth>} />
+          <Route path="/patients/:id/tasks/:taskId/edit" element={<RequireAuth><EditTask /></RequireAuth>} />
+          <Route path="/patients/:id/meds/:medId/edit" element={<RequireAuth><EditMedication /></RequireAuth>} />
+          <Route path="/tasks" element={<RequireAuth><Tasks /></RequireAuth>} />
+          <Route path="/tasks-due" element={<RequireAuth><TasksDue /></RequireAuth>} />
+          <Route path="/urgent-alerts" element={<RequireAuth><UrgentAlerts /></RequireAuth>} />
+          <Route path="/completed-today" element={<RequireAuth><CompletedToday /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

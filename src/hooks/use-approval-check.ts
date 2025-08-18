@@ -17,8 +17,13 @@ export function useApprovalCheck() {
             try {
                 if (user) {
                     try {
-                        const tokenResult = await user.getIdTokenResult();
-                        if (!tokenResult.claims.approved) {
+                        let token = await user.getIdToken();
+                        let { approved, exp } = JSON.parse(atob(token.split('.')[1]));
+                        if (exp * 1000 < Date.now() || approved === undefined) {
+                            token = await user.getIdToken(true);
+                            ({ approved } = JSON.parse(atob(token.split('.')[1])));
+                        }
+                        if (!approved) {
                             await logOut();
                             alert('Your account is pending approval by an admin.');
                         }

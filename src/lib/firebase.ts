@@ -2,7 +2,7 @@
 // Firebase initialization. Replace the config object with your Firebase project credentials.
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -16,7 +16,9 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+    persistence: indexedDBLocalPersistence,
+});
 export const db = getFirestore(app);
 
 // Enable offline persistence for Firestore

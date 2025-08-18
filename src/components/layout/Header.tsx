@@ -1,7 +1,11 @@
-import { ArrowLeft, Search, Plus, Bell } from "lucide-react";
+
+import { ArrowLeft, Search, Plus, Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { logOut } from "@/hooks/use-firebase-auth";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 
 interface HeaderProps {
   title: string;
@@ -28,6 +32,13 @@ export function Header({
   notificationCount = 0,
   onNotificationClick
 }: HeaderProps) {
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  const handleLogout = async () => {
+    setShowLogoutDialog(false);
+    await logOut();
+  };
+
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
@@ -51,7 +62,7 @@ export function Header({
             />
           </div>
         )}
-        
+
         {showAdd && title === "Patients" && (
           <Button onClick={onAdd} size="sm" className="flex-shrink-0">
             <Plus className="h-4 w-4 mr-1 md:mr-2" />
@@ -59,7 +70,7 @@ export function Header({
             <span className="sm:hidden">Add</span>
           </Button>
         )}
-        
+
         <div className="relative">
           <Button variant="ghost" size="sm" onClick={onNotificationClick}>
             <Bell className="h-4 w-4" />
@@ -70,7 +81,32 @@ export function Header({
             </Badge>
           )}
         </div>
+
+        {/* Logout Button */}
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => setShowLogoutDialog(true)} title="Logout">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Logout</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to log out?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              Log Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

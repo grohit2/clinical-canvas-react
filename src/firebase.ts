@@ -35,3 +35,15 @@ export const auth = getAuth(app);
 // Explicit long-lived session persistence (survives reloads)
 setPersistence(auth, browserLocalPersistence);
 
+// Optional: initialize Analytics only in supported browser environments
+if (typeof window !== "undefined" && firebaseConfig.measurementId) {
+  // Lazy-load analytics to avoid impacting non-browser contexts
+  import("firebase/analytics").then(async ({ getAnalytics, isSupported }) => {
+    try {
+      const ok = await isSupported();
+      if (ok) getAnalytics(app);
+    } catch {
+      // ignore analytics init errors
+    }
+  });
+}

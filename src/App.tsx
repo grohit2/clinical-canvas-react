@@ -23,22 +23,23 @@ import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminApprovalPage from "./pages/AdminApproval";
-import { useAuth } from "./hooks/use-firebase-auth";
+import { useAuth } from "./context/AuthContext";
 import { useApprovalCheck } from "./hooks/use-approval-check";
 import { Navigate, useLocation } from "react-router-dom";
-
 
 const queryClient = new QueryClient();
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const user = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+  if (loading) {
+    return null;
+  }
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   return children;
 }
-
 
 const App = () => {
   const checkingApproval = useApprovalCheck();

@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { getFirestore, collection, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { app } from '../lib/firebase';
-import { useAuth } from '../hooks/use-firebase-auth';
-
-const db = getFirestore(app);
+import { collection, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../context/AuthContext';
 
 const AdminApprovalPage: React.FC = () => {
-    const user = useAuth();
+    const { user } = useAuth();
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
     const [approvedUsers, setApprovedUsers] = useState<any[]>([]);
     const [deniedUsers, setDeniedUsers] = useState<any[]>([]);

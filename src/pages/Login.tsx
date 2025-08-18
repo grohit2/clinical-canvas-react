@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { useAuth, signIn, signUp, logOut, signInWithGoogle } from '../hooks/use-firebase-auth';
+import { signIn, signUp, logOut, signInWithGoogle } from '../hooks/use-firebase-auth';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-
 const Login: React.FC = () => {
-    const user = useAuth();
+    const { user } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUp, setIsSignUp] = useState(false);
@@ -21,7 +20,6 @@ const Login: React.FC = () => {
             navigate(from, { replace: true });
         }
     }, [user, from, navigate]);
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

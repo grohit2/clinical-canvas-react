@@ -1,10 +1,11 @@
-import { Home, Users, CheckSquare, User } from "lucide-react";
+import { Home, Users, CheckSquare, User, Trophy } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
   { path: "/", icon: Home, label: "Dashboard" },
   { path: "/patients", icon: Users, label: "Patients" },
+  { path: "/leaderboard", icon: Trophy, label: "Leaderboard" },
   { path: "/tasks", icon: CheckSquare, label: "Tasks" },
   { path: "/profile", icon: User, label: "Profile" },
 ];

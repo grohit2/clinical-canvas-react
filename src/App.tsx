@@ -20,6 +20,8 @@ import EditPatient from "./pages/EditPatient";
 import EditTask from "./pages/EditTask";
 import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
+import Leaderboard from "./pages/Leaderboard";
+import MyScore from "./pages/MyScore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,8 @@ const App = () => (
           <Route path="/tasks-due" element={<TasksDue />} />
           <Route path="/urgent-alerts" element={<UrgentAlerts />} />
           <Route path="/completed-today" element={<CompletedToday />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/my-score" element={<MyScore />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

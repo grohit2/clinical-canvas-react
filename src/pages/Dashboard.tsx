@@ -132,22 +132,32 @@ export default function Dashboard() {
           </Badge>
         </div>
 
-        {/* KPI Tiles */}
+        {/* Points Summary */}
         <div className="grid grid-cols-2 gap-4">
-          <KPITile
-            title="Total Patients"
-            value={kpiData.totalPatients}
-            icon={Users}
-            trend={{ value: 5, isPositive: true }}
-            onClick={() => navigate('/patients')}
-          />
-          <KPITile
-            title="Tasks Due"
-            value={kpiData.tasksDue}
-            icon={Clock}
-            variant="caution"
-            onClick={() => navigate('/tasks-due')}
-          />
+          {/* Points & Ranking Card */}
+          <div className="col-span-2">
+            <Card className="p-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Total Points</p>
+                  <p className="text-2xl font-bold">12,450</p>
+                  <div className="flex items-center gap-1 text-sm font-medium text-green-600">
+                    <TrendingUp className="h-4 w-4" />
+                    +15%
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">This Month</p>
+                  <p className="text-2xl font-bold">2,350</p>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">Current Rank</div>
+                    <div className="text-xl font-bold text-primary">#1</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+          
           <KPITile
             title="Urgent Alerts"
             value={kpiData.urgentAlerts}

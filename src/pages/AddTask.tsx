@@ -49,7 +49,8 @@ export default function AddTask() {
     setSubmitting(true);
     try {
       const due = new Date(`${form.date}T${form.time}`);
-      const payload: Omit<Task, "taskId" | "patientId" | "createdAt" | "updatedAt"> = {
+      const payload: Omit<Task, "taskId" | "createdAt" | "updatedAt"> = {
+        patientId: id,
         title: form.title || `${form.type[0].toUpperCase()}${form.type.slice(1)} task`,
         type: form.type,
         due: due.toISOString(),

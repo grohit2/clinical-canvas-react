@@ -40,7 +40,8 @@ export default function AddMedication() {
     if (!id) return;
     setSubmitting(true);
     try {
-      const payload: Omit<Medication, "medId" | "patientId" | "createdAt" | "updatedAt"> = {
+      const payload: Omit<Medication, "medId" | "createdAt" | "updatedAt"> = {
+        patientId: id,
         name: form.name,
         dose: form.dose,
         route: form.route,

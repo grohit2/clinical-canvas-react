@@ -144,6 +144,14 @@ export default function PatientDetail() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => navigate(`/patients/${id}/documents`)}
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <QrCode className="h-4 w-4" />
                   </Button>

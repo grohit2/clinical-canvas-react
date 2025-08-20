@@ -1,0 +1,14 @@
+{
+  "short_name": "Clinical Canvas",
+  "name": "Clinical Canvas - AVIF Image Processor",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "files": [{ "name": "file", "accept": ["image/*"] }] }
+  }
+}
+

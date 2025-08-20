@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import type { Note } from "@/types/api";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import AttachBar from "@/components/AttachBar";
+import FileGrid from "@/components/FileGrid";
 
 interface PatientNotesProps {
   patientId: string;
@@ -12,6 +14,7 @@ interface PatientNotesProps {
 
 export function PatientNotes({ patientId }: PatientNotesProps) {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [gridTokens, setGridTokens] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +35,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
   return (
     <div className="space-y-3">
       {notes.map((note) => (
-        <Card key={note.noteId} className="p-3">
+        <Card key={note.noteId} className="p-3 space-y-2">
           <div className="flex items-start justify-between mb-2">
             <Badge variant="outline" className="capitalize">
               {note.category}
@@ -52,6 +55,16 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
             >
               Edit
             </Button>
+          </div>
+          <div className="border-t pt-2">
+            <AttachBar
+              mrn={patientId}
+              ctx={{ kind: "note", refId: note.noteId }}
+              onAdded={() => setGridTokens((t) => ({ ...t, [note.noteId]: (t[note.noteId] || 0) + 1 }))}
+            />
+            <div className="mt-2">
+              <FileGrid mrn={patientId} kind="note" refId={note.noteId} detachable refreshToken={gridTokens[note.noteId] || 0} />
+            </div>
           </div>
         </Card>
       ))}

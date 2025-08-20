@@ -21,6 +21,7 @@ import EditTask from "./pages/EditTask";
 import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
+import DocumentsPage from "./pages/DocumentsPage";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
+          <Route path="/patients/:id/documents" element={<DocumentsPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />
           <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />

@@ -6,6 +6,8 @@ import type { Medication } from "@/types/api";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { Pencil } from "lucide-react";
+import AttachBar from "@/components/AttachBar";
+import FileGrid from "@/components/FileGrid";
 
 interface PatientMedsProps {
   patientId: string;
@@ -13,6 +15,7 @@ interface PatientMedsProps {
 
 export function PatientMeds({ patientId }: PatientMedsProps) {
   const [meds, setMeds] = useState<Medication[]>([]);
+  const [gridTokens, setGridTokens] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export function PatientMeds({ patientId }: PatientMedsProps) {
   return (
     <div className="space-y-3">
       {meds.map((med) => (
-        <Card key={med.medId} className="p-3 space-y-1">
+        <Card key={med.medId} className="p-3 space-y-2">
           <div className="flex items-start justify-between">
             <h4 className="font-medium text-sm sm:text-base">{med.name}</h4>
             <Badge variant="outline" className="capitalize">
@@ -63,6 +66,16 @@ export function PatientMeds({ patientId }: PatientMedsProps) {
             >
               <Pencil className="h-3 w-3" />
             </Button>
+          </div>
+          <div className="border-t pt-2">
+            <AttachBar
+              mrn={patientId}
+              ctx={{ kind: "med", refId: med.medId }}
+              onAdded={() => setGridTokens((t) => ({ ...t, [med.medId]: (t[med.medId] || 0) + 1 }))}
+            />
+            <div className="mt-2">
+              <FileGrid mrn={patientId} kind="med" refId={med.medId} detachable refreshToken={gridTokens[med.medId] || 0} />
+            </div>
           </div>
         </Card>
       ))}

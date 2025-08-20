@@ -8,6 +8,8 @@ import { Clock, User, Calendar, Flag, CheckCircle2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import AttachBar from "@/components/AttachBar";
+import FileGrid from "@/components/FileGrid";
 
 interface PatientTasksProps {
   patientId: string;
@@ -114,6 +116,7 @@ function TaskCard({ task, onStatusChange, onEdit }: TaskCardProps) {
 export function PatientTasks({ patientId }: PatientTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const navigate = useNavigate();
+  const [gridTokens, setGridTokens] = useState<Record<string, number>>({});
 
   useEffect(() => {
     api.tasks
@@ -148,12 +151,23 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
         {pendingTasks.length > 0 ? (
           <div className="space-y-3">
             {pendingTasks.map(task => (
-              <TaskCard
-                key={task.taskId}
-                task={task}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEdit}
-              />
+              <div key={task.taskId} className="space-y-2">
+                <TaskCard
+                  task={task}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEdit}
+                />
+                <div className="border rounded-md p-2">
+                  <AttachBar
+                    mrn={patientId}
+                    ctx={{ kind: "task", refId: task.taskId }}
+                    onAdded={() => setGridTokens((t) => ({ ...t, [task.taskId]: (t[task.taskId] || 0) + 1 }))}
+                  />
+                  <div className="mt-2">
+                    <FileGrid mrn={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -169,12 +183,23 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
           <h4 className="font-semibold text-sm">Completed Tasks ({completedTasks.length})</h4>
           <div className="space-y-3">
             {completedTasks.map(task => (
-              <TaskCard
-                key={task.taskId}
-                task={task}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEdit}
-              />
+              <div key={task.taskId} className="space-y-2">
+                <TaskCard
+                  task={task}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEdit}
+                />
+                <div className="border rounded-md p-2">
+                  <AttachBar
+                    mrn={patientId}
+                    ctx={{ kind: "task", refId: task.taskId }}
+                    onAdded={() => setGridTokens((t) => ({ ...t, [task.taskId]: (t[task.taskId] || 0) + 1 }))}
+                  />
+                  <div className="mt-2">
+                    <FileGrid mrn={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>

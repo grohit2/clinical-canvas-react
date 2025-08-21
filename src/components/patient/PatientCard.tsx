@@ -23,12 +23,14 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.changedTouches[0].clientX;
-    setIsSwiping(true);
   };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (touchStartX.current !== null) {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
-      if (diff > 0) setTranslateX(Math.min(diff, 80));
+      if (diff > 5) { // Only start swiping if moved more than 5px
+        setIsSwiping(true);
+        setTranslateX(Math.min(diff, 80));
+      }
     }
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -41,8 +43,27 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
         return;
       }
     }
-    setTranslateX(0);
-    setIsSwiping(false);
+    // Reset swipe state after a short delay to allow click events
+    setTimeout(() => {
+      setTranslateX(0);
+      setIsSwiping(false);
+    }, 100);
+    touchStartX.current = null;
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if user is swiping or if click is on action buttons
+    if (isSwiping || translateX > 0) {
+      return;
+    }
+    
+    // Check if click target is an action button or inside one
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[role="button"]')) {
+      return;
+    }
+    
+    onClick?.();
   };
 
   // ---- color mapping (as-is) ----
@@ -115,10 +136,10 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
       </div>
 
       <Card
-        className={`rounded-xl border border-neutral-200/80 bg-white shadow-sm p-3 ${getCardColorClass(
+        className={`rounded-xl border border-neutral-200/80 bg-white shadow-sm pt-3 px-3 pb-0 cursor-pointer ${getCardColorClass(
           patient.currentState
         )}`}
-        onClick={onClick}
+        onClick={handleCardClick}
         style={{
           transform: `translateX(-${translateX}px)`,
           transition: isSwiping ? "none" : "transform 0.2s ease-out",
@@ -184,7 +205,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
         )}
 
         {/* ===== Footer vitals strip ===== */}
-        <div className="mt-3 bg-neutral-50 px-3 py-2 border-t border-neutral-200/80 rounded-b-xl -mx-3">
+        <div className="mt-3 bg-neutral-50 px-3 py-2 border-t border-neutral-200/80 rounded-b-xl -mx-3 -mb-0">
           <div className="flex items-center justify-between">
             <div className="grid grid-cols-4 gap-2 text-center flex-grow">
               <div className="text-xs">

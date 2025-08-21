@@ -1,41 +1,45 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StageChip } from "@/components/patient/StageChip";
-import { Timeline } from "@/components/patient/Timeline";
 import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
-import { QrCode, Copy, Phone, Mail, Calendar, ListTodo, FileText, Pill, Pencil, Trash2, User, UserCheck } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ListTodo, FileText, Pill, MoreVertical, ChevronDown } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry } from "@/types/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Land on Notes like Figma
+  const [activeTab, setActiveTab] = useState<"overview" | "notes" | "meds" | "tasks">("notes");
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteText, setDeleteText] = useState("");
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      // Could add a toast notification here
-    });
-  };
-
   const handleDelete = async () => {
-    if (deleteText.toLowerCase() !== 'delete') return;
+    if (deleteText.toLowerCase() !== "delete") return;
     if (!id) return;
     try {
       await api.patients.remove(id);
@@ -44,20 +48,6 @@ export default function PatientDetail() {
       console.error(err);
     }
   };
-
-  const getGenderIcon = (sex: string) => {
-    return sex?.toLowerCase() === 'female' ? UserCheck : User;
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 100);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -71,15 +61,12 @@ export default function PatientDetail() {
       .catch(() => navigate("/patients"));
   }, [id, navigate]);
 
+  const titleCase = (s?: string) =>
+    s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+
   if (!patient) {
     return (
-      <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-        <Header
-          title="Patient Details"
-          showBack
-          onBack={() => navigate("/patients")}
-          notificationCount={2}
-        />
+      <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
         <div className="p-4 text-sm text-muted-foreground">Loading...</div>
         <BottomBar />
       </div>
@@ -87,245 +74,158 @@ export default function PatientDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header
-        title="Patient Details"
-        showBack
-        onBack={() => navigate("/patients")}
-        notificationCount={2}
-      />
-
-      {isScrolled && (
-        <div className="fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-          <div className="px-3 sm:px-4 lg:px-6 py-2">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm sm:text-base font-semibold text-foreground truncate">
-                  {patient.name}
-                </h2>
-                <p className="text-xs text-muted-foreground truncate">
-                  {patient.mrn} • {patient.currentState}
-                </p>
-              </div>
-              <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className={`p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 ${isScrolled ? "pt-20" : ""}`}>
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words mb-2">{patient.name}</h1>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="capitalize">
-                      {patient.pathway}
-                    </Badge>
-                    <StageChip stage={patient.currentState || ""} variant="caution" size="sm" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => navigate(`/patients/${id}/edit`)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => navigate(`/patients/${id}/documents`)}
-                  >
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <QrCode className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">MRN:</span>
-                  <span className="font-medium">{patient.mrn}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-6 p-0"
-                    onClick={() => copyToClipboard(patient.mrn)}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-                
-                {patient.age !== undefined && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span>{patient.age} years old</span>
-                  </div>
-                )}
-                
-                {patient.sex && (
-                  <div className="flex items-center gap-1">
-                    {(() => {
-                      const IconComponent = getGenderIcon(patient.sex);
-                      return <IconComponent className="h-3 w-3 text-muted-foreground" />;
-                    })()}
-                    <span className="capitalize">{patient.sex}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <span className="text-sm text-muted-foreground">Primary Diagnosis:</span>
-              <div className="font-medium mt-1 break-words">{patient.diagnosis}</div>
-            </div>
-
-            {patient.comorbidities && patient.comorbidities.length > 0 && (
-              <div>
-                <span className="text-sm text-muted-foreground">Comorbidities:</span>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
-                  {patient.comorbidities.map((comorbidity) => (
-                    <Badge key={comorbidity} variant="secondary" className="text-xs">
-                      {comorbidity}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {patient.emergencyContact && (
-              <div className="mt-4 sm:mt-6 pt-4 border-t">
-                <span className="text-sm text-muted-foreground">Emergency Contact:</span>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
-                  <span className="font-medium break-words">
-                    {patient.emergencyContact.name}
-                    {patient.emergencyContact.relationship ? ` (${patient.emergencyContact.relationship})` : ""}
+    <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
+      {/* === TOP CARD (matches screenshot) === */}
+      <div className="p-4">
+        <Card className="p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm bg-white">
+          {/* Row 1: Name (left) | MRN (right) | kebab */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold leading-snug uppercase text-foreground break-words">
+                {patient.name}
+              </h1>
+              {(patient.age !== undefined || patient.sex) && (
+                <div className="mt-1 text-sm text-muted-foreground">
+                  <span>
+                    {patient.age !== undefined ? `${patient.age} Yrs` : ""}
+                    {patient.age !== undefined && patient.sex ? " / " : ""}
+                    {patient.sex ? titleCase(patient.sex) : ""}
                   </span>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Mail className="h-3 w-3 mr-1" />
-                      Email
-                    </Button>
-                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-lg border">
-            <TabsTrigger
-              value="overview"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="notes"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Notes
-            </TabsTrigger>
-            <TabsTrigger
-              value="meds"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Meds
-            </TabsTrigger>
-            <TabsTrigger
-              value="tasks"
-              className="text-xs sm:text-sm px-2 sm:px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md transition-all"
-            >
-              Tasks
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4 mt-6">
-            <div className="space-y-4">
-              <Card className="p-4 sm:p-6 border-l-4 border-l-primary">
-                <h3 className="font-semibold mb-3 text-base sm:text-lg">Patient Overview</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Diagnosis:</span>
-                    <p className="font-medium mt-1">{patient.diagnosis}</p>
-                  </div>
-                  {patient.assignedDoctor && (
-                    <div>
-                      <span className="text-muted-foreground">Assigned Doctor:</span>
-                      <p className="font-medium mt-1">{patient.assignedDoctor}</p>
-                    </div>
-                  )}
-                  {patient.lastUpdated && (
-                    <div>
-                      <span className="text-muted-foreground">Last Updated:</span>
-                      <p className="font-medium mt-1">{new Date(patient.lastUpdated).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {timeline.length > 0 ? (
-                <Timeline entries={timeline} currentState={patient.currentState || ""} />
-              ) : (
-                <Card className="p-4 sm:p-6">
-                  <p className="text-muted-foreground text-center text-sm sm:text-base">No timeline data available for this patient</p>
-                </Card>
               )}
             </div>
-          </TabsContent>
 
-          <TabsContent value="notes" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Clinical Notes</h3>
-                <PatientNotes patientId={patient.mrn} />
+            <div className="flex items-start gap-3 shrink-0">
+              <div className="text-right">
+                <div className="text-[11px] leading-none text-muted-foreground mb-1">MRN</div>
+                <div className="text-sm font-medium text-foreground">{patient.mrn}</div>
               </div>
-            </Card>
-          </TabsContent>
 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="More actions"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(patient.mrn)}>
+                    Copy MRN
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/patients/${id}/edit`)}>
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
-          <TabsContent value="meds" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Medications</h3>
-                <PatientMeds patientId={patient.mrn} />
+          {/* Inner diagnosis sub-card */}
+          <div className="mt-3 rounded-lg border border-gray-200 p-4">
+            {/* Row: Primary Diagnosis (left) | Stage: (right) */}
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Primary Diagnosis:</p>
+              <p className="text-sm text-muted-foreground">Stage:</p>
+            </div>
+
+            <p className="mt-1 text-base font-semibold uppercase leading-snug text-foreground">
+              {patient.diagnosis}
+            </p>
+
+            <div className="mt-3 flex items-center justify-between gap-4">
+              {/* Comorbidities */}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted-foreground mb-1">Comorbidities:</p>
+                <div className="flex flex-wrap gap-2">
+                  {patient.comorbidities?.length ? (
+                    patient.comorbidities.map((c) => (
+                      <span
+                        key={c}
+                        className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                      >
+                        {c}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">None</span>
+                  )}
+                </div>
               </div>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="tasks" className="mt-6">
-            <Card className="p-4 sm:p-6 min-h-[400px] border border-border/50">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Patient Tasks</h3>
-                <PatientTasks patientId={patient.mrn} />
-              </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              {/* Stage pill */}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3 py-1 bg-muted text-foreground hover:bg-muted"
+                onClick={() => navigate(`/patients/${id}/edit`)}
+              >
+                {patient.currentState || "onboarding"}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* === TABS (underline style) === */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <div className="px-4">
+          <TabsList className="w-full flex gap-6 bg-transparent px-0 border-b">
+            {(["overview", "notes", "meds", "tasks"] as const).map((val) => (
+              <TabsTrigger
+                key={val}
+                value={val}
+                className="
+                  relative rounded-none px-0 py-3 text-sm font-medium
+                  text-muted-foreground data-[state=active]:text-primary data-[state=active]:shadow-none
+                  data-[state=active]:after:content-[''] data-[state=active]:after:absolute
+                  data-[state=active]:after:left-0 data-[state=active]:after:right-0
+                  data-[state=active]:after:-bottom-[1px] data-[state=active]:after:h-[2px]
+                  data-[state=active]:after:bg-primary
+                "
+              >
+                {val[0].toUpperCase() + val.slice(1)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        <TabsContent value="overview" className="bg-transparent">
+          <div className="p-4 text-sm text-muted-foreground">
+            Overview content…
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notes" className="bg-transparent">
+          <div className="px-4 pb-4">
+            <PatientNotes patientId={patient.mrn} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="meds" className="bg-transparent">
+          <div className="px-4 pb-4">
+            <PatientMeds patientId={patient.mrn} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tasks" className="bg-transparent">
+          <div className="px-4 pb-4">
+            <PatientTasks patientId={patient.mrn} />
+          </div>
+        </TabsContent>
+      </Tabs>
+
       <ArcSpeedDial
         items={[
           {
@@ -351,15 +251,16 @@ export default function PatientDetail() {
 
       <BottomBar />
 
+      {/* Delete dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Patient</DialogTitle>
-            <DialogDescription>
-              This is a critical action that cannot be undone. To confirm deletion, type "delete" below and click submit.
-            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <DialogDescription>
+            This action cannot be undone. To confirm deletion, type "delete" below.
+          </DialogDescription>
+        <div className="py-4">
             <Input
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
@@ -368,16 +269,19 @@ export default function PatientDetail() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowDeleteDialog(false);
-              setDeleteText("");
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setDeleteText("");
+              }}
+            >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
-              disabled={deleteText.toLowerCase() !== 'delete'}
+              disabled={deleteText.toLowerCase() !== "delete"}
             >
               Delete Patient
             </Button>

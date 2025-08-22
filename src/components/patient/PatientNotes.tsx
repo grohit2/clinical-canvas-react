@@ -118,7 +118,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
           const pv = previews[note.noteId] || { urls: [], total: 0 };
           const count = pv.total || pv.urls.length;
 
-          const open = () => navigate(`/patients/${patientId}/notes/${note.noteId}/edit`);
+          const open = () => navigate(`/patients/${patientId}/notes/${note.noteId}`);
 
           return (
             <Card

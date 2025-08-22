@@ -22,6 +22,7 @@ import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 import DocumentsPage from "./pages/DocumentsPage";
+import NoteDetail from "./pages/NoteDetail";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/patients/:id/documents" element={<DocumentsPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />
+          <Route path="/patients/:id/notes/:noteId" element={<NoteDetail />} />
           <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />
           <Route path="/patients/:id/add-med" element={<AddMedication />} />
           <Route path="/patients/:id/add-task" element={<AddTask />} />

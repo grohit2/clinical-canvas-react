@@ -105,37 +105,28 @@ export default function PatientDetail() {
       {/* ===== FULL-BLEED WHITE TOP SECTION ===== */}
       <section className="bg-white">
         <div className="px-3 sm:px-4 pt-3 pb-2">
-          {/* Row 1: Name (single line, 75% max) + MRN + Kebab */}
+          {/* Row 1: Name + Kebab */}
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1
                 className="
                   text-xl sm:text-[20px] font-bold uppercase tracking-tight
                   whitespace-nowrap truncate
-                  max-w-[75%]
                 "
                 title={patient.name}
               >
                 {patient.name}
               </h1>
-              {(patient.age !== undefined || patient.sex) && (
-                <div className="mt-0.5 text-[13px] text-muted-foreground">
-                  {patient.age !== undefined ? `${patient.age} yrs` : ""}
-                  {patient.age !== undefined && patient.sex ? " / " : ""}
-                  {patient.sex ? titleCase(patient.sex) : ""}
-                </div>
-              )}
+              <div className="mt-0.5 text-[13px] text-muted-foreground">
+                {patient.age !== undefined ? `${patient.age} yrs` : ""}
+                {patient.age !== undefined && patient.sex ? " / " : ""}
+                {patient.sex ? titleCase(patient.sex) : ""}
+                {(patient.age !== undefined || patient.sex) ? " / " : ""}
+                {patient.mrn}
+              </div>
             </div>
 
             <div className="flex items-start gap-2 shrink-0">
-              <div className="text-right">
-                <div className="text-[11px] leading-none text-muted-foreground mb-1">
-                  MRN
-                </div>
-                <div className="text-sm font-medium text-foreground">
-                  {patient.mrn}
-                </div>
-              </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

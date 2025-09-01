@@ -1,6 +1,8 @@
-// documents.mjs — Patient documents record with per-category lists of S3 keys (no GPS field)
+// documents.mjs — Patient documents record (UUID PK) with per-category S3 key lists
+// Node 22 ESM
 
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { resolveAnyPatientId } from "./ids.mjs";
 
 const DOC_SK = "DOCS#PROFILE";
 
@@ -16,7 +18,7 @@ const CATS = {
 };
 
 const toUiDocs = (it = {}) => ({
-  mrn: it.patient_id,
+  patientId: it.patient_uid,
   preopPics:     it.preop_pics     || [],
   labReports:    it.lab_reports    || [],
   radiology:     it.radiology      || [],
@@ -28,22 +30,22 @@ const toUiDocs = (it = {}) => ({
   updatedAt: it.updated_at,
 });
 
-function safeMrn(m) { return String(m || "").replace(/[^a-zA-Z0-9._-]+/g, "_"); }
+function safeUid(u) { return String(u || "").replace(/[^a-zA-Z0-9._-]+/g, "_"); }
 
-async function getDocsItem(ddb, TABLE, mrn) {
+async function getDocsItem(ddb, TABLE, uid) {
   const r = await ddb.send(new GetCommand({
     TableName: TABLE,
-    Key: { PK: `PATIENT#${mrn}`, SK: DOC_SK },
+    Key: { PK: `PATIENT#${uid}`, SK: DOC_SK },
   }));
   return r.Item || null;
 }
 
-function emptyDocsItem(mrn, now) {
+function emptyDocsItem(uid, now) {
   return {
-    PK: `PATIENT#${mrn}`,
+    PK: `PATIENT#${uid}`,
     SK: DOC_SK,
     doc_id: "DOCS",
-    patient_id: mrn,
+    patient_uid: uid,
 
     preop_pics: [],
     lab_reports: [],
@@ -58,26 +60,38 @@ function emptyDocsItem(mrn, now) {
   };
 }
 
+export function mountChecklistRoutes(router, ctx) {
+  // Placeholder for checklist routes - currently using document functionality
+}
+
 export function mountDocumentRoutes(router, ctx) {
   const { ddb, TABLE, utils } = ctx;
   const { nowISO, resp, parseBody } = utils;
 
-  // GET /patients/:mrn/documents  -> use to color blue/grey in UI
+  // GET /patients/:id/documents
   router.add("GET", /^\/?patients\/([^/]+)\/documents\/?$/, async ({ match }) => {
-    const mrn = decodeURIComponent(match[1]);
-    const item = await getDocsItem(ddb, TABLE, mrn);
-    if (!item) return resp(200, toUiDocs(emptyDocsItem(mrn, nowISO())));
+    const rawId = decodeURIComponent(match[1]);
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
+    const item = await getDocsItem(ddb, TABLE, uid);
+    if (!item) return resp(200, toUiDocs(emptyDocsItem(uid, nowISO())));
     return resp(200, toUiDocs(item));
   });
 
-  // POST /patients/:mrn/documents/init  (idempotent)
+  // POST /patients/:id/documents/init  (idempotent)
   router.add("POST", /^\/?patients\/([^/]+)\/documents\/init\/?$/, async ({ match }) => {
-    const mrn = decodeURIComponent(match[1]);
+    const rawId = decodeURIComponent(match[1]);
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
     const now = nowISO();
-    const exist = await getDocsItem(ddb, TABLE, mrn);
+    const exist = await getDocsItem(ddb, TABLE, uid);
     if (exist) return resp(200, { message: "exists", documents: toUiDocs(exist) });
 
-    const item = emptyDocsItem(mrn, now);
+    const item = emptyDocsItem(uid, now);
     await ddb.send(new PutCommand({
       TableName: TABLE,
       Item: item,
@@ -86,10 +100,10 @@ export function mountDocumentRoutes(router, ctx) {
     return resp(201, { message: "created", documents: toUiDocs(item) });
   });
 
-  /* POST /patients/:mrn/documents/attach
+  /* POST /patients/:id/documents/attach
      Body: {
        category: "preop_pics"|"lab_reports"|"radiology"|"intraop_pics"|"ot_notes"|"postop_pics"|"discharge_pics",
-       key: "patients/{MRN}/optimized/docs/<docType>/...ext",
+       key: "patients/{UID}/optimized/docs/<docType>/...ext",
        uploadedBy?: string,
        caption?: string,
        mimeType?: string,
@@ -99,7 +113,11 @@ export function mountDocumentRoutes(router, ctx) {
      }
   */
   router.add("POST", /^\/?patients\/([^/]+)\/documents\/attach\/?$/, async ({ match, event }) => {
-    const mrn = decodeURIComponent(match[1]);
+    const rawId = decodeURIComponent(match[1]);
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
     const body = parseBody(event) || {};
     const now = nowISO();
 
@@ -107,15 +125,15 @@ export function mountDocumentRoutes(router, ctx) {
     if (!catAttr) return resp(400, { error: "invalid category" });
     if (!body.key || typeof body.key !== "string") return resp(400, { error: "key is required" });
 
-    const expectedPrefix = `patients/${safeMrn(mrn)}/`;
+    const expectedPrefix = `patients/${safeUid(uid)}/`;
     if (!body.key.startsWith(expectedPrefix)) {
       return resp(400, { error: "key does not belong to this patient" });
     }
 
     // fetch docs (create if missing)
-    let docs = await getDocsItem(ddb, TABLE, mrn);
+    let docs = await getDocsItem(ddb, TABLE, uid);
     if (!docs) {
-      docs = emptyDocsItem(mrn, now);
+      docs = emptyDocsItem(uid, now);
       await ddb.send(new PutCommand({
         TableName: TABLE,
         Item: docs,
@@ -132,6 +150,8 @@ export function mountDocumentRoutes(router, ctx) {
       mimeType: body.mimeType || null,
       size: body.size ?? null,
       stamp: body.stamp || null,
+      mrn: resolved.meta.active_reg_mrn || null,     // provenance at time of attach
+      scheme: resolved.meta.active_scheme || null,   // provenance at time of attach
     };
 
     const list = Array.isArray(docs[catAttr]) ? [...docs[catAttr]] : [];
@@ -146,11 +166,11 @@ export function mountDocumentRoutes(router, ctx) {
     }
     list.push(entry);
 
-    // optimistic concurrency on updated_at (prevents lost updates if two doctors attach at once)
+    // optimistic concurrency on updated_at (prevents lost updates if two users attach at once)
     try {
       const updated = await ddb.send(new UpdateCommand({
         TableName: TABLE,
-        Key: { PK: `PATIENT#${mrn}`, SK: DOC_SK },
+        Key: { PK: `PATIENT#${uid}`, SK: DOC_SK },
         ConditionExpression: "updated_at = :prev OR attribute_not_exists(updated_at)",
         UpdateExpression: `SET #k = :v, updated_at = :now`,
         ExpressionAttributeNames: { "#k": catAttr },
@@ -160,22 +180,25 @@ export function mountDocumentRoutes(router, ctx) {
       return resp(200, { message: "attached", documents: toUiDocs(updated.Attributes) });
     } catch (e) {
       if (e?.name === "ConditionalCheckFailedException") {
-        // client can retry: refetch -> reapply -> update
         return resp(409, { error: "document record changed; retry attach" });
       }
       throw e;
     }
   });
 
-  // POST /patients/:mrn/documents/detach   Body: { category, key }
+  // POST /patients/:id/documents/detach   Body: { category, key }
   router.add("POST", /^\/?patients\/([^/]+)\/documents\/detach\/?$/, async ({ match, event }) => {
-    const mrn = decodeURIComponent(match[1]);
+    const rawId = decodeURIComponent(match[1]);
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
     const body = parseBody(event) || {};
     const catAttr = CATS[body.category];
     if (!catAttr) return resp(400, { error: "invalid category" });
     if (!body.key) return resp(400, { error: "key is required" });
 
-    const docs = await getDocsItem(ddb, TABLE, mrn);
+    const docs = await getDocsItem(ddb, TABLE, uid);
     if (!docs) return resp(404, { error: "documents record not found" });
 
     const prev = Array.isArray(docs[catAttr]) ? docs[catAttr] : [];
@@ -187,7 +210,7 @@ export function mountDocumentRoutes(router, ctx) {
     try {
       const updated = await ddb.send(new UpdateCommand({
         TableName: TABLE,
-        Key: { PK: `PATIENT#${mrn}`, SK: DOC_SK },
+        Key: { PK: `PATIENT#${uid}`, SK: DOC_SK },
         ConditionExpression: "updated_at = :prev OR attribute_not_exists(updated_at)",
         UpdateExpression: `SET #k = :v, updated_at = :now`,
         ExpressionAttributeNames: { "#k": catAttr },

@@ -18,11 +18,9 @@ import { mountDocumentRoutes } from "./documents.mjs";
 const REGION = process.env.AWS_REGION || "us-east-1";
 const TABLE = process.env.TABLE_NAME || "HMS";
 
-// Existing patients list GSI
-const DEPT_INDEX = "GSI1PK-index";
-
-// Tasks dashboard GSI
-const TASK_GSI = "GSI2PK-GSI2SK-index";
+// Patients/Doctors list GSIs
+const DEPT_INDEX = "GSI1PK-index";       // must project REG rows (patients) + doctors as you already do
+const TASK_GSI  = "GSI2PK-GSI2SK-index"; // existing tasks dashboard index
 
 export const ddb = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: REGION }),
@@ -70,7 +68,11 @@ class Router {
   }
 }
 
-/* ---- bootstrap ---- */
+/* ---- bootstrap ----
+ * NOTE: All /patients/:id/... routes accept either a **patient UID** or an **MRN**.
+ * Modules internally resolve :id → { uid, meta, mrn? } and default to the
+ * **current MRN** when the path provided a UID and no explicit mrn is given.
+ */
 export const handler = async (event = {}) => {
   if (methodOf(event) === "OPTIONS") {
     return { statusCode: 204, headers: JSON_HEADERS, body: "" };
@@ -89,7 +91,7 @@ export const handler = async (event = {}) => {
   mountNoteRoutes(router, ctx);
   mountTaskRoutes(router, ctx);
   mountMedRoutes(router, ctx);
-  mountDoctorRoutes(router, ctx);   
+  mountDoctorRoutes(router, ctx);
   mountPatientRoutes(router, ctx);
   mountTimelineRoutes(router, ctx);
   mountChecklistRoutes(router, ctx);

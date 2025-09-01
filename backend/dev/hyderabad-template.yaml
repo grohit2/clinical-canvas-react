@@ -1,27 +1,23 @@
-# This AWS SAM template has been generated from your function's configuration. If
-# your function has one or more triggers, note that the AWS resources associated
-# with these triggers aren't fully specified in this template and include
-# placeholder values. Open this template in AWS Infrastructure Composer or your
-# favorite IDE and modify it to specify a serverless application with other AWS
-# resources.
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: An AWS Serverless Application Model template describing your function.
+Description: HMS Backend for Hyderabad deployment with MRN change functionality
+
 Resources:
-  HMSdev:
+  HMSdevmrnchange:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: HMS-dev-mrn_change
       CodeUri: .
-      Description: ''
-      MemorySize: 128
-      Timeout: 3
+      Description: 'HMS Backend API for Hyderabad - MRN Change Development'
+      MemorySize: 256
+      Timeout: 30
       Handler: index.handler
       Runtime: nodejs22.x
       Architectures:
         - x86_64
       Environment:
         Variables:
-          TABLE_NAME: HMS
+          TABLE_NAME: HMS-HYD
           FILES_BUCKET: !Ref PatientFilesBucket
           PRESIGN_EXPIRES_SEC: 900
       EphemeralStorage:
@@ -45,14 +41,13 @@ Resources:
             - Effect: Allow
               Action:
                 - logs:CreateLogGroup
-              Resource: arn:aws:logs:us-east-1:058264275581:*
+              Resource: arn:aws:logs:ap-south-1:058264275581:*
             - Effect: Allow
               Action:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
               Resource:
-                - >-
-                  arn:aws:logs:us-east-1:058264275581:log-group:/aws/lambda/HMSdev:*
+                - arn:aws:logs:ap-south-1:058264275581:log-group:/aws/lambda/HMS-dev-mrn_change:*
             - Effect: Allow
               Action:
                 - s3:PutObject
@@ -80,47 +75,6 @@ Resources:
                 - cloudwatch:ListMetrics
                 - cloudwatch:PutMetricAlarm
                 - cloudwatch:GetMetricData
-                - datapipeline:ActivatePipeline
-                - datapipeline:CreatePipeline
-                - datapipeline:DeletePipeline
-                - datapipeline:DescribeObjects
-                - datapipeline:DescribePipelines
-                - datapipeline:GetPipelineDefinition
-                - datapipeline:ListPipelines
-                - datapipeline:PutPipelineDefinition
-                - datapipeline:QueryObjects
-                - ec2:DescribeVpcs
-                - ec2:DescribeSubnets
-                - ec2:DescribeSecurityGroups
-                - iam:GetRole
-                - iam:ListRoles
-                - kms:DescribeKey
-                - kms:ListAliases
-                - sns:CreateTopic
-                - sns:DeleteTopic
-                - sns:ListSubscriptions
-                - sns:ListSubscriptionsByTopic
-                - sns:ListTopics
-                - sns:Subscribe
-                - sns:Unsubscribe
-                - sns:SetTopicAttributes
-                - lambda:CreateFunction
-                - lambda:ListFunctions
-                - lambda:ListEventSourceMappings
-                - lambda:CreateEventSourceMapping
-                - lambda:DeleteEventSourceMapping
-                - lambda:GetFunctionConfiguration
-                - lambda:DeleteFunction
-                - resource-groups:ListGroups
-                - resource-groups:ListGroupResources
-                - resource-groups:GetGroup
-                - resource-groups:GetGroupQuery
-                - resource-groups:DeleteGroup
-                - resource-groups:CreateGroup
-                - tag:GetResources
-                - kinesis:ListStreams
-                - kinesis:DescribeStream
-                - kinesis:DescribeStreamSummary
               Effect: Allow
               Resource: '*'
             - Action:
@@ -158,7 +112,7 @@ Resources:
   PatientFilesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "hms-patient-files-dev-${AWS::AccountId}"
+      BucketName: !Sub "hms-patient-files-hyd-dev-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -180,15 +134,71 @@ Resources:
               - "ETag"
             MaxAge: 3000
 
+  HMSHYDTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: HMS-HYD
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+        - AttributeName: current_mrn
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: LSI-current-mrn
+          KeySchema:
+            - AttributeName: PK
+              KeyType: HASH
+            - AttributeName: current_mrn
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1PK-index
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GSI2PK-GSI2SK-index
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
 Outputs:
   PatientFilesBucketName:
-    Description: "S3 Bucket for patient files"
+    Description: "S3 Bucket for patient files - Hyderabad"
     Value: !Ref PatientFilesBucket
     Export:
       Name: !Sub "${AWS::StackName}-PatientFilesBucket"
   
   FunctionUrl:
-    Description: "Lambda Function URL"
-    Value: !GetAtt HMSdevUrl.FunctionUrl
+    Description: "Lambda Function URL - Hyderabad"
+    Value: !GetAtt HMSdevmrnchangeUrl.FunctionUrl
     Export:
       Name: !Sub "${AWS::StackName}-FunctionUrl"
+
+  DynamoDBTable:
+    Description: "DynamoDB Table - Hyderabad"
+    Value: !Ref HMSHYDTable
+    Export:
+      Name: !Sub "${AWS::StackName}-DynamoDBTable"

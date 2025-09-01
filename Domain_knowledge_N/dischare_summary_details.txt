@@ -1,0 +1,900 @@
+# Medical Discharge Summary Document Structure Reference Guide
+
+This document follows a standardized medical discharge summary format that can serve as a template for similar healthcare documentation. Here's the comprehensive structural breakdown:
+
+## Document Header Template
+```
+[Institution Name] - [Department]
+Patient Demographics Block:
+- Name, Age, Sex, Father's Name
+- Registration Numbers (REG NO., IP No.)
+- Contact Information (Address, Phone)
+- Key Dates (DOA - Date of Admission, DOD - Date of Discharge)
+- Primary Diagnosis (in capital letters)
+- Secondary Diagnoses (hierarchically listed)
+- Admission Type, Consultant Name
+```
+
+## Content Structure Framework
+
+### 1. **Clinical History Section** 
+**Format:** Narrative paragraphs with temporal organization
+- **Chief Complaints:** Chronological symptom presentation (e.g., "20 days back," "since yesterday")
+- **Symptom Characteristics:** Onset, progression, aggravating/relieving factors
+- **Associated Symptoms:** Secondary complaints with timeline
+- **Vital Signs at Admission:** Structured list format
+
+### 2. **Background History Sections**
+**Format:** Categorized lists with standard abbreviations
+- **Past History:** Known conditions vs. ruled-out conditions using "K/C/O" (Known Case Of) and "N/K/C/O" (No Known Case Of)
+- **Personal History:** Diet, appetite, sleep, bowel/bladder habits
+- **Family History:** Brief statement format
+- **Drug History:** Medication list with dosing schedule (morning-afternoon-night format: 1-0-1)
+
+### 3. **Physical Examination Section**
+**Format:** Systematic organ-based assessment
+- **General Examination:** Standardized checklist format using (+/-) notation
+- **Systemic Examination:** By system (CVS, RS, P/A, CNS) with brief findings
+
+### 4. **Hospital Course Section**
+**Format:** Narrative paragraph summarizing:
+- Initial management approach
+- Treatment modalities used
+- Surgical interventions with dates
+- Consultant referrals
+- Clinical progression
+
+### 5. **Laboratory Data Section**
+**Format:** Multi-column table structure
+```
+Parameter | Date 1 | Date 2 | Date 3 | Reference Values
+---------|---------|---------|---------|------------------
+Test Name | Value | Value | Value | Normal Range
+```
+- **Categories:** Hematology, Chemistry, Endocrine, Infectious Disease, Urinalysis
+- **Presentation:** Chronological progression showing clinical improvement/deterioration
+
+### 6. **Diagnostic Studies Section**
+**Format:** Individual report summaries
+- **Imaging Studies:** Brief interpretive findings
+- **Cardiac Studies:** Functional assessment results
+- **Specialized Tests:** Disease-specific investigations
+
+### 7. **Treatment Documentation**
+**Format:** Numbered medication lists with precise details
+- **Hospital Treatment:** Complete regimen with route, dose, frequency, duration
+- **Discharge Medications:** Continuation instructions with duration specifications
+- **Format Example:** "Tab. [Drug Name] [Dose] [Frequency] [Duration]"
+
+### 8. **Follow-up Instructions**
+**Format:** Structured appointment and monitoring plan
+- **Timeline:** Specific follow-up interval
+- **Required Tests:** Laboratory monitoring needs
+- **Department:** Appropriate specialty clinic
+
+### 9. **Document Authentication**
+**Format:** Professional identification
+- Physician name, department, institution
+
+## Key Presentation Characteristics
+
+### **Typography and Organization:**
+- **Headers:** Bold, clear section delineation
+- **Medical Abbreviations:** Standardized healthcare terminology
+- **Temporal Markers:** Specific dates and timelines throughout
+- **Hierarchical Information:** Primary conditions before secondary
+
+### **Data Presentation Methods:**
+1. **Tabular Format:** For laboratory values and vital signs
+2. **List Format:** For medications, diagnoses, and history items
+3. **Narrative Format:** For clinical reasoning and hospital course
+4. **Checklist Format:** For physical examination findings
+
+### **Quality Indicators:**
+- **Completeness:** All standard sections included
+- **Continuity:** Clear connection between admission and discharge
+- **Specificity:** Precise dosing, timing, and monitoring instructions
+- **Professional Standards:** Proper medical terminology and formatting
+
+This structural framework ensures comprehensive documentation that supports:
+- **Clinical Continuity:** Complete picture for ongoing care
+- **Legal Documentation:** Thorough record of hospital stay
+- **Quality Assurance:** Standardized information capture
+- **Communication:** Clear handoff to outpatient providers
+
+This template can be adapted for various medical specialties while maintaining the core organizational principles and ensuring consistent, professional healthcare documentation standards.
+
+
+example discharege summary
+
+Narayana Medical College And Hospital
+Dept of General Medicine
+
+ 
+
+Name
+
+MANDA KESHAVULU
+
+Age
+
+73
+
+Sex
+
+F
+
+Father name
+
+MANDA CHENNAIAH
+
+REG NO.
+
+20250741894
+
+IP No
+
+250721408
+
+Address
+
+Nellore
+
+Phone no.
+
+9916123444
+
+DOA
+
+21/7/25
+
+DOD
+
+2/8/25
+
+DIAGNOSIS
+
+DIABETIC KETOACIDOSIS(RESOLVED)
+
+SEPSIS WITH SEPTIC SHOCK 2°   TO  RT DIABETIC FOOT)
+
+PERIPHERAL ARTERIAL DISEASE
+
+AKI ( RESOLVED)
+
+K/C/O CAD(SEVERE LVD:29%),HYPOTHYROIDISM,T2DM.
+
+S/P:- BELOW KNEE AMPUTATION FOR RT DIABETIC FOOT(28/7/25)
+
+ADMISSION TYPE
+
+ASP
+
+CONSULTANT
+
+DR.PRABHAKAR REDDY
+
+ 
+
+HOPI & CONDITION AT ADMISSION:  
+
+Patient was apprently normal 20 days back later developed shortness of breath insidious onset, gradually progressive,aggrevated on exertion relieving on taking rest,it got aggrevated since one day,not relieving on rest orthopnea present,PND present.
+
+C/o chestpain since today morning, sudden onset mot progressive and nonradiating in nature ,c/o palpitations
+
+C/o loose stools 3 episodes black coloured watery in consistency nonblood tinged ,nonfoul smelling since yesterdaynight.
+
+C/o Vomitings,non bloodtinged since 2 days
+
+C/o swelling of bilateral lowerlimbs present.
+
+VITALS AT ADMISSION:
+
+PR -129 bpm,BP -140/90 mmhg TEMP -afebrile,SPo2 -100% on o2 mask
+
+ 
+
+
+1
+ 
+ Narayana Medical College And Hospital
+Dept of General Medicine
+
+PAST HISTORY-
+
+H/o similar complaints in past
+
+K/C/O - T2DM,CAD since 20yrs
+
+*N/K/C/O  -CKD / CVA.
+
+K/c/o hypothyroidism since 20 days
+
+* N/K/C/O - Epilepsy / Migraine
+
+* No H/o of previous Surgeries
+
+* No H/o of Blood Transfusion
+
+ 
+
+ 
+
+PERSONAL HISTORY-
+
+Mixed diet
+
+* Appetite - (decreased)
+
+* Sleep - (N)
+
+* Bowel Altered and Bladder Movement - (N)
+
+Sleep disturbance present.
+
+ 
+
+ 
+
+FAMILY HISTORY-
+
+No H/o similar complaints in the family
+
+ 
+
+DRUG HISTORY-
+
+Tab.ATORVAS 20mg  0-0-1
+
+Tab.FUROSEMIDE 40mg 1-0-0  
+
+Tab.METFORMIN  500mg Bd  1-0-1
+
+Tab.VILDA 50mg OD  0-0-1
+
+Tab.GLIMIPRIDE 2mg 1-0-0
+
+ 
+
+GENERAL EXAMINATION:
+
+Patient is Conscious, Coherent, Cooperative & well oriented to time, place and person.
+
+Moderately built & nourished.
+
+c/o
+
+Pallor (-)
+
+Icterus (-)
+
+Cyanosis (-)
+
+Clubbing (-)
+
+Lymphadenopathy (-)
+
+Edema (-)
+
+Nails – Pallor (-)
+
+SYSTEMIC EXAMINATION:
+
+CVS : s1,s2 heard, no murmurs
+
+RS : Bilateral NVBS present,no added sounds
+
+P/A soft , nontender, no organomegaly
+
+CNS: HMF normal, NFND.
+
+IN HOSPITAL COURSE:
+
+Patient was admitted with above complaints and all relevant investigation were done which shown high sugars,ketones positive in urine, elevated total leucocyte count,neutrophil predominant,deranged  lft’s.patient was treated with iv fluids,broad spectrum antibiotics,antiplatelets,antilipdemic,diuretics  drugs.patient was given insulin infusion for correction of high sugars,later boluses of  actrapid insulin were given and patient was started on MIXTARD insulin.surgeey referral was taken  for right diabetic foot ulcer and  below knee amputation was done on 28/7/25.antibiotics were escalated.Neohro opinion taken for elevated RFTS and advice followed.Patient improved over the course of hospital stay  and discharged with following advice 
+
+1
+ 
+ Narayana Medical College And Hospital
+Dept of General Medicine
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+22/7/25
+
+26/7/25
+
+01/8/25
+
+ 
+
+1/8/25
+
+25/7/25
+
+29/7/25
+
+HB
+
+8.4
+
+8.1
+
+10.8
+
+S.CREATININE
+
+0.57
+
+1.47
+
+0.78
+
+TLC
+
+33400
+
+24530
+
+18200
+
+S. UREA
+
+34.41
+
+117.94
+
+80.71
+
+N/L
+
+92/03
+
+90/4
+
+87/8
+
+Na+
+
+132
+
+143
+
+142
+
+AEC
+
+01
+
+01
+
+01
+
+K+
+
+3.5
+
+5
+
+3.7
+
+PLATELET
+
+656000
+
+311000
+
+176000
+
+Cl-
+
+100
+
+98
+
+109
+
+MCV
+
+79
+
+81
+
+81
+
+BLOOD GROUP
+
+A positive
+
+ 
+
+PERIPHERAL
+
+SMEAR
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Ca2+
+
+ 
+
+HIV
+
+NR
+
+ESR
+
+ 
+
+ 
+
+ 
+
+Mg2+
+
+ 
+
+HBSAG
+
+NR
+
+CRP
+
+ 
+
+ 
+
+ 
+
+P-
+
+ 
+
+HCV
+
+NR
+
+ 
+
+ 
+
+ 
+
+ 
+
+S. URIC ACID
+
+ 
+
+ 
+
+ 
+
+T.BILIRUBIN
+
+ 
+
+2.24
+
+ 
+
+FBS
+
+ 
+
+MALARIA
+
+ 
+
+C.BILIRUBIN
+
+ 
+
+1.31
+
+ 
+
+PPBS
+
+ 
+
+DENGUE
+
+ 
+
+SGOT
+
+ 
+
+2413.95
+
+ 
+
+HBA1C
+
+9.9
+
+SCRUB TYPHUS
+
+ 
+
+SGPT
+
+ 
+
+1567.68
+
+ 
+
+RBS
+
+ 
+
+LEPTOSPIRA
+
+ 
+
+ALP
+
+ 
+
+343.01
+
+ 
+
+FT3
+
+0.48
+
+HAV
+
+ 
+
+S. PROTEIN
+
+ 
+
+5.72
+
+ 
+
+FT4
+
+6.78
+
+HEV
+
+ 
+
+S. ALBUMIN
+
+ 
+
+2.31
+
+ 
+
+TSH
+
+0.343
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+S.IRON
+
+ 
+
+PT(28/7/25)
+
+ 
+
+26.6
+
+ 
+
+S. CORTISOL
+
+ 
+
+S. FERRITIN
+
+ 
+
+INR
+
+ 
+
+2.10
+
+ 
+
+ 
+
+ 
+
+TIBC
+
+ 
+
+APTT
+
+ 
+
+34
+
+ 
+
+T.CHOLESTEROL
+
+ 
+
+RETIC COUNT
+
+ 
+
+CUE(21/7/25)
+
+ 
+
+ 
+
+ 
+
+TRIGLYCERIDES
+
+ 
+
+S. B12
+
+ 
+
+ALBUMIN
+
+NIL
+
+ 
+
+ 
+
+HDL
+
+ 
+
+LDH
+
+3620
+
+SUGAR
+
++++
+
+ 
+
+ 
+
+LDL
+
+ 
+
+DCT
+
+ 
+
+KETONES
+
+++
+
+ 
+
+ 
+
+VLDL
+
+ 
+
+ICT
+
+ 
+
+PUS CELLS
+
+0-1
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+EPI CELLS
+
+0-1
+
+ 
+
+ 
+
+S. AMYLASE
+
+ 
+
+CK-MB
+
+ 
+
+RBC
+
+0-1
+
+ 
+
+ 
+
+S. LIPASE
+
+ 
+
+TROP I
+
+ 
+
+ 
+
+ 
+
+ 
+
+SPUTUM G/S
+
+ 
+
+SPUTUM C/S
+
+ 
+
+SPUTUM AFB
+
+ 
+
+STOOL R/M
+
+ 
+
+STOOL C/S
+
+ 
+
+BLOOD C/S
+
+ 
+
+ 
+
+USG REPORT: Minimal left pleural effusion,thin strips of pericholecystic fluid .
+
+DOPPLER REPORT:-
+
+RIGHT LOWER LIMB- suboptimal atudy due to patient poor habitus
+
+Execessive atheromatous changes noted in SFA
+
+triphasic waveforms with low velocities and spectral broadening
+
+Monophasix waveforms in ATA,DPA.
+
+LEFT LOWER LIMB-Biphasic waveforms in ATA,PTA,DPA.
+
+ 
+
+​
+
+ 
+
+ 
+
+ECG
+
+NORMAL SINUS RHYTHM,,NONAXIS DEVIATION,NO ST-T WAVE CHANGES
+
+CHEST X-RAY
+
+ 
+
+NO CONSOLIDATION OR PLEURAL EFFUSION
+
+2D echo
+
+Tachycardia present,Global hypolcisuria of LV,mild to moderate LV dysfunction
+
+ 
+
+mild to moderate MR/TR,AV thickened,no clot/PE,EF- 46%
+
+CONDITION AT DISCHARGE:HEMODYNAMICALLY STABLE
+
+ 
+
+ 
+
+TREATMENT GIVEN IN HOSPITAL:
+
+1. INJ MEROPENEM 1gm IV TID 1-1-1×11days
+2. INJ PANTOP 40mg IV BD 1-0-0
+3. TAB.LINEZOLID 60mg BD 1-0-1 ×8days
+4. Tab. ECOSPRIN 75mg OD 0-1-0
+5. Tab.ATORVASTATIN 20mg OD 0-0-1
+6. Tab. CONCOR 2.5mg OD 1-0-0
+7. Tab. THYRONORM 25mg OD 1-0-0
+8. Tab.DYTOR PLUS 20mg OD 1-0-0
+9. INJ H-ACTRAPID ACCORDING to SLIDING SCALE based on premeal GRBS
+TREATMENT ADVISED AT DISCHARGE:
+
+1. INJ MEROPENEM 1GM IV TID 1-1-1 ×3 DAYS
+2. INJ MIXTARD S/C 25U-×-15U
+3. TAB.LINEZOLID 60mg BD 1-0-1 ×2days
+4. Tab. ECOSPRIN 75mg OD 0-1-0× continue
+5. Tab .ATORVASTATIN 20mg OD 0-0-1 ×continue
+6. Tab. CONCOR 2.5mg OD 1-0-0 ×continue
+7. Tab. THYRONORM 25mg OD 1-0-0 ×continue
+8. Tab .DYTOR PLUS 20mg OD 1-0-0 ×continue
+9. Review in general medicine OPD  after 2 weeks with CBP,rft,serum electrolytes.
+DR.L.PRABHAKAR REDDY
+
+DEPT OF GENERAL MEDICINE, ,NMCH, NELLORE.
+
+ 

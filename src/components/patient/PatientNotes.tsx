@@ -67,7 +67,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
               scope: "optimized",
             });
             const urls = (l.items || [])
-              .map((i) => i.cdnUrl || "")
+              .map((i) => i.cdnUrl ?? i.url ?? "")
               .filter(Boolean)
               .slice(0, 3);
             const total = l.items?.length ?? 0;

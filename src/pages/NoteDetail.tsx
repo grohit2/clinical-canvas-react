@@ -94,7 +94,7 @@ export default function NoteDetail() {
             <div className="w-full p-4">
               <div className="w-full aspect-[3/2] rounded-lg overflow-hidden">
                 <img
-                  src={image.cdnUrl || ''}
+                  src={image.cdnUrl ?? image.url ?? ''}
                   alt={`Note image ${index + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"

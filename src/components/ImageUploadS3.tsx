@@ -93,7 +93,7 @@ export function ImageUploadS3({
         {images.map((image, index) => (
           <div key={image.key} className="relative">
             <img
-              src={image.cdnUrl || ''}
+              src={image.cdnUrl ?? image.url ?? ''}
               alt={`attachment ${index + 1}`}
               className="rounded-lg w-full h-24 object-cover"
             />

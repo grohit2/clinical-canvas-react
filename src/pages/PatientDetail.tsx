@@ -122,7 +122,7 @@ export default function PatientDetail() {
                 {patient.age !== undefined && patient.sex ? " / " : ""}
                 {patient.sex ? titleCase(patient.sex) : ""}
                 {(patient.age !== undefined || patient.sex) ? " / " : ""}
-                {patient.mrn}
+                {patient.latestMrn ?? ''}
               </div>
             </div>
 
@@ -141,7 +141,7 @@ export default function PatientDetail() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(patient.mrn)}
+                    onClick={() => navigator.clipboard.writeText(patient.latestMrn ?? '')}
                   >
                     Copy MRN
                   </DropdownMenuItem>

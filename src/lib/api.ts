@@ -29,18 +29,24 @@ export const api = {
       request<Patient[]>(`/patients${department ? `?department=${encodeURIComponent(department)}` : ''}`),
     get: (uid: string) => request<Patient>(`/patients/${uid}`),
     timeline: (uid: string) => request<TimelineEntry[]>(`/patients/${uid}/timeline`),
-    create: (data: Omit<Patient, 'id' | 'lastUpdated' | 'status'> & { mrn: string; name: string; department: string }) =>
-      request<{ message: string; mrn: string; patient: Patient }>(`/patients`, {
+    create: (
+      data: Omit<Patient, 'id' | 'lastUpdated' | 'status' | 'latestMrn'> & {
+        mrn: string;
+        name: string;
+        department: string;
+      },
+    ) =>
+      request<{ patientId: string; patient: Patient }>(`/patients`, {
         method: 'POST',
         body: JSON.stringify(toSnakeCase(data)),
       }),
     update: (uid: string, data: Partial<Patient>) =>
-      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${uid}`, {
+      request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',
         body: JSON.stringify(toSnakeCase(data as Record<string, unknown>)),
       }),
     remove: (uid: string) =>
-      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${uid}`, {
+      request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',
       }),
   },

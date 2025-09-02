@@ -2,7 +2,7 @@
 
 export interface Patient {
   id: string; // uid
-  mrn: string;
+  latestMrn?: string;
   name: string;
   department: string;
   status: 'ACTIVE' | 'INACTIVE';

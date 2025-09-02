@@ -16,7 +16,9 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
 
   // ---- swipe-to-open Labs (unchanged) ----
-  const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
+  const labsUrl = patient.latestMrn
+    ? `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.latestMrn}`
+    : '';
   const touchStartX = useRef<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -36,7 +38,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current !== null) {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
-      if (diff > 50) {
+      if (diff > 50 && labsUrl) {
         e.preventDefault();
         e.stopPropagation();
         window.location.href = labsUrl;
@@ -158,7 +160,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
                   {patient.name}
                 </h3>
               </div>
-              <p className="text-xs text-neutral-500">MRN: {patient.mrn}</p>
+              <p className="text-xs text-neutral-500">MRN: {patient.latestMrn ?? ''}</p>
             </div>
           </div>
 

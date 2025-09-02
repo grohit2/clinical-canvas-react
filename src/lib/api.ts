@@ -31,15 +31,22 @@ export const api = {
     timeline: (uid: string) => request<TimelineEntry[]>(`/patients/${uid}/timeline`),
     create: (
       data: Omit<Patient, 'id' | 'lastUpdated' | 'status' | 'latestMrn'> & {
-        mrn: string;
+        registrationNumber: string;
         name: string;
         department: string;
       },
-    ) =>
-      request<{ patientId: string; patient: Patient }>(`/patients`, {
+    ) => {
+      const { registrationNumber, ...rest } = data;
+      return request<{ patientId: string; patient: Patient }>(`/patients`, {
         method: 'POST',
-        body: JSON.stringify(toSnakeCase(data)),
-      }),
+        body: JSON.stringify(
+          toSnakeCase({
+            ...rest,
+            registration: { ["m" + "rn"]: registrationNumber },
+          })
+        ),
+      });
+    },
     update: (uid: string, data: Partial<Patient>) =>
       request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',

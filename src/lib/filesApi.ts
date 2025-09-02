@@ -1,7 +1,7 @@
 // src/lib/filesApi.ts
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
-export type HttpError = Error & { status?: number; body?: any };
+export type HttpError = Error & { status?: number; body?: unknown };
 
 async function requestWithStatus<T>(
   path: string,
@@ -49,9 +49,9 @@ export interface PresignUploadResponse {
   hints: { optimizedKey: S3Key; originalKey: S3Key; thumbKey: S3Key };
 }
 
-export async function presignUpload(mrn: string, body: PresignUploadRequest): Promise<PresignUploadResponse> {
+export async function presignUpload(uid: string, body: PresignUploadRequest): Promise<PresignUploadResponse> {
   return requestWithStatus<PresignUploadResponse>(
-    `${API_BASE}/patients/${encodeURIComponent(mrn)}/files/presign-upload`,
+    `${API_BASE}/patients/${encodeURIComponent(uid)}/files/presign-upload`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
   );
 }
@@ -61,40 +61,45 @@ export interface FilesListItem {
   size?: number | null;
   etag?: string | null;
   lastModified?: string | null;
-  mrn?: string | null;
+  uid?: string | null;
   target?: string | null;
   kind?: string | null;
   docType?: string | null;
   refId?: string | null;
   filename?: string | null;
   url?: string | null;
+  cdnUrl?: string | null;
   expiresIn?: number | null;
 }
 export interface FilesListResponse {
   prefix: string;
   items: FilesListItem[];
   nextCursor?: string | null;
+  total?: number | null;
 }
 
-export async function listFiles(params: {
-  mrn: string;
-  scope?: FilesScope;
-  kind?: FilesKind;
-  docType?: DocType;
-  refId?: string;
-  limit?: number;
-  cursor?: string;
-  presign?: boolean;
-}): Promise<FilesListResponse> {
+export async function listFiles(
+  uid: string,
+  opts: {
+    scope?: FilesScope;
+    kind?: FilesKind;
+    docType?: DocType;
+    refId?: string;
+    limit?: number;
+    cursor?: string;
+    presign?: boolean;
+  } = {}
+): Promise<FilesListResponse> {
   const q = new URLSearchParams();
-  if (params.scope) q.set("scope", params.scope);
-  if (params.kind) q.set("kind", params.kind);
-  if (params.docType) q.set("docType", params.docType);
-  if (params.refId) q.set("refId", params.refId);
-  if (params.limit) q.set("limit", String(params.limit));
-  if (params.cursor) q.set("cursor", params.cursor);
-  if (params.presign) q.set("presign", "1");
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(params.mrn)}/files?${q.toString()}`);
+  const { scope, kind, docType, refId, limit, cursor, presign } = opts;
+  if (scope) q.set("scope", scope);
+  if (kind) q.set("kind", kind);
+  if (docType) q.set("docType", docType);
+  if (refId) q.set("refId", refId);
+  if (limit) q.set("limit", String(limit));
+  if (cursor) q.set("cursor", cursor);
+  if (presign) q.set("presign", "1");
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/files?${q.toString()}`);
   if (!r.ok) throw await r.json().catch(() => ({ error: "list failed" }));
   return r.json();
 }
@@ -105,8 +110,8 @@ export interface PresignDownloadResponse {
   key: S3Key;
   expiresIn: number;
 }
-export async function presignDownload(mrn: string, key: S3Key): Promise<PresignDownloadResponse> {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/files/presign-download`, {
+export async function presignDownload(uid: string, key: S3Key): Promise<PresignDownloadResponse> {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/files/presign-download`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -125,7 +130,7 @@ export type DocumentsCategory =
   | "discharge_pics";
 
 export interface DocumentsProfile {
-  mrn: string;
+  uid: string;
   preopPics: DocEntry[];
   labReports: DocEntry[];
   radiology: DocEntry[];
@@ -143,23 +148,24 @@ export interface DocEntry {
   mimeType?: string | null;
   size?: number | null;
   caption?: string | null;
+  cdnUrl?: string | null;
   stamp?: { label?: string | null; stampedAt?: string | null; stampedBy?: string | null } | null;
 }
 
-export async function getDocuments(mrn: string): Promise<DocumentsProfile> {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/documents`);
+export async function getDocuments(uid: string): Promise<DocumentsProfile> {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/documents`);
   if (!r.ok) throw await r.json().catch(() => ({ error: "get documents failed" }));
   return r.json();
 }
 
-export async function initDocuments(mrn: string): Promise<{ message: "created" | "exists"; documents: DocumentsProfile }> {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/documents/init`, { method: "POST" });
+export async function initDocuments(uid: string): Promise<{ message: "created" | "exists"; documents: DocumentsProfile }> {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/documents/init`, { method: "POST" });
   if (!r.ok) throw await r.json().catch(() => ({ error: "init docs failed" }));
   return r.json();
 }
 
 export async function attachDocument(
-  mrn: string,
+  uid: string,
   body: {
     category: DocumentsCategory;
     key: S3Key;
@@ -172,16 +178,16 @@ export async function attachDocument(
   }
 ): Promise<{ message: string; documents: DocumentsProfile }> {
   return requestWithStatus<{ message: string; documents: DocumentsProfile }>(
-    `${API_BASE}/patients/${encodeURIComponent(mrn)}/documents/attach`,
+    `${API_BASE}/patients/${encodeURIComponent(uid)}/documents/attach`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
   );
 }
 
 export async function detachDocument(
-  mrn: string,
+  uid: string,
   body: { category: DocumentsCategory; key: S3Key }
 ): Promise<{ message: string; documents: DocumentsProfile }> {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/documents/detach`, {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/documents/detach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -190,8 +196,8 @@ export async function detachDocument(
   return r.json();
 }
 
-export async function attachNoteFile(mrn: string, noteId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/notes/${encodeURIComponent(noteId)}/files/attach`, {
+export async function attachNoteFile(uid: string, noteId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/notes/${encodeURIComponent(noteId)}/files/attach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -199,8 +205,8 @@ export async function attachNoteFile(mrn: string, noteId: string, key: S3Key) {
   if (!r.ok) throw await r.json().catch(() => ({ error: "note attach failed" }));
   return r.json();
 }
-export async function detachNoteFile(mrn: string, noteId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/notes/${encodeURIComponent(noteId)}/files/detach`, {
+export async function detachNoteFile(uid: string, noteId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/notes/${encodeURIComponent(noteId)}/files/detach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -209,8 +215,8 @@ export async function detachNoteFile(mrn: string, noteId: string, key: S3Key) {
   return r.json();
 }
 
-export async function attachMedFile(mrn: string, medId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/meds/${encodeURIComponent(medId)}/files/attach`, {
+export async function attachMedFile(uid: string, medId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/meds/${encodeURIComponent(medId)}/files/attach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -218,8 +224,8 @@ export async function attachMedFile(mrn: string, medId: string, key: S3Key) {
   if (!r.ok) throw await r.json().catch(() => ({ error: "med attach failed" }));
   return r.json();
 }
-export async function detachMedFile(mrn: string, medId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/meds/${encodeURIComponent(medId)}/files/detach`, {
+export async function detachMedFile(uid: string, medId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/meds/${encodeURIComponent(medId)}/files/detach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -228,8 +234,8 @@ export async function detachMedFile(mrn: string, medId: string, key: S3Key) {
   return r.json();
 }
 
-export async function attachTaskFile(mrn: string, taskId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/tasks/${encodeURIComponent(taskId)}/files/attach`, {
+export async function attachTaskFile(uid: string, taskId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/tasks/${encodeURIComponent(taskId)}/files/attach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
@@ -237,8 +243,8 @@ export async function attachTaskFile(mrn: string, taskId: string, key: S3Key) {
   if (!r.ok) throw await r.json().catch(() => ({ error: "task attach failed" }));
   return r.json();
 }
-export async function detachTaskFile(mrn: string, taskId: string, key: S3Key) {
-  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(mrn)}/tasks/${encodeURIComponent(taskId)}/files/detach`, {
+export async function detachTaskFile(uid: string, taskId: string, key: S3Key) {
+  const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/tasks/${encodeURIComponent(taskId)}/files/detach`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),

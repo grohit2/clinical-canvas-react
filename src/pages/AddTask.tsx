@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Doctor, Task } from "@/types/api";
 
 export default function AddTask() {
-  const { id } = useParams();
+  const { id: uid } = useParams();
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState("");
   const [department, setDepartment] = useState("");
@@ -29,14 +29,14 @@ export default function AddTask() {
   useEffect(() => { document.title = `Add Task | Clinical Canvas`; }, []);
 
   useEffect(() => {
-    if (!id) return;
-    api.patients.get(id).then((p) => {
+    if (!uid) return;
+    api.patients.get(uid).then((p) => {
       setPatientName(p.name);
       setDepartment(p.department || "");
       if (p.assignedDoctorId) setForm((f) => ({ ...f, assigneeId: p.assignedDoctorId }));
       if (p.pathway) setForm((f) => ({ ...f }));
     }).catch(() => {});
-  }, [id]);
+  }, [uid]);
 
   useEffect(() => {
     if (!department) return;
@@ -45,7 +45,7 @@ export default function AddTask() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !form.type || !form.assigneeId || !form.date || !form.time) return;
+    if (!uid || !form.type || !form.assigneeId || !form.date || !form.time) return;
     setSubmitting(true);
     try {
       const due = new Date(`${form.date}T${form.time}`);
@@ -58,8 +58,8 @@ export default function AddTask() {
         priority: form.priority,
         recurring: false,
       };
-      await api.tasks.create(id, payload);
-      navigate(`/patients/${id}`);
+      await api.tasks.create(uid, payload);
+      navigate(`/patients/${uid}`);
     } catch (e) {
       console.error(e);
     } finally {

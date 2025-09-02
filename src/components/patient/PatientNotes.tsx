@@ -61,16 +61,16 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
       const pairs = await Promise.all(
         notes.map(async (n) => {
           try {
-            const l = await listFiles({
-              mrn: patientId,
+            const l = await listFiles(patientId, {
               kind: "note",
               refId: n.noteId,
               scope: "optimized",
-              presign: true,
-              limit: 3,
             });
-            const urls = (l.items || []).map((i: any) => i.url as string).filter(Boolean).slice(0, 3);
-            const total = (l as any).total ?? (l.items?.length || 0);
+            const urls = (l.items || [])
+              .map((i) => i.cdnUrl || "")
+              .filter(Boolean)
+              .slice(0, 3);
+            const total = l.items?.length ?? 0;
             return [n.noteId, { urls, total }] as const;
           } catch {
             return [n.noteId, { urls: [], total: 0 }] as const;
@@ -101,10 +101,10 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem onClick={() => setFilter("all")}>All Notes</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("doctorNote" as any)}>Doctor Note</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("nurseNote" as any)}>Nurse Note</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("pharmacy" as any)}>Pharmacy</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("discharge" as any)}>Discharge</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("doctorNote")}>Doctor Note</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("nurseNote")}>Nurse Note</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("pharmacy")}>Pharmacy</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("discharge")}>Discharge</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -182,10 +182,10 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
                       <Badge
                         variant="secondary"
                         className={`text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full ${badgeTone(
-                          (note as any).category
+                          note.category
                         )}`}
                       >
-                        {(note as any).category || "Note"}
+                        {note.category || "Note"}
                       </Badge>
                       <p className="text-sm text-gray-500 mt-1 truncate">
                         {note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}
@@ -224,8 +224,8 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
 
                   {note.content && <p className="mt-2 text-sm text-gray-800 line-clamp-2">{note.content}</p>}
 
-                  {(note as any).authorId && (
-                    <p className="text-sm text-gray-500 mt-2">Author: {(note as any).authorId}</p>
+                  {note.authorId && (
+                    <p className="text-sm text-gray-500 mt-2">Author: {note.authorId}</p>
                   )}
                 </div>
               </div>

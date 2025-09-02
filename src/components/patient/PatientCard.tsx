@@ -110,7 +110,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   };
 
   // ---- vitals (optional, safe if missing) ----
-  const vitals = (patient as any)?.vitals || {};
+  const vitals = patient.vitals || {};
   const HR: string = vitals.hr != null ? String(vitals.hr) : "-";
   const BP: string =
     vitals.bp != null
@@ -199,7 +199,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
         {/* ===== Optional QR section ===== */}
         {showQR && (
           <div className="mt-3 p-3 bg-neutral-50 rounded-lg flex flex-col items-center gap-2">
-            <QRCodeGenerator value={(patient as any).qrCode || patient.mrn} size={120} />
+            <QRCodeGenerator value={patient.qrCode || patient.id} size={120} />
             <p className="text-[11px] text-neutral-500 text-center">Scan for patient details</p>
           </div>
         )}

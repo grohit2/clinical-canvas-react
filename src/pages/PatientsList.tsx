@@ -39,8 +39,8 @@ export default function PatientsList() {
       .then((data) => {
         const withUi = data.map((p) => ({
           ...p,
-          id: p.id || p.mrn,
-          qrCode: `${window.location.origin}/qr/${p.mrn}`,
+          id: p.id,
+          qrCode: `${window.location.origin}/qr/${p.id}`,
           updateCounter: 0,
           comorbidities: p.comorbidities || [],
         }));
@@ -75,8 +75,8 @@ export default function PatientsList() {
   const handleAddPatient = (patient: Patient) => {
     const withUi = {
       ...patient,
-      id: patient.id || patient.mrn,
-      qrCode: `${window.location.origin}/qr/${patient.mrn}`,
+      id: patient.id,
+      qrCode: `${window.location.origin}/qr/${patient.id}`,
       updateCounter: 0,
       comorbidities: patient.comorbidities || [],
     };

@@ -27,43 +27,43 @@ export const api = {
   patients: {
     list: (department?: string) =>
       request<Patient[]>(`/patients${department ? `?department=${encodeURIComponent(department)}` : ''}`),
-    get: (mrn: string) => request<Patient>(`/patients/${mrn}`),
-    timeline: (mrn: string) => request<TimelineEntry[]>(`/patients/${mrn}/timeline`),
+    get: (uid: string) => request<Patient>(`/patients/${uid}`),
+    timeline: (uid: string) => request<TimelineEntry[]>(`/patients/${uid}/timeline`),
     create: (data: Omit<Patient, 'id' | 'lastUpdated' | 'status'> & { mrn: string; name: string; department: string }) =>
       request<{ message: string; mrn: string; patient: Patient }>(`/patients`, {
         method: 'POST',
         body: JSON.stringify(toSnakeCase(data)),
       }),
-    update: (mrn: string, data: Partial<Patient>) =>
-      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${mrn}`, {
+    update: (uid: string, data: Partial<Patient>) =>
+      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',
         body: JSON.stringify(toSnakeCase(data as Record<string, unknown>)),
       }),
-    remove: (mrn: string) =>
-      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${mrn}`, {
+    remove: (uid: string) =>
+      request<{ message: string; mrn: string; patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',
       }),
   },
   tasks: {
-    list: (mrn: string, status?: string, limit?: number) => {
+    list: (uid: string, status?: string, limit?: number) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (limit) params.append('limit', String(limit));
       const query = params.size ? `?${params.toString()}` : '';
-      return request<Task[]>(`/patients/${mrn}/tasks${query}`);
+      return request<Task[]>(`/patients/${uid}/tasks${query}`);
     },
-    create: (mrn: string, data: Omit<Task, 'taskId' | 'createdAt' | 'updatedAt'>) =>
-      request<{ message: string; task: Task }>(`/patients/${mrn}/tasks`, {
+    create: (uid: string, data: Omit<Task, 'taskId' | 'createdAt' | 'updatedAt'>) =>
+      request<{ message: string; task: Task }>(`/patients/${uid}/tasks`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    update: (mrn: string, taskId: string, data: Partial<Task>) =>
-      request<{ message: string; task: Task }>(`/patients/${mrn}/tasks/${taskId}`, {
+    update: (uid: string, taskId: string, data: Partial<Task>) =>
+      request<{ message: string; task: Task }>(`/patients/${uid}/tasks/${taskId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    remove: (mrn: string, taskId: string) =>
-      request<{ message: string }>(`/patients/${mrn}/tasks/${taskId}`, {
+    remove: (uid: string, taskId: string) =>
+      request<{ message: string }>(`/patients/${uid}/tasks/${taskId}`, {
         method: 'DELETE',
       }),
     listByDepartment: (department: string, status = 'open', assigneeId?: string, limit?: number) => {
@@ -74,50 +74,50 @@ export const api = {
     },
   },
   notes: {
-    list: (mrn: string, limit?: number, cursor?: string, includeDeleted?: boolean) => {
+    list: (uid: string, limit?: number, cursor?: string, includeDeleted?: boolean) => {
       const params = new URLSearchParams();
       if (limit) params.append('limit', String(limit));
       if (cursor) params.append('cursor', cursor);
       if (includeDeleted) params.append('includeDeleted', includeDeleted ? '1' : '0');
       const query = params.size ? `?${params.toString()}` : '';
-      return request<{ items: Note[]; nextCursor: string | null }>(`/patients/${mrn}/notes${query}`);
+      return request<{ items: Note[]; nextCursor: string | null }>(`/patients/${uid}/notes${query}`);
     },
-    create: (mrn: string, data: Omit<Note, 'noteId' | 'createdAt' | 'updatedAt' | 'deleted'>) =>
-      request<{ message: string; note: Note }>(`/patients/${mrn}/notes`, {
+    create: (uid: string, data: Omit<Note, 'noteId' | 'createdAt' | 'updatedAt' | 'deleted'>) =>
+      request<{ message: string; note: Note }>(`/patients/${uid}/notes`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    update: (mrn: string, noteId: string, data: Partial<Note>) =>
-      request<{ message: string; note: Note }>(`/patients/${mrn}/notes/${noteId}`, {
+    update: (uid: string, noteId: string, data: Partial<Note>) =>
+      request<{ message: string; note: Note }>(`/patients/${uid}/notes/${noteId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    remove: (mrn: string, noteId: string) =>
-      request<{ message: string }>(`/patients/${mrn}/notes/${noteId}`, {
+    remove: (uid: string, noteId: string) =>
+      request<{ message: string }>(`/patients/${uid}/notes/${noteId}`, {
         method: 'DELETE',
       }),
   },
   meds: {
-    list: (mrn: string, active?: boolean, limit?: number, cursor?: string) => {
+    list: (uid: string, active?: boolean, limit?: number, cursor?: string) => {
       const params = new URLSearchParams();
       if (active !== undefined) params.append('active', active ? '1' : '0');
       if (limit) params.append('limit', String(limit));
       if (cursor) params.append('cursor', cursor);
       const query = params.size ? `?${params.toString()}` : '';
-      return request<{ items: Medication[]; nextCursor: string | null }>(`/patients/${mrn}/meds${query}`);
+      return request<{ items: Medication[]; nextCursor: string | null }>(`/patients/${uid}/meds${query}`);
     },
-    create: (mrn: string, data: Omit<Medication, 'medId' | 'createdAt' | 'updatedAt'>) =>
-      request<{ message: string; med: Medication }>(`/patients/${mrn}/meds`, {
+    create: (uid: string, data: Omit<Medication, 'medId' | 'createdAt' | 'updatedAt'>) =>
+      request<{ message: string; med: Medication }>(`/patients/${uid}/meds`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    update: (mrn: string, medId: string, data: Partial<Medication>) =>
-      request<{ message: string; med: Medication }>(`/patients/${mrn}/meds/${medId}`, {
+    update: (uid: string, medId: string, data: Partial<Medication>) =>
+      request<{ message: string; med: Medication }>(`/patients/${uid}/meds/${medId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    remove: (mrn: string, medId: string) =>
-      request<{ message: string; med: Medication }>(`/patients/${mrn}/meds/${medId}`, {
+    remove: (uid: string, medId: string) =>
+      request<{ message: string; med: Medication }>(`/patients/${uid}/meds/${medId}`, {
         method: 'DELETE',
       }),
   },

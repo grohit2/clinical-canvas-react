@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getDocuments } from "../lib/filesApi";
+import { getDocuments, DocumentsProfile, DocumentsCategory } from "../lib/filesApi";
 import DocumentCategory from "../components/DocumentCategory";
 import ImageUploader from "../components/ImageUploader";
 import FileGrid from "../components/FileGrid";
@@ -21,14 +21,14 @@ const CATEGORY_TITLES: Record<string, string> = {
 };
 
 export default function DocumentsPage() {
-  const { id } = useParams();
+  const { id: uid } = useParams();
   const navigate = useNavigate();
-  const [docs, setDocs] = useState<any>(null);
-  const [opened, setOpened] = useState<string | null>(null);
+  const [docs, setDocs] = useState<DocumentsProfile | null>(null);
+  const [opened, setOpened] = useState<DocumentsCategory | null>(null);
 
   async function refresh() {
-    if (!id) return;
-    setDocs(await getDocuments(id));
+    if (!uid) return;
+    setDocs(await getDocuments(uid));
   }
   const debounceRef = useRef<number | null>(null);
   function debouncedRefresh(delay = 200) {
@@ -40,7 +40,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [uid]);
 
   const cats = docs
     ? [
@@ -66,7 +66,7 @@ export default function DocumentsPage() {
           </div>
         </Card>
 
-        {opened && id && (
+        {opened && uid && (
           <Card className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">{CATEGORY_TITLES[opened]}</h3>
@@ -76,12 +76,19 @@ export default function DocumentsPage() {
             </div>
 
             <ImageUploader
-              mrn={id}
-              ctx={{ kind: "doc", docType: categoryToDocType(opened) as any, category: opened as any }}
+              patientId={uid}
+              ctx={{ kind: "doc", docType: categoryToDocType(opened), category: opened }}
               onDone={() => debouncedRefresh()}
             />
 
-            <FileGrid mrn={id} kind="doc" docType={categoryToDocType(opened)} detachable docCategory={opened} onDetached={() => debouncedRefresh()} />
+            <FileGrid
+              patientId={uid}
+              kind="doc"
+              docType={categoryToDocType(opened)}
+              detachable
+              docCategory={opened}
+              onDetached={() => debouncedRefresh()}
+            />
           </Card>
         )}
       </main>

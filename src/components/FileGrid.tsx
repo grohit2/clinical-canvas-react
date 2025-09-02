@@ -34,6 +34,7 @@ export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, det
       refId,
       cursor: next ?? undefined,
       limit: 30,
+      presign: true,
     });
     setItems((prev) => [...prev, ...res.items]);
     setCursor(res.nextCursor ?? null);

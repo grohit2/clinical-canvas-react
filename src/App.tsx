@@ -17,6 +17,7 @@ import AddNote from "./pages/AddNote";
 import AddMedication from "./pages/AddMedication";
 import AddTask from "./pages/AddTask";
 import EditPatient from "./pages/EditPatient";
+import AddPatient from "./pages/AddPatient";
 import EditTask from "./pages/EditTask";
 import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/qr/:id" element={<PatientQRView />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
+          <Route path="/patients/new" element={<AddPatient />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
           <Route path="/patients/:id/documents" element={<DocumentsPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />

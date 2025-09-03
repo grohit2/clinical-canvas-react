@@ -5,7 +5,8 @@ import { PatientCard } from "@/components/patient/PatientCard";
 import { PatientGridCard } from "@/components/patient/PatientGridCard";
 import { ViewToggle } from "@/components/patient/ViewToggle";
 import { FilterPopup } from "@/components/patient/FilterPopup";
-import { AddPatientForm } from "@/components/patient/AddPatientForm";
+import { flags } from "@/lib/flags";
+import { AddPatientFormV2, AddPatientForm } from "@/components/patient";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +126,7 @@ export default function PatientsList() {
         showAdd
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => setShowAddPatientForm(true)}
+        onAdd={() => navigate('/patients/new')}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -267,11 +268,14 @@ export default function PatientsList() {
         </Tabs>
       </div>
 
-      <AddPatientForm 
-        open={showAddPatientForm}
-        onOpenChange={setShowAddPatientForm}
-        onAddPatient={handleAddPatient}
-      />
+      {/* Dialog add flow kept for legacy fallback/manual triggers if needed */}
+      {!flags.patientFormV2 && (
+        <AddPatientForm
+          open={showAddPatientForm}
+          onOpenChange={setShowAddPatientForm}
+          onAddPatient={handleAddPatient}
+        />
+      )}
 
       <NotificationsPopup 
         open={showNotifications}

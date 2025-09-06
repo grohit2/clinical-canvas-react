@@ -8,13 +8,15 @@ import {
   GetObjectCommand,
   ListObjectsV2Command,
   HeadObjectCommand,
+  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { resolveAnyPatientId } from "./ids.mjs";
+import { CloudFrontClient, CreateInvalidationCommand } from "@aws-sdk/client-cloudfront";
 
 /* ------------------------------ ENV & CLIENT ------------------------------ */
 
-const REGION = process.env.AWS_REGION || process.env.S3_REGION || "us-east-1";
+const REGION = process.env.AWS_REGION || process.env.S3_REGION || "ap-south-1";
 const BUCKET =
   process.env.FILES_BUCKET ||
   process.env.DOCS_BUCKET ||
@@ -25,6 +27,8 @@ const PRESIGN_EXPIRES_SEC = Number(
 ); // 15min default
 
 const s3 = new S3Client({ region: REGION });
+const CF_DISTRIBUTION_ID = process.env.CF_DISTRIBUTION_ID || "";
+const cf = CF_DISTRIBUTION_ID ? new CloudFrontClient({ region: REGION }) : null;
 
 /* --------------------------------- CONSTS -------------------------------- */
 
@@ -368,4 +372,95 @@ export function mountFileRoutes(router, ctx) {
       return resp(500, { error: "failed to presign download" });
     }
   });
+
+  /* ----------------------------------------------------------------------
+     DELETE (via POST for body support): /patients/:id/files/delete
+     body: { key?: string, keys?: string[], invalidate?: boolean }
+     - Deletes the provided S3 key(s) under the patient's prefix
+     - Optionally creates CloudFront invalidation for those paths
+  ---------------------------------------------------------------------- */
+  router.add(
+    "POST",
+    /^\/?patients\/([^/]+)\/files\/delete\/?$/,
+    async ({ match, event }) => {
+      try {
+        if (!BUCKET) return resp(500, { error: "FILES_BUCKET not configured" });
+
+        const rawId = decodeURIComponent(match[1]);
+        const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+        if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+        const uid = resolved.uid;
+
+        const body = parseBody(event) || {};
+        let keys = [];
+        if (Array.isArray(body.keys)) keys = body.keys.filter((k) => typeof k === "string");
+        if (body.key && typeof body.key === "string") keys.push(body.key);
+
+        // de-dup
+        keys = Array.from(new Set(keys));
+        if (!keys.length) return resp(400, { error: "key or keys[] is required" });
+
+        const uidPrefix = `patients/${String(uid).replace(/[^a-zA-Z0-9._-]+/g, "_")}/`;
+        const bad = keys.find((k) => !String(k).startsWith(uidPrefix));
+        if (bad) return resp(403, { error: "one or more keys do not belong to this patient" });
+
+        // Optionally include sibling variants (original + thumb) for optimized keys
+        const includeSiblings = body.includeSiblings !== false; // default true
+        if (includeSiblings) {
+          const derived = [];
+          for (const k of keys) {
+            // Match: patients/{uid}/optimized/{seg}/<baseName>.<ext>
+            const m = String(k).match(/^patients\/([^/]+)\/optimized\/(?:docs|notes|meds|tasks)\/[^/]+\/(.+)\.([a-z0-9]{2,5})$/i);
+            if (m) {
+              const uidInKey = m[1];
+              const baseName = m[2];
+              const ext = m[3].toLowerCase();
+              // Originals do not include seg
+              derived.push(`patients/${uidInKey}/originals/${baseName}.${ext === "jpeg" ? "jpg" : ext}`);
+              // Thumb uses jpg and -thumb suffix
+              derived.push(`patients/${uidInKey}/thumb/${baseName}-thumb.jpg`);
+            }
+          }
+          for (const d of derived) keys.push(d);
+          // de-dup again
+          keys = Array.from(new Set(keys));
+        }
+
+        // Delete from S3 (batch)
+        await s3.send(
+          new DeleteObjectsCommand({
+            Bucket: BUCKET,
+            Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+          })
+        );
+
+        // Optional CloudFront invalidation
+        const doInvalidate = body.invalidate !== false; // default true if CF configured
+        let invalidationId = null;
+        if (cf && doInvalidate) {
+          const items = keys.map((k) => (k.startsWith("/") ? k : `/${k}`));
+          try {
+            const inv = await cf.send(
+              new CreateInvalidationCommand({
+                DistributionId: CF_DISTRIBUTION_ID,
+                InvalidationBatch: {
+                  Paths: { Quantity: items.length, Items: items },
+                  CallerReference: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                },
+              })
+            );
+            invalidationId = inv?.Invalidation?.Id || null;
+          } catch (e) {
+            // Non-fatal: return warning
+            return resp(200, { ok: true, deleted: keys.length, warning: "cloudfront invalidation failed" });
+          }
+        }
+
+        return resp(200, { ok: true, deleted: keys.length, invalidationId });
+      } catch (err) {
+        console.error("files delete error", err);
+        return resp(500, { error: "failed to delete file(s)" });
+      }
+    }
+  );
 }

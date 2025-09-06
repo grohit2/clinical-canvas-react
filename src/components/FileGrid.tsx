@@ -6,6 +6,7 @@ import {
   detachMedFile,
   detachTaskFile,
   detachDocument,
+  deleteFiles,
   DocType,
   DocumentsCategory,
 } from "../lib/filesApi";
@@ -54,12 +55,27 @@ export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, det
       else if (kind === "task" && refId) await detachTaskFile(patientId, refId, key);
       else if (kind === "doc" && docCategory) await detachDocument(patientId, { category: docCategory, key });
       else return;
+
+      // Best-effort: remove the underlying object too (subfolders supported)
+      try {
+        await deleteFiles(patientId, [key], { invalidate: true });
+      } catch (e) {
+        console.warn("s3 delete warning", e);
+      }
       setItems((prev) => prev.filter((i) => i.key !== key));
       onDetached?.(key);
       toast("Removed attachment");
     } catch (e) {
       console.error("detach failed", e);
-      toast("Failed to remove attachment");
+      
+      // For now, during development without backend, still remove from UI
+      if (process.env.NODE_ENV === 'development') {
+        setItems((prev) => prev.filter((i) => i.key !== key));
+        onDetached?.(key);
+        toast("Removed attachment (development mode)");
+      } else {
+        toast("Failed to remove attachment");
+      }
     }
   }
 

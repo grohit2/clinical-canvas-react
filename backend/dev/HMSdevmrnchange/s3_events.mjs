@@ -12,7 +12,7 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const REGION = process.env.AWS_REGION || "us-east-1";
+const REGION = process.env.AWS_REGION || "ap-south-1";
 const TABLE = process.env.TABLE_NAME || "HMS";
 const BUCKET = process.env.FILES_BUCKET || "";
 const CDN_DOMAIN = process.env.CDN_DOMAIN || "";

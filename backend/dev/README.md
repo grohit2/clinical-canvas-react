@@ -115,15 +115,46 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 # List patient files
 curl -s "$FUNCTION_URL/patients/20250819644/files?scope=optimized&kind=doc&docType=preop&presign=1" | jq .
+
+# Detach a document from DynamoDB (keeps S3)
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"category":"preop_pics","key":"patients/UID/optimized/docs/preop/123-abc-q80-1600w.jpg"}' \
+  "$FUNCTION_URL/patients/20250819644/documents/detach" | jq .
+
+# Delete S3 file(s) and optionally invalidate CloudFront
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"keys":["patients/UID/optimized/docs/preop/123-abc-q80-1600w.jpg"],"invalidate":true,"includeSiblings":true}' \
+  "$FUNCTION_URL/patients/20250819644/files/delete" | jq .
 ```
 
 ## 📊 Current Deployment
 
-- **Stack Name**: `hms-dev`
-- **Region**: `us-east-1` 
-- **Function URL**: `https://7lfvboabbtasfqxgcoil6kvm4q0zrdac.lambda-url.us-east-1.on.aws/`
-- **S3 Bucket**: `hms-patient-files-dev-058264275581`
-- **Status**: ✅ Active with successful file upload testing
+- **Stack Name**: `hms-hyd-dev`
+- **Region**: `ap-south-1` 
+- **Function URL**: `https://kfzsv6at3amrxzl5kzuehljfju0rhkup.lambda-url.ap-south-1.on.aws/`
+- **S3 Bucket**: `hms-patient-files-hyd-dev-058264275581`
+- **CloudFront**: `d9j52cd9e77ji.cloudfront.net`
+- **Status**: ✅ Active with delete endpoint deployed
+
+## ⚙️ Configuration
+
+- Env vars:
+  - `FILES_BUCKET` (or `DOCS_BUCKET`/`S3_BUCKET`): S3 bucket name for patient files
+  - `CF_DISTRIBUTION_ID` (optional): enable CloudFront invalidation on deletes
+  - `CDN_DOMAIN` (optional): used by S3 events to populate `cdnUrl`
+
+- IAM permissions (Lambda execution role):
+  - `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:DeleteObject` on `arn:aws:s3:::<bucket>/*`
+  - `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `Query` on the application table
+  - `cloudfront:CreateInvalidation` for the target distribution (if using `CF_DISTRIBUTION_ID`)
+
+## 🧰 New Endpoint Summary
+
+- `POST /patients/:id/files/delete`
+  - Body: `{ key?: string, keys?: string[], invalidate?: boolean, includeSiblings?: boolean }`
+  - Deletes provided S3 keys that belong to the patient prefix.
+  - If `includeSiblings` is true (default), also deletes derived `originals` and `thumb` keys when the input is an `optimized` key.
+  - If `CF_DISTRIBUTION_ID` is configured and `invalidate` is not false, creates a CloudFront invalidation for the deleted paths.
 
 ## 🔧 Troubleshooting
 

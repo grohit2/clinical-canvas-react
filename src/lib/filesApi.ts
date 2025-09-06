@@ -120,6 +120,22 @@ export async function presignDownload(uid: string, key: S3Key): Promise<PresignD
   return r.json();
 }
 
+export async function deleteFiles(
+  uid: string,
+  keys: S3Key[],
+  opts: { invalidate?: boolean; includeSiblings?: boolean } = { invalidate: true, includeSiblings: true }
+): Promise<{ ok: boolean; deleted: number; invalidationId?: string | null; warning?: string }>
+{
+  return requestWithStatus(
+    `${API_BASE}/patients/${encodeURIComponent(uid)}/files/delete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keys, invalidate: opts.invalidate !== false, includeSiblings: opts.includeSiblings !== false }),
+    }
+  );
+}
+
 export type DocumentsCategory =
   | "preop_pics"
   | "lab_reports"

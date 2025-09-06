@@ -36,15 +36,23 @@ export const api = {
         department: string;
       },
     ) => {
-      const { registrationNumber, ...rest } = data;
+      const { registrationNumber, department, ...rest } = data;
       return request<{ patientId: string; patient: Patient }>(`/patients`, {
         method: 'POST',
-        body: JSON.stringify(
-          toSnakeCase({
-            ...rest,
-            registration: { ["m" + "rn"]: registrationNumber },
-          })
-        ),
+        body: JSON.stringify({
+          name: data.name,
+          age: data.age,
+          sex: data.sex,
+          registration: { 
+            mrn: registrationNumber,
+            scheme: "GENERAL", // default scheme
+            department: department,
+            pathway: data.pathway,
+            diagnosis: data.diagnosis,
+            comorbidities: data.comorbidities,
+            assigned_doctor_id: data.assignedDoctorId
+          }
+        }),
       });
     },
     update: (uid: string, data: Partial<Patient>) =>

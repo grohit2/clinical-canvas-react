@@ -15,7 +15,7 @@ import { mountFileRoutes } from "./files.mjs";
 import { mountDocumentRoutes } from "./documents.mjs";
 
 /* ---- env & clients ---- */
-const REGION = process.env.AWS_REGION || "us-east-1";
+const REGION = process.env.AWS_REGION || "ap-south-1";
 const TABLE = process.env.TABLE_NAME || "HMS";
 
 // Patients/Doctors list GSIs

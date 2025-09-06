@@ -159,12 +159,12 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
                 />
                 <div className="border rounded-md p-2">
                   <AttachBar
-                    mrn={patientId}
+                    patientId={patientId}
                     ctx={{ kind: "task", refId: task.taskId }}
                     onAdded={() => setGridTokens((t) => ({ ...t, [task.taskId]: (t[task.taskId] || 0) + 1 }))}
                   />
                   <div className="mt-2">
-                    <FileGrid mrn={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
+                    <FileGrid patientId={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
                   </div>
                 </div>
               </div>
@@ -191,12 +191,12 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
                 />
                 <div className="border rounded-md p-2">
                   <AttachBar
-                    mrn={patientId}
+                    patientId={patientId}
                     ctx={{ kind: "task", refId: task.taskId }}
                     onAdded={() => setGridTokens((t) => ({ ...t, [task.taskId]: (t[task.taskId] || 0) + 1 }))}
                   />
                   <div className="mt-2">
-                    <FileGrid mrn={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
+                    <FileGrid patientId={patientId} kind="task" refId={task.taskId} detachable refreshToken={gridTokens[task.taskId] || 0} />
                   </div>
                 </div>
               </div>

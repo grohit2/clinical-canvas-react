@@ -1,8 +1,8 @@
 // API models based on HMS API spec
 
 export interface Patient {
-  id: string; // = mrn
-  mrn: string;
+  id: string; // uid
+  latestMrn?: string;
   name: string;
   department: string;
   status: 'ACTIVE' | 'INACTIVE';
@@ -27,6 +27,16 @@ export interface Patient {
   // UI-specific optional fields
   qrCode?: string;
   updateCounter?: number;
+  vitals?: {
+    hr?: number;
+    bp?: number | string;
+    systolic?: number;
+    diastolic?: number;
+    spo2?: number;
+    temp?: number;
+    temperature?: number;
+    updatedAt?: string;
+  };
 }
 
 export interface Task {

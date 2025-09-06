@@ -35,7 +35,7 @@ export default function PatientDetail() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] =
-    useState<"overview" | "notes" | "meds" | "tasks">("notes");
+    useState<'overview' | 'notes' | 'meds' | 'tasks'>('notes');
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -122,7 +122,7 @@ export default function PatientDetail() {
                 {patient.age !== undefined && patient.sex ? " / " : ""}
                 {patient.sex ? titleCase(patient.sex) : ""}
                 {(patient.age !== undefined || patient.sex) ? " / " : ""}
-                {patient.mrn}
+                {patient.latestMrn ?? ''}
               </div>
             </div>
 
@@ -141,7 +141,7 @@ export default function PatientDetail() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(patient.mrn)}
+                    onClick={() => navigator.clipboard.writeText(patient.latestMrn ?? '')}
                   >
                     Copy MRN
                   </DropdownMenuItem>
@@ -212,7 +212,7 @@ export default function PatientDetail() {
       </section>
 
       {/* ===== TABS ===== */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v: 'overview' | 'notes' | 'meds' | 'tasks') => setActiveTab(v)}>
         <div className="px-3 sm:px-4">
           <TabsList className="grid w-full grid-cols-4 bg-transparent p-0 border-b">
             {(["overview", "notes", "meds", "tasks"] as const).map((val) => (
@@ -269,19 +269,19 @@ export default function PatientDetail() {
 
         <TabsContent value="notes" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientNotes patientId={patient.mrn} />
+            <PatientNotes patientId={patient.id} />
           </div>
         </TabsContent>
 
         <TabsContent value="meds" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientMeds patientId={patient.mrn} />
+            <PatientMeds patientId={patient.id} />
           </div>
         </TabsContent>
 
         <TabsContent value="tasks" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientTasks patientId={patient.mrn} />
+            <PatientTasks patientId={patient.id} />
           </div>
         </TabsContent>
       </Tabs>

@@ -4,16 +4,16 @@ import { useUploader, UploadContext } from "../hooks/useUploader";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  mrn: string;
+  patientId: string;
   ctx: UploadContext;
   currentUserId?: string;
   disabled?: boolean;
   onDone?: (key: string) => void;
 };
 
-export const ImageUploader: React.FC<Props> = ({ mrn, ctx, currentUserId, disabled, onDone }) => {
+export const ImageUploader: React.FC<Props> = ({ patientId, ctx, currentUserId, disabled, onDone }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { upload, progress, busy, error } = useUploader(mrn, currentUserId);
+  const { upload, progress, busy, error } = useUploader(patientId, currentUserId);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -21,7 +21,9 @@ export const ImageUploader: React.FC<Props> = ({ mrn, ctx, currentUserId, disabl
     try {
       const { key } = await upload(file, ctx);
       onDone?.(key);
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return (

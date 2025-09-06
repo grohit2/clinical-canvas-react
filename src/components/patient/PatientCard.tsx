@@ -16,7 +16,9 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
 
   // ---- swipe-to-open Labs (unchanged) ----
-  const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
+  const labsUrl = patient.latestMrn
+    ? `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.latestMrn}`
+    : '';
   const touchStartX = useRef<number | null>(null);
   const [translateX, setTranslateX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -36,7 +38,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current !== null) {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
-      if (diff > 50) {
+      if (diff > 50 && labsUrl) {
         e.preventDefault();
         e.stopPropagation();
         window.location.href = labsUrl;
@@ -110,7 +112,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
   };
 
   // ---- vitals (optional, safe if missing) ----
-  const vitals = (patient as any)?.vitals || {};
+  const vitals = patient.vitals || {};
   const HR: string = vitals.hr != null ? String(vitals.hr) : "-";
   const BP: string =
     vitals.bp != null
@@ -158,7 +160,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
                   {patient.name}
                 </h3>
               </div>
-              <p className="text-xs text-neutral-500">MRN: {patient.mrn}</p>
+              <p className="text-xs text-neutral-500">MRN: {patient.latestMrn ?? ''}</p>
             </div>
           </div>
 
@@ -199,7 +201,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
         {/* ===== Optional QR section ===== */}
         {showQR && (
           <div className="mt-3 p-3 bg-neutral-50 rounded-lg flex flex-col items-center gap-2">
-            <QRCodeGenerator value={(patient as any).qrCode || patient.mrn} size={120} />
+            <QRCodeGenerator value={patient.qrCode || patient.id} size={120} />
             <p className="text-[11px] text-neutral-500 text-center">Scan for patient details</p>
           </div>
         )}

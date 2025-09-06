@@ -10,7 +10,9 @@ interface PatientGridCardProps {
 export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isPressing, setIsPressing] = useState(false);
-  const labsUrl = `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.mrn}`;
+  const labsUrl = patient.latestMrn
+    ? `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.latestMrn}`
+    : '';
 
   const getCardColorClass = (stage: string) => {
     switch (stage.toLowerCase()) {
@@ -33,7 +35,9 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
     setIsPressing(true);
     pressTimer.current = setTimeout(() => {
       setIsPressing(false);
-      window.open(labsUrl, "_blank");
+      if (labsUrl) {
+        window.open(labsUrl, "_blank");
+      }
     }, 600);
   };
 

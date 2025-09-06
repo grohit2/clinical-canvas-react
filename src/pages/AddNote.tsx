@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 
 export default function AddNote() {
-  const { id } = useParams();
+  const { id: uid } = useParams();
   const navigate = useNavigate();
   const [category, setCategory] = useState<"doctorNote" | "nurseNote" | "pharmacy" | "discharge" | "">("");
   const [content, setContent] = useState("");
@@ -23,23 +23,23 @@ export default function AddNote() {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!uid) return;
     api.patients
-      .get(id)
+      .get(uid)
       .then((p) => {
         setPatientName(p.name);
         if (p.assignedDoctorId) setAuthorId(p.assignedDoctorId);
       })
       .catch(() => {});
-  }, [id]);
+  }, [uid]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !category || !content || !authorId) return;
+    if (!uid || !category || !content || !authorId) return;
     setSubmitting(true);
     try {
-      await api.notes.create(id, { patientId: id, authorId, category, content });
-      navigate(`/patients/${id}`);
+      await api.notes.create(uid, { patientId: uid, authorId, category, content });
+      navigate(`/patients/${uid}`);
     } catch (e) {
       console.error(e);
     } finally {

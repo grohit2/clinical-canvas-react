@@ -15,6 +15,7 @@ const CATS = new Set(["doctorNote", "nurseNote", "pharmacy", "discharge"]);
 /* Map DB -> UI */
 const toUiNote = (it = {}) => ({
   noteId: it.note_id,
+  id: it.patient_uid,
   patientId: it.patient_uid,
   mrn: it.mrn ?? null,         // provenance at write-time
   scheme: it.scheme ?? null,   // provenance at write-time

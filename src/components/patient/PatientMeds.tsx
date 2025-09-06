@@ -69,12 +69,12 @@ export function PatientMeds({ patientId }: PatientMedsProps) {
           </div>
           <div className="border-t pt-2">
             <AttachBar
-              mrn={patientId}
+              patientId={patientId}
               ctx={{ kind: "med", refId: med.medId }}
               onAdded={() => setGridTokens((t) => ({ ...t, [med.medId]: (t[med.medId] || 0) + 1 }))}
             />
             <div className="mt-2">
-              <FileGrid mrn={patientId} kind="med" refId={med.medId} detachable refreshToken={gridTokens[med.medId] || 0} />
+              <FileGrid patientId={patientId} kind="med" refId={med.medId} detachable refreshToken={gridTokens[med.medId] || 0} />
             </div>
           </div>
         </Card>

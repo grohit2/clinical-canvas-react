@@ -32,7 +32,7 @@ import type { Patient } from "@/types/api";
 
 const addPatientSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  mrn: z.string().min(1, "MRN is required"),
+  registrationNumber: z.string().min(1, "MRN is required"),
   age: z.string().min(1, "Age is required"),
   gender: z.enum(["male", "female", "other"], {
     required_error: "Gender is required",
@@ -64,7 +64,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
     resolver: zodResolver(addPatientSchema),
     defaultValues: {
       name: "",
-      mrn: "",
+      registrationNumber: "",
       age: "",
       gender: undefined,
       pathway: undefined,
@@ -82,7 +82,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
 
     try {
       const res = await api.patients.create({
-        mrn: data.mrn,
+        registrationNumber: data.registrationNumber,
         name: data.name,
         department: "General",
         age: parseInt(data.age, 10),
@@ -141,7 +141,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
 
               <FormField
                 control={form.control}
-                name="mrn"
+                name="registrationNumber"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MRN *</FormLabel>

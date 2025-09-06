@@ -1,5 +1,5 @@
 // src/lib/image.ts
-import imageCompression from "browser-image-compression";
+import imageCompression, { Options as ImageCompressionOptions } from "browser-image-compression";
 
 export type CompressOptions = {
   maxSizeMB?: number;
@@ -79,7 +79,7 @@ export async function compressToPreferred(file: File, opts: CompressOptions = {}
     options.fileType = supportsWebP() ? "image/webp" : "image/jpeg";
   }
 
-  const compressedBlob = await imageCompression(file, options as any);
+  const compressedBlob = await imageCompression(file, options as ImageCompressionOptions);
   const outName = replaceExtension(file.name, getExtension(options.fileType!));
   return new File([compressedBlob], outName, { type: options.fileType!, lastModified: Date.now() });
 }

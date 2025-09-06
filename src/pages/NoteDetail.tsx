@@ -7,11 +7,9 @@ import type { Note } from "@/types/api";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
 export default function NoteDetail() {
-  const { id, noteId } = useParams();
+  const { id: uid, noteId } = useParams();
   const navigate = useNavigate();
   const [note, setNote] = useState<Note | null>(null);
-  const [patientName, setPatientName] = useState("");
-  const [patient, setPatient] = useState<any>(null);
   const [images, setImages] = useState<FilesListItem[]>([]);
 
   useEffect(() => {
@@ -19,40 +17,30 @@ export default function NoteDetail() {
   }, []);
 
   useEffect(() => {
-    if (!id || !noteId) return;
-    
-    // Load patient data
-    api.patients.get(id).then(p => {
-      setPatientName(p.name);
-      setPatient(p);
-    }).catch(() => {});
-    
-    // Load note data
-    api.notes.list(id, 50).then(res => {
-      const foundNote = res.items.find(n => n.noteId === noteId);
-      if (foundNote) {
-        setNote(foundNote);
-      }
-    }).catch(() => {});
-    
-    // Load images attached to this note
-    api.patients.get(id).then(p => {
-      listFiles({
-        mrn: p.mrn,
-        kind: "note",
-        refId: noteId,
-        presign: true
-      }).then(response => {
+    if (!uid || !noteId) return;
+
+    api.notes
+      .list(uid, 50)
+      .then((res) => {
+        const foundNote = res.items.find((n) => n.noteId === noteId);
+        if (foundNote) {
+          setNote(foundNote);
+        }
+      })
+      .catch(() => {});
+
+    listFiles(uid, { kind: "note", refId: noteId })
+      .then((response) => {
         setImages(response.items);
-      }).catch(console.error);
-    }).catch(() => {});
-  }, [id, noteId]);
+      })
+      .catch(console.error);
+  }, [uid, noteId]);
 
   const handleDelete = async () => {
-    if (!id || !noteId) return;
+    if (!uid || !noteId) return;
     try {
-      await api.notes.delete(id, noteId);
-      navigate(`/patients/${id}`);
+      await api.notes.remove(uid, noteId);
+      navigate(`/patients/${uid}`);
     } catch (e) {
       console.error(e);
     }
@@ -80,7 +68,7 @@ export default function NoteDetail() {
       <div className="flex items-center bg-slate-50 p-4 pb-2 justify-between">
         <button 
           className="text-gray-800 flex items-center justify-center w-12 h-12"
-          onClick={() => navigate(`/patients/${id}`)}
+          onClick={() => navigate(`/patients/${uid}`)}
         >
           <ArrowLeft size={24} />
         </button>
@@ -88,7 +76,7 @@ export default function NoteDetail() {
         <div className="flex w-12 items-center justify-end">
           <button
             className="flex items-center justify-center w-12 h-12 text-gray-800 hover:bg-gray-100 rounded-lg"
-            onClick={() => navigate(`/patients/${id}/notes/${noteId}/edit`)}
+            onClick={() => navigate(`/patients/${uid}/notes/${noteId}/edit`)}
           >
             <Pencil size={24} />
           </button>
@@ -105,8 +93,8 @@ export default function NoteDetail() {
           <div key={image.key} className="mb-4">
             <div className="w-full p-4">
               <div className="w-full aspect-[3/2] rounded-lg overflow-hidden">
-                <img 
-                  src={image.url || ''} 
+                <img
+                  src={image.cdnUrl ?? image.url ?? ''}
                   alt={`Note image ${index + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"

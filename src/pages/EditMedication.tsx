@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Medication } from "@/types/api";
 
 export default function EditMedication() {
-  const { id, medId } = useParams();
+  const { id: uid, medId } = useParams();
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState("");
   const [form, setForm] = useState({
@@ -31,13 +31,13 @@ export default function EditMedication() {
   }, []);
 
   useEffect(() => {
-    if (!id || !medId) return;
+    if (!uid || !medId) return;
     api.patients
-      .get(id)
+      .get(uid)
       .then((p) => setPatientName(p.name))
       .catch(() => {});
     api.meds
-      .list(id, false, 100)
+      .list(uid, false, 100)
       .then((res) => {
         const med = res.items.find((m) => m.medId === medId);
         if (med) {
@@ -54,11 +54,11 @@ export default function EditMedication() {
         }
       })
       .catch(() => {});
-  }, [id, medId]);
+  }, [uid, medId]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !medId) return;
+    if (!uid || !medId) return;
     setSubmitting(true);
     try {
       const payload: Partial<Medication> = {
@@ -73,8 +73,8 @@ export default function EditMedication() {
           ? form.scheduleTimes.split(",").map((s) => s.trim())
           : [],
       };
-      await api.meds.update(id, medId, payload);
-      navigate(`/patients/${id}`);
+      await api.meds.update(uid, medId, payload);
+      navigate(`/patients/${uid}`);
     } catch (err) {
       console.error(err);
     } finally {

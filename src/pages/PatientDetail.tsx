@@ -8,6 +8,7 @@ import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
+import { MrnOverview } from "@/components/patient/MrnOverview";
 import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen } from "lucide-react";
 import {
   Dialog,
@@ -236,6 +237,13 @@ export default function PatientDetail() {
 
         <TabsContent value="overview" className="bg-transparent">
           <div className="px-3 sm:px-4 py-4 space-y-6">
+            {/* MRN Overview Section */}
+            <MrnOverview 
+              patientId={patient?.id || id || ""} 
+              latestMrn={patient?.latestMrn}
+              mrnHistory={patient?.mrnHistory}
+            />
+
             {/* Documents Section */}
             <div>
               <div 

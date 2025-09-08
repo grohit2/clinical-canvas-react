@@ -5,7 +5,6 @@ import { PatientCard } from "@/components/patient/PatientCard";
 import { PatientGridCard } from "@/components/patient/PatientGridCard";
 import { ViewToggle } from "@/components/patient/ViewToggle";
 import { FilterPopup } from "@/components/patient/FilterPopup";
-import { AddPatientForm } from "@/components/patient/AddPatientForm";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,6 @@ export default function PatientsList() {
   const [selectedStage, setSelectedStage] = useState('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(
@@ -72,17 +70,6 @@ export default function PatientsList() {
     }
   }, [searchParams]);
 
-  const handleAddPatient = (patient: Patient) => {
-    const withUi = {
-      ...patient,
-      id: patient.id,
-      qrCode: `${window.location.origin}/qr/${patient.id}`,
-      updateCounter: 0,
-      comorbidities: patient.comorbidities || [],
-    };
-    setPatients((prev) => [...prev, withUi]);
-    mockPatients = [...mockPatients, withUi];
-  };
 
   const getActiveFiltersCount = () => {
     let count = 0;
@@ -125,7 +112,7 @@ export default function PatientsList() {
         showAdd
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => setShowAddPatientForm(true)}
+        onAdd={() => navigate('/patients/add')}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -267,11 +254,6 @@ export default function PatientsList() {
         </Tabs>
       </div>
 
-      <AddPatientForm 
-        open={showAddPatientForm}
-        onOpenChange={setShowAddPatientForm}
-        onAddPatient={handleAddPatient}
-      />
 
       <NotificationsPopup 
         open={showNotifications}

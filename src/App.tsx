@@ -23,6 +23,7 @@ import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 import DocumentsPage from "./pages/DocumentsPage";
 import NoteDetail from "./pages/NoteDetail";
+import AddPatientPage from "./pages/AddPatientPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/qr/:id" element={<PatientQRView />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
+          <Route path="/patients/add" element={<AddPatientPage />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
           <Route path="/patients/:id/documents" element={<DocumentsPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />

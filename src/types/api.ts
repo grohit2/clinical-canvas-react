@@ -1,8 +1,15 @@
 // API models based on HMS API spec
 
+export interface MrnHistoryEntry {
+  mrn: string;
+  scheme: 'ASP' | 'NAM' | 'Paid' | 'Unknown' | string;
+  date: string; // ISO8601 string
+}
+
 export interface Patient {
-  id: string; // uid
+  id: string; // uid (ULID)
   latestMrn?: string;
+  mrnHistory?: MrnHistoryEntry[];
   name: string;
   department: string;
   status: 'ACTIVE' | 'INACTIVE';

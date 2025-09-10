@@ -40,14 +40,10 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     // New state field
     currentState: "",
 
-    // Mandatory - Pathway (to satisfy the current API)
-    pathway: "",
 
     // Optional fields - Medical Details
     diagnosis: "",
     comorbidities: [] as string[],
-    assignedDoctor: "",
-    assignedDoctorId: "",
 
     // Optional fields - Files & Priority
     filesUrl: "",
@@ -110,8 +106,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
       formData.age !== "" &&
       formData.sex !== "" &&
       hasValidMrn &&
-      formData.department.trim() !== "" &&
-      formData.pathway !== "" // pathway required for API
+      formData.department.trim() !== ""
     );
   };
 
@@ -153,7 +148,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
   };
 
   const setCurrentMrn = (index: number) => {
-    const currentDate = new Date().toISOString();
+    const currentDate = new Date().toISOString().slice(0, 10);
     setFormData(prev => ({
       ...prev,
       latestMrn: prev.mrnHistory[index]?.mrn || "",
@@ -174,7 +169,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         );
         return !!(hasValidMrnEntry && formData.department);
       case "medical-details":
-        return !!(formData.pathway || formData.diagnosis || formData.assignedDoctor);
+        return !!(formData.diagnosis);
       case "files-priority":
         return !!(formData.filesUrl || formData.isUrgent);
       case "emergency-contact":
@@ -205,18 +200,15 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
           {
             scheme: data.scheme,
             mrn: data.mrn,
-            date: data.date || new Date().toISOString()
+            date: data.date || new Date().toISOString().slice(0, 10)
           }
         ] : prev.mrnHistory,
         latestMrn: data.mrn || prev.latestMrn,
         department: data.department ?? prev.department,
         status: "ACTIVE", // Always ACTIVE
         currentState: data.currentState ?? prev.currentState,
-        pathway: data.pathway ?? prev.pathway,
         diagnosis: data.diagnosis ?? prev.diagnosis,
         comorbidities: Array.isArray(data.comorbidities) ? data.comorbidities : prev.comorbidities,
-        assignedDoctor: data.assignedDoctor ?? prev.assignedDoctor,
-        assignedDoctorId: data.assignedDoctorId ?? prev.assignedDoctorId,
         filesUrl: data.filesUrl ?? prev.filesUrl,
         isUrgent: data.isUrgent !== undefined ? data.isUrgent : prev.isUrgent,
         urgentReason: data.urgentReason ?? prev.urgentReason,
@@ -396,11 +388,8 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         latestMrn: formData.latestMrn,
         mrnHistory: formData.mrnHistory,
         department: formData.department,
-        pathway: formData.pathway, // now enum values via ButtonGroup
         diagnosis: formData.diagnosis || "",
         comorbidities: formData.comorbidities || [],
-        assignedDoctor: formData.assignedDoctor || "",
-        assignedDoctorId: formData.assignedDoctorId || "",
         currentState: formData.currentState,
       });
 
@@ -651,13 +640,13 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Date (ISO8601)
+                        Date
                       </label>
                       <input
-                        type="datetime-local"
+                        type="date"
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                        value={entry.date ? new Date(entry.date).toISOString().slice(0, 16) : ""}
-                        onChange={e => updateMrnEntry(index, "date", e.target.value ? new Date(e.target.value).toISOString() : "")}
+                        value={entry.date ? new Date(entry.date).toISOString().slice(0, 10) : ""}
+                        onChange={e => updateMrnEntry(index, "date", e.target.value ? new Date(e.target.value).toISOString().slice(0, 10) : "")}
                       />
                     </div>
                   </div>
@@ -708,33 +697,6 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               <p className="text-sm text-gray-600">Treatment pathway and medical information</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Pathway <span className="text-red-500">*</span>
-                </label>
-                {/* Use API-friendly values directly */}
-                <ButtonGroup
-                  options={[
-                    { value: "surgical", label: "Surgical" },
-                    { value: "emergency", label: "Emergency" },
-                    { value: "consultation", label: "Consultation" },
-                  ]}
-                  value={formData.pathway}
-                  onChange={value => handleInputChange("pathway", value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Assigned Doctor</label>
-                <input
-                  type="text"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.assignedDoctor}
-                  onChange={e => handleInputChange("assignedDoctor", e.target.value)}
-                  placeholder="Dr. Smith"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Diagnosis</label>
@@ -758,16 +720,6 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Doctor ID</label>
-              <input
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                value={formData.assignedDoctorId}
-                onChange={e => handleInputChange("assignedDoctorId", e.target.value)}
-                placeholder="dr_smith_001"
-              />
-            </div>
           </div>
 
           {/* Files & Priority */}

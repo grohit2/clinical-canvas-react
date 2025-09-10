@@ -4,8 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { StageChip } from "./StageChip";
 import { UpdateRing } from "./UpdateRing";
 import { QRCodeGenerator } from "@/components/qr/QRCodeGenerator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Patient } from "@/types/api";
-import { Clock, QrCode, MoreVertical, FileText } from "lucide-react";
+import { Clock, MoreVertical, FileText, Pin } from "lucide-react";
+import { isPinned, togglePin } from "@/lib/pinnedPatients";
 
 interface PatientCardProps {
   patient: Patient;
@@ -14,6 +21,12 @@ interface PatientCardProps {
 
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
+  const [pinned, setPinned] = useState(() => isPinned(patient.id));
+
+  const handleTogglePin = () => {
+    const newPinned = togglePin(patient.id);
+    setPinned(newPinned);
+  };
 
   // ---- swipe-to-open Labs (unchanged) ----
   const labsUrl = patient.latestMrn
@@ -170,23 +183,26 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
               variant={getStageVariant(patient.currentState)}
               size="sm"
             />
-            <button
-              className="p-1 rounded hover:bg-muted"
-              onClick={(e) => e.stopPropagation()}
-              aria-label="More"
-            >
-              <MoreVertical className="h-4 w-4 text-neutral-400" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowQR((s) => !s);
-              }}
-              className="p-1 rounded hover:bg-muted"
-              aria-label="Show QR"
-            >
-              <QrCode className="h-4 w-4 text-muted-foreground" />
-            </button>
+            {pinned && (
+              <Pin className="h-4 w-4 text-blue-500 fill-current" />
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1 rounded hover:bg-muted"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="More"
+                >
+                  <MoreVertical className="h-4 w-4 text-neutral-400" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleTogglePin}>
+                  <Pin className="mr-2 h-4 w-4" />
+                  {pinned ? "Unpin" : "Pin for me"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

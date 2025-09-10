@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getPinnedPatients } from "@/lib/pinnedPatients";
 
 // Initial empty list; will be populated from API
 let mockPatients: Patient[] = [];
@@ -86,7 +87,9 @@ export default function PatientsList() {
   };
 
   const getFilteredPatients = (tabFilter: string) => {
-    return patients.filter(patient => {
+    const pinnedPatientIds = getPinnedPatients().map(p => p.id);
+    
+    const filtered = patients.filter(patient => {
       const matchesSearch =
         (patient.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (patient.diagnosis ?? "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -94,11 +97,26 @@ export default function PatientsList() {
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
-      // Fix doctor filtering - ensure exact name match
-      const matchesDoctor =
-        tabFilter === 'all' || patient.assignedDoctorId === currentDoctorId;
+      // Filter logic based on tab
+      let matchesTab = true;
+      if (tabFilter === 'my') {
+        // Show pinned patients in My Patients tab
+        matchesTab = pinnedPatientIds.includes(patient.id);
+      }
       
-      return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
+      return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesTab;
+    });
+
+    // Sort to show pinned patients at the top
+    return filtered.sort((a, b) => {
+      const aIsPinned = pinnedPatientIds.includes(a.id);
+      const bIsPinned = pinnedPatientIds.includes(b.id);
+      
+      // If both are pinned or both are not pinned, maintain original order
+      if (aIsPinned === bIsPinned) return 0;
+      
+      // Pinned patients come first
+      return aIsPinned ? -1 : 1;
     });
   };
 
@@ -233,7 +251,7 @@ export default function PatientsList() {
               <div className="text-center py-12">
                 {getActiveFiltersCount() > 0 || searchQuery ? (
                   <>
-                    <p className="text-muted-foreground">No patients assigned to you matching your criteria</p>
+                    <p className="text-muted-foreground">No pinned patients matching your criteria</p>
                     <Button
                       variant="outline"
                       className="mt-4"
@@ -246,7 +264,10 @@ export default function PatientsList() {
                     </Button>
                   </>
                 ) : (
-                  <p className="text-muted-foreground">No patients allocated to you</p>
+                  <>
+                    <p className="text-muted-foreground mb-2">No patients pinned yet</p>
+                    <p className="text-sm text-muted-foreground">Pin patients you care about using the 3-dot menu on any patient card</p>
+                  </>
                 )}
               </div>
             )}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Star, Calendar, TestTube, FileBarChart } from "lucide-react";
+import { ChevronDown, ChevronRight, Star, Calendar, TestTube, FileBarChart, Activity } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,134 +55,120 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn }: MrnOverviewPro
     });
   };
 
-  const currentMrn = displayMrnHistory.find(entry => entry.mrn === latestMrn) || displayMrnHistory[0];
-  const otherMrns = displayMrnHistory.filter(entry => entry.mrn !== latestMrn);
+  // Sort all MRNs by date (newest first)
+  const sortedMrnHistory = displayMrnHistory.sort((a, b) => {
+    const dateA = new Date(a.date || '1970-01-01');
+    const dateB = new Date(b.date || '1970-01-01');
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  const currentMrn = sortedMrnHistory.find(entry => entry.mrn === latestMrn) || sortedMrnHistory[0];
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="overflow-hidden border-0 shadow-md bg-gradient-to-r from-blue-50 to-purple-50">
       {/* Header with toggle */}
       <div 
-        className="flex items-center justify-between cursor-pointer"
+        className="flex items-center justify-between cursor-pointer p-4 hover:bg-white/50 transition-all duration-200"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <TestTube className="h-5 w-5 text-purple-600" />
-          <h3 className="font-semibold text-base">MRN & Lab Overview</h3>
-          <Badge variant="secondary" className="text-xs">
-            {displayMrnHistory.length} MRN{displayMrnHistory.length > 1 ? 's' : ''}
-          </Badge>
+          <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500">
+            <Activity className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base text-gray-800">Labs Overview</h3>
+            <p className="text-xs text-gray-500">{displayMrnHistory.length} MRN record{displayMrnHistory.length > 1 ? 's' : ''} available</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {!isExpanded && (
-            <Badge variant="outline" className="text-xs">
-              Current: {currentMrn.scheme} - {currentMrn.mrn}
-            </Badge>
+            <div className="text-right">
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                {currentMrn.scheme}
+              </Badge>
+              <p className="text-xs text-gray-500 mt-1">{currentMrn.mrn}</p>
+            </div>
           )}
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
+          <div className={`transition-transform duration-200 ${
+            isExpanded ? 'rotate-180' : 'rotate-0'
+          }`}>
+            <ChevronDown className="h-5 w-5 text-gray-400" />
+          </div>
         </div>
       </div>
 
       {/* Expanded view */}
       {isExpanded && (
-        <div className="space-y-3">
-          {/* Current MRN */}
-          <div className="border border-green-200 bg-green-50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-green-600 fill-green-600" />
-                <span className="text-sm font-medium text-green-800">Current MRN</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Scheme</p>
-                <p className="font-medium text-sm">{currentMrn.scheme}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">MRN Number</p>
-                <p className="font-medium text-sm">{currentMrn.mrn}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Date</p>
-                <p className="text-sm flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {formatDate(currentMrn.date)}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              size="sm"
-              onClick={() => handleLabClick(currentMrn)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              <FileBarChart className="h-4 w-4 mr-2" />
-              View Labs for {currentMrn.scheme}
-            </Button>
-          </div>
-
-          {/* Other MRNs */}
-          {otherMrns.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Previous MRNs</h4>
-              {otherMrns.map((entry) => (
-                <div key={entry.id} className="border border-gray-200 bg-gray-50 rounded-lg p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Scheme</p>
-                      <p className="font-medium text-sm">{entry.scheme}</p>
+        <div className="px-4 pb-4 space-y-3 animate-in slide-in-from-top-1 duration-300">
+          {/* All MRNs ordered by date */}
+          <div className="space-y-2">
+            {sortedMrnHistory.map((entry, index) => {
+              const isCurrent = entry.mrn === latestMrn;
+              return (
+                <div 
+                  key={entry.mrn + index} 
+                  className={`group cursor-pointer rounded-lg border p-3 transition-all duration-200 hover:shadow-md ${
+                    isCurrent 
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-emerald-300 shadow-lg' 
+                      : 'bg-white border-gray-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => handleLabClick(entry)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isCurrent 
+                          ? 'bg-white/20' 
+                          : 'bg-gray-100 group-hover:bg-blue-50'
+                      }`}>
+                        {isCurrent ? (
+                          <Star className="h-5 w-5 text-white fill-white" />
+                        ) : (
+                          <TestTube className="h-5 w-5 text-gray-500 group-hover:text-blue-500" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge 
+                            variant={isCurrent ? "secondary" : "outline"} 
+                            className={`text-xs ${
+                              isCurrent 
+                                ? 'bg-white/20 text-white border-white/30' 
+                                : 'border-gray-300 group-hover:border-blue-300'
+                            }`}
+                          >
+                            {entry.scheme}
+                          </Badge>
+                          {isCurrent && (
+                            <Badge className="bg-white/20 text-white text-xs border-0">
+                              Current
+                            </Badge>
+                          )}
+                        </div>
+                        <p className={`font-mono text-sm font-medium ${
+                          isCurrent ? 'text-white' : 'text-gray-700 group-hover:text-blue-700'
+                        }`}>
+                          {entry.mrn}
+                        </p>
+                        <p className={`text-xs flex items-center gap-1 mt-1 ${
+                          isCurrent ? 'text-white/80' : 'text-gray-500'
+                        }`}>
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(entry.date)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">MRN Number</p>
-                      <p className="font-medium text-sm">{entry.mrn}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Date</p>
-                      <p className="text-sm flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(entry.date)}
-                      </p>
+                    <div className={`transition-all duration-200 ${
+                      isCurrent 
+                        ? 'text-white' 
+                        : 'text-gray-400 group-hover:text-blue-500'
+                    }`}>
+                      <FileBarChart className="h-5 w-5" />
                     </div>
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleLabClick(entry)}
-                    className="w-full"
-                  >
-                    <FileBarChart className="h-4 w-4 mr-2" />
-                    View Labs for {entry.scheme}
-                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Summary stats */}
-          <div className="border-t pt-3 mt-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-xl font-bold text-blue-600">{displayMrnHistory.length}</p>
-                <p className="text-xs text-muted-foreground">Total MRNs</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-green-600">1</p>
-                <p className="text-xs text-muted-foreground">Latest</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-purple-600">
-                  {displayMrnHistory.reduce((acc, entry) => acc + (entry.scheme === "ASP" ? 1 : 0), 0)}
-                </p>
-                <p className="text-xs text-muted-foreground">ASP Entries</p>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       )}

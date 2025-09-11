@@ -53,7 +53,10 @@ export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, det
       if (kind === "note" && refId) await detachNoteFile(patientId, refId, key);
       else if (kind === "med" && refId) await detachMedFile(patientId, refId, key);
       else if (kind === "task" && refId) await detachTaskFile(patientId, refId, key);
-      else if (kind === "doc" && docCategory) await detachDocument(patientId, { category: docCategory, key });
+      else if (kind === "doc" && docCategory) {
+        console.log('Detaching document:', { patientId, category: docCategory, key });
+        await detachDocument(patientId, { category: docCategory, key });
+      }
       else return;
 
       // Best-effort: remove the underlying object too (subfolders supported)
@@ -68,11 +71,20 @@ export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, det
     } catch (e) {
       console.error("detach failed", e);
       
-      // For now, during development without backend, still remove from UI
-      if (process.env.NODE_ENV === 'development') {
+      // Check if it's a "key not found in category" error - this usually means the file
+      // was already removed or uploaded to a different category. Remove from UI.
+      const isKeyNotFoundError = e && typeof e === 'object' && 
+        ('error' in e && e.error === 'key not found in category');
+      
+      // For development or key not found errors, still remove from UI
+      if (import.meta.env.DEV || isKeyNotFoundError) {
         setItems((prev) => prev.filter((i) => i.key !== key));
         onDetached?.(key);
-        toast("Removed attachment (development mode)");
+        if (isKeyNotFoundError) {
+          toast("File removed (was already detached)");
+        } else {
+          toast("Removed attachment (development mode)");
+        }
       } else {
         toast("Failed to remove attachment");
       }

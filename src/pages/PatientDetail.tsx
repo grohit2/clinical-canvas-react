@@ -36,7 +36,7 @@ export default function PatientDetail() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] =
-    useState<'overview' | 'notes' | 'meds' | 'tasks'>('notes');
+    useState<'overview' | 'notes' | 'meds' | 'tasks'>('overview');
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -44,17 +44,42 @@ export default function PatientDetail() {
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [selectedStage, setSelectedStage] = useState("");
 
-  useEffect(() => {
+  const fetchPatientData = async () => {
     if (!id) return;
-    api.patients
-      .get(id)
-      .then((data) => {
-        setPatient(data);
-        return api.patients.timeline(id);
-      })
-      .then(setTimeline)
-      .catch(() => navigate("/patients"));
+    try {
+      const data = await api.patients.get(id);
+      setPatient(data);
+      const timeline = await api.patients.timeline(id);
+      setTimeline(timeline);
+    } catch {
+      navigate("/patients");
+    }
+  };
+
+  useEffect(() => {
+    fetchPatientData();
   }, [id, navigate]);
+
+  // Refetch data when the page becomes visible (e.g., returning from edit)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPatientData();
+      }
+    };
+    
+    const handleFocus = () => {
+      fetchPatientData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [id]);
 
   const titleCase = (s?: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -248,7 +273,7 @@ export default function PatientDetail() {
             <div>
               <div 
                 className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => navigate(`/patients/${id}/documents`)}
+                onClick={() => navigate(`/patients/${id}/docs`)}
               >
                 <div className="flex-shrink-0">
                   <FolderOpen className="h-6 w-6 text-blue-600" />

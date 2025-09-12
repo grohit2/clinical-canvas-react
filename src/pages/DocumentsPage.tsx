@@ -195,44 +195,173 @@ export default function DocumentsPage() {
 
   // Simplified view doesn't compute per-file lists here
 
+  // Determine if we're in category view or main view
+  const isInCategoryView = uid && isValidCategory(categoryParam) && docs;
+  const currentCategory = categoryParam as DocumentsCategory;
+  const categoryDocuments = isInCategoryView ? getCategoryDocuments(docs, currentCategory) : [];
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      <Header title="Documents" showBack onBack={() => navigate(-1)} />
+      {/* Dynamic Header based on view */}
+      {isInCategoryView ? (
+        <Header 
+          title={CATEGORY_CONFIG[currentCategory].title} 
+          showBack 
+          onBack={() => navigate(`/patients/${uid}/docs`)} 
+        />
+      ) : (
+        <Header title="Documents" showBack onBack={() => navigate(-1)} />
+      )}
 
       <main className="p-4">
-        {/* All Documents */}
-        <h2 className="text-[#0d141c] text-[22px] font-bold tracking-[-0.015em] pb-3 pt-1">
-          All Documents
-        </h2>
-        <CategoriesOverview
-          counts={counts}
-          total={total}
-          onOpenCategory={(k) => {
-            if (!uid) return;
-            navigate(`/patients/${uid}/docs/${k}`);
-          }}
-        />
-
-        {/* Detail section below for selected category */}
-        {uid && isValidCategory(categoryParam) && docs && (
-          <section className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[#0d141c] text-lg font-bold tracking-[-0.015em]">
-                {CATEGORY_CONFIG[categoryParam as DocumentsCategory].title}
-              </h3>
+        {!isInCategoryView ? (
+          /* Main Documents Overview */
+          <>
+            <h2 className="text-[#0d141c] text-[22px] font-bold tracking-[-0.015em] pb-3 pt-1">
+              All Documents
+            </h2>
+            <CategoriesOverview
+              counts={counts}
+              total={total}
+              onOpenCategory={(k) => {
+                if (!uid) return;
+                navigate(`/patients/${uid}/docs/${k}`);
+              }}
+            />
+          </>
+        ) : (
+          /* Category Gallery View */
+          <div className="space-y-6">
+            {/* Category Header with Icon */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`p-3 rounded-full bg-gradient-to-r ${CATEGORY_CONFIG[currentCategory].bgFrom} ${CATEGORY_CONFIG[currentCategory].bgTo}`}>
+                {React.createElement(CATEGORY_CONFIG[currentCategory].icon, { 
+                  className: "h-6 w-6 text-white" 
+                })}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-[#0d141c] mb-1">
+                  {CATEGORY_CONFIG[currentCategory].title}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {categoryDocuments.length} {categoryDocuments.length === 1 ? 'document' : 'documents'}
+                </p>
+              </div>
               <PhotoUploader
                 patientId={uid}
-                category={categoryParam as DocumentsCategory}
+                category={currentCategory}
                 onUploadComplete={() => refresh()}
               />
             </div>
-            <DocumentGrid
-              documents={getCategoryDocuments(docs, categoryParam as DocumentsCategory)}
-              detachable
-              docCategory={categoryParam as DocumentsCategory}
-              onDetached={() => refresh()}
-            />
-          </section>
+
+            {/* Gallery Grid */}
+            {categoryDocuments.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {categoryDocuments.map((doc, index) => (
+                  <div 
+                    key={doc.key} 
+                    className="relative group aspect-square bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200"
+                  >
+                    {doc.cdnUrl ? (
+                      <>
+                        {/* Loading skeleton */}
+                        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+                          <div className="text-xs text-gray-400">Loading...</div>
+                        </div>
+                        <img 
+                          src={doc.cdnUrl} 
+                          alt={doc.caption || `${CATEGORY_CONFIG[currentCategory].title} ${index + 1}`}
+                          className="w-full h-full object-cover relative z-10 cursor-pointer" 
+                          loading="lazy"
+                          decoding="async"
+                          onLoad={(e) => {
+                            console.log('✅ Gallery image loaded:', doc.key);
+                            const skeleton = e.currentTarget.previousElementSibling;
+                            if (skeleton) skeleton.style.display = 'none';
+                          }}
+                          onError={(e) => {
+                            console.warn('❌ Gallery image failed:', doc.key);
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.style.display = 'none';
+                            const parent = img.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="flex items-center justify-center h-full bg-gray-100 text-xs p-2 text-center"><span>Image unavailable</span></div>`;
+                            }
+                          }}
+                        />
+                        
+                        {/* Overlay with image info */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-end">
+                          <div className="w-full p-3 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-200">
+                            {doc.caption && (
+                              <p className="text-sm font-medium truncate mb-1">{doc.caption}</p>
+                            )}
+                            <p className="text-xs opacity-80">
+                              {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Unknown date'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Delete button */}
+                        <button
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                          title="Remove image"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Use the detach function from DocumentGrid
+                            const detachFunction = async () => {
+                              try {
+                                const { detachDocument } = await import("../lib/filesApi");
+                                const patientId = doc.key.split('/')[1];
+                                await detachDocument(patientId, { category: currentCategory, key: doc.key });
+                                refresh();
+                                const { toast } = await import("@/components/ui/sonner");
+                                toast("Image removed");
+                              } catch (error) {
+                                console.error("Remove failed", error);
+                                const { toast } = await import("@/components/ui/sonner");
+                                toast("Failed to remove image");
+                              }
+                            };
+                            detachFunction();
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-gray-100 text-sm text-gray-500">
+                        <span>No image</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Empty State */
+              <div className="text-center py-12">
+                <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${CATEGORY_CONFIG[currentCategory].bgFrom} ${CATEGORY_CONFIG[currentCategory].bgTo} flex items-center justify-center mb-4`}>
+                  {React.createElement(CATEGORY_CONFIG[currentCategory].icon, { 
+                    className: "h-8 w-8 text-white" 
+                  })}
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No {CATEGORY_CONFIG[currentCategory].title.toLowerCase()} yet
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Start by uploading your first document to this category
+                </p>
+                <PhotoUploader
+                  patientId={uid}
+                  category={currentCategory}
+                  onUploadComplete={() => refresh()}
+                  className="inline-block"
+                />
+              </div>
+            )}
+          </div>
         )}
       </main>
 

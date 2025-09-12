@@ -28,7 +28,15 @@ const PRESIGN_EXPIRES_SEC = Number(
 
 const s3 = new S3Client({ region: REGION });
 const CF_DISTRIBUTION_ID = process.env.CF_DISTRIBUTION_ID || "";
+const CF_DOMAIN = process.env.CF_DOMAIN || process.env.CDN_DOMAIN || "";
 const cf = CF_DISTRIBUTION_ID ? new CloudFrontClient({ region: REGION }) : null;
+
+// Generate CloudFront CDN URL from S3 key
+function makeCdnUrl(s3Key) {
+  if (!CF_DOMAIN) return null;
+  const domain = CF_DOMAIN.startsWith('http') ? CF_DOMAIN : `https://${CF_DOMAIN}`;
+  return `${domain}/${s3Key}`;
+}
 
 /* --------------------------------- CONSTS -------------------------------- */
 
@@ -323,11 +331,20 @@ export function mountFileRoutes(router, ctx) {
         };
       });
 
+      // Always add CDN URLs if CloudFront is configured
+      for (const it of items) {
+        if (CF_DOMAIN) {
+          it.cdnUrl = makeCdnUrl(it.key);
+        }
+      }
+
+      // Add presigned S3 URLs if requested (for fallback)
       if (presign) {
         for (const it of items) {
           try {
             const signed = await signGet({ Bucket: BUCKET, Key: it.key });
-            it.url = signed.url; it.expiresIn = signed.expiresIn;
+            it.url = signed.url; 
+            it.expiresIn = signed.expiresIn;
           } catch (e) {
             console.warn("presign per-item failed", it.key, e?.name || e);
           }

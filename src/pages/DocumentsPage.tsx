@@ -9,8 +9,9 @@ import {
   DocumentsProfile,
   DocumentsCategory,
 } from "../lib/filesApi";
-import FileGrid from "../components/FileGrid";
-import { categoryToDocType } from "../lib/support";
+import DocumentGrid from "../components/DocumentGrid";
+import PhotoUploader from "../components/PhotoUploader";
+import CategorySelector from "../components/CategorySelector";
 import {
   Camera,
   FileText,
@@ -20,7 +21,22 @@ import {
   Activity,
   FileCheck,
   FolderOpen,
+  Plus,
 } from "lucide-react";
+
+// Helper function to get documents for a specific category
+function getCategoryDocuments(docs: DocumentsProfile, category: DocumentsCategory) {
+  switch (category) {
+    case 'preop_pics': return docs.preopPics || [];
+    case 'lab_reports': return docs.labReports || [];
+    case 'radiology': return docs.radiology || [];
+    case 'intraop_pics': return docs.intraopPics || [];
+    case 'ot_notes': return docs.otNotes || [];
+    case 'postop_pics': return docs.postopPics || [];
+    case 'discharge_pics': return docs.dischargePics || [];
+    default: return [];
+  }
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    CATEGORY CONFIG (icons, labels, colors)
@@ -112,6 +128,8 @@ const CATEGORY_KEYS: DocumentsCategory[] = [
   "discharge_pics",
 ];
 
+// Simplified version - unused types and helpers removed
+
 // Simplified page: only the "All Documents" section with category counts
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -122,12 +140,27 @@ export default function DocumentsPage() {
   const navigate = useNavigate();
 
   const [docs, setDocs] = useState<DocumentsProfile | null>(null);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [selectedUploadCategory, setSelectedUploadCategory] = useState<DocumentsCategory | null>(null);
   // No filters/sorting/upload controls in the simplified view
 
   async function refresh() {
     if (!uid) return;
-    const res = await getDocuments(uid);
-    setDocs(res);
+    console.time('🏥 Documents API Call');
+    try {
+      const res = await getDocuments(uid);
+      console.timeEnd('🏥 Documents API Call');
+      console.log('📊 Documents loaded:', {
+        categories: Object.keys(res).filter(k => Array.isArray(res[k])),
+        totalDocs: Object.values(res).reduce((acc, val) => 
+          Array.isArray(val) ? acc + val.length : acc, 0
+        )
+      });
+      setDocs(res);
+    } catch (error) {
+      console.timeEnd('🏥 Documents API Call');
+      console.error('❌ Failed to load documents:', error);
+    }
   }
 
   useEffect(() => {
@@ -181,15 +214,20 @@ export default function DocumentsPage() {
         />
 
         {/* Detail section below for selected category */}
-        {uid && isValidCategory(categoryParam) && (
+        {uid && isValidCategory(categoryParam) && docs && (
           <section className="mt-8">
-            <h3 className="text-[#0d141c] text-lg font-bold tracking-[-0.015em] pb-2">
-              {CATEGORY_CONFIG[categoryParam as DocumentsCategory].title}
-            </h3>
-            <FileGrid
-              patientId={uid}
-              kind="doc"
-              docType={categoryToDocType(categoryParam as DocumentsCategory)}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[#0d141c] text-lg font-bold tracking-[-0.015em]">
+                {CATEGORY_CONFIG[categoryParam as DocumentsCategory].title}
+              </h3>
+              <PhotoUploader
+                patientId={uid}
+                category={categoryParam as DocumentsCategory}
+                onUploadComplete={() => refresh()}
+              />
+            </div>
+            <DocumentGrid
+              documents={getCategoryDocuments(docs, categoryParam as DocumentsCategory)}
               detachable
               docCategory={categoryParam as DocumentsCategory}
               onDetached={() => refresh()}
@@ -199,6 +237,42 @@ export default function DocumentsPage() {
       </main>
 
       <BottomBar />
+
+      {/* Floating Action Button for Quick Upload */}
+      {uid && !categoryParam && (
+        <button
+          onClick={() => setShowCategorySelector(true)}
+          className="fixed bottom-24 right-6 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors z-40"
+          title="Add Photo"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Category Selector Modal */}
+      <CategorySelector
+        isOpen={showCategorySelector}
+        onClose={() => setShowCategorySelector(false)}
+        onSelectCategory={(category) => {
+          setSelectedUploadCategory(category);
+          // Navigate to the category page for upload
+          navigate(`/patients/${uid}/docs/${category}`);
+        }}
+      />
+
+      {/* Hidden PhotoUploader for category-based uploads */}
+      {selectedUploadCategory && uid && (
+        <div className="hidden">
+          <PhotoUploader
+            patientId={uid}
+            category={selectedUploadCategory}
+            onUploadComplete={() => {
+              refresh();
+              setSelectedUploadCategory(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -207,150 +281,7 @@ export default function DocumentsPage() {
    COMPONENTS
    ────────────────────────────────────────────────────────────────────────── */
 
-function Pill({
-  selected,
-  onClick,
-  label,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "flex h-8 shrink-0 items-center justify-center rounded-lg px-4 text-sm font-medium",
-        selected ? "bg-[#0d141c] text-white" : "bg-[#e6edf4] text-[#0d141c]",
-      ].join(" ")}
-      aria-pressed={selected}
-    >
-      {label}
-    </button>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="py-12 text-center">
-      <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-      <p className="text-sm text-gray-600 font-medium">No documents found</p>
-      <p className="text-xs text-gray-400 mt-1">Upload a file to get started</p>
-    </div>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          className="aspect-square rounded-lg bg-gray-200/60 animate-pulse"
-        />
-      ))}
-    </div>
-  );
-}
-
-function DocumentsGrid({ items }: { items: UnifiedDocItem[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      {items.map((it) =>
-        it.isImage ? (
-          <ImageTile key={it.id} item={it} />
-        ) : (
-          <DocumentTile key={it.id} item={it} />
-        )
-      )}
-    </div>
-  );
-}
-
-function ImageTile({ item }: { item: UnifiedDocItem }) {
-  const cfg = CATEGORY_CONFIG[item.category];
-  return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noreferrer"
-      className="group relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg bg-cover bg-center"
-      style={{
-        backgroundImage: `linear-gradient(0deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 60%), url("${escapeCssUrl(
-          item.thumbUrl || item.url
-        )}")`,
-      }}
-      title={`${cfg.title} • ${prettyDate(item.uploadedAt)}`}
-    >
-      <span className="sr-only">{item.name}</span>
-
-      {/* category chip */}
-      <div className="absolute top-2 left-2">
-        <div
-          className={[
-            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-white/95 backdrop-blur",
-            cfg.color,
-          ].join(" ")}
-        >
-          <cfg.icon className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{cfg.shortLabel}</span>
-        </div>
-      </div>
-
-      {/* footer label */}
-      <div className="p-3">
-        <p className="text-white text-sm font-semibold leading-tight line-clamp-2">
-          {item.name}
-        </p>
-        <p className="text-white/80 text-[11px]">{prettyDate(item.uploadedAt)}</p>
-      </div>
-
-      {/* interaction hint */}
-      <div className="absolute right-2 bottom-2 h-7 w-7 rounded-full bg-white/25 group-hover:bg-white/35 transition-colors flex items-center justify-center">
-        <span className="text-white text-xs">↗</span>
-      </div>
-    </a>
-  );
-}
-
-function DocumentTile({ item }: { item: UnifiedDocItem }) {
-  const cfg = CATEGORY_CONFIG[item.category];
-  const Icon = cfg.icon;
-  return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noreferrer"
-      className="group relative flex aspect-square flex-col justify-between overflow-hidden rounded-lg border-2 border-gray-100 bg-white shadow-sm hover:border-blue-200 hover:shadow-md transition-all"
-      title={`${cfg.title} • ${prettyDate(item.uploadedAt)}`}
-    >
-      <div className="p-3">
-        <div
-          className={[
-            "inline-flex rounded-md p-2 text-white",
-            "bg-gradient-to-r",
-            cfg.bgFrom,
-            cfg.bgTo,
-          ].join(" ")}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-
-      <div className="px-3 pb-3">
-        <p className="text-gray-800 text-sm font-semibold leading-tight line-clamp-2">
-          {item.name}
-        </p>
-        <p className="text-gray-500 text-[11px]">{prettyDate(item.uploadedAt)}</p>
-      </div>
-
-      <div className="absolute right-2 bottom-2 h-7 w-7 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors flex items-center justify-center">
-        <span className="text-gray-700 text-xs">↗</span>
-      </div>
-    </a>
-  );
-}
+// Unused components removed for cleaner simplified version
 
 function CategoriesOverview({
   counts,

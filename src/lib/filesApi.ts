@@ -99,6 +99,11 @@ export async function listFiles(
   if (limit) q.set("limit", String(limit));
   if (cursor) q.set("cursor", cursor);
   if (presign) q.set("presign", "1");
+  
+  // Force CDN URLs for better performance
+  q.set("cdn", "1");
+  q.set("optimized", "1");
+  
   const r = await fetch(`${API_BASE}/patients/${encodeURIComponent(uid)}/files?${q.toString()}`);
   if (!r.ok) throw await r.json().catch(() => ({ error: "list failed" }));
   return r.json();

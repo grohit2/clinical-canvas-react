@@ -294,3 +294,19 @@ Good news! I see that the latest HMR update completed successfully at 1:23:45 AM
   gap analysis between the patient schema and the original simple edit form.
 
   Users can now edit patients with the same comprehensive interface used for patient creation, ensuring data consistency and completeness across the application.
+=============================================
+change 3
+Perfect! Now I've updated the vercel.json to use the correct API endpoint that matches your .env.local file. The vercel.json now points to:
+
+  https://kfzsv6at3amrxzl5kzuehljfju0rhkup.lambda-url.ap-south-1.on.aws
+
+  This should resolve the 403 and 401 errors you were seeing. The mismatch was causing API calls to hit the wrong Lambda URL, which likely resulted in authentication/authorization failures.
+
+  Summary of the fix:
+
+  ✅ Updated vercel.json - Changed API destination from US East (us-east-1) to AP South (ap-south-1) region to match your .env.local configuration
+  ✅ API endpoint alignment - Now both local development (.env.local) and production deployment (vercel.json) point to the same Lambda URL
+
+  You'll need to redeploy to Vercel for this change to take effect in production. The 403/401 errors should be resolved once the deployment uses the correct AP South Lambda endpoint.
+
+

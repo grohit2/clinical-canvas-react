@@ -309,4 +309,89 @@ Perfect! Now I've updated the vercel.json to use the correct API endpoint that m
 
   You'll need to redeploy to Vercel for this change to take effect in production. The 403/401 errors should be resolved once the deployment uses the correct AP South Lambda endpoint.
 
+=================================================================
+sep 12
+ Root Cause Analysis
 
+  After thorough investigation, I've identified the root cause of the MRN update issue. Here are the critical problems:
+
+  1. API Schema Mismatch - Patient Creation vs Updates
+
+  Patient Creation API (api.patients.create):
+  - Only sends registrationNumber (single MRN) and scheme: "GENERAL"
+  - Does not send mrnHistory or latestMrn to backend
+  - Location: /src/lib/api.ts:32-56
+
+  Patient Update API (api.patients.update):
+  - Converts data to snake_case and sends mrnHistory and latestMrn
+  - Location: /src/lib/api.ts:58-62
+
+  2. Inconsistent Form Data Handling
+
+  PatientRegistrationForm (New Form):
+  - Has full MRN history support with mrnHistory array
+  - Properly builds payload with latestMrn and mrnHistory
+  - Uses adapter but API create method ignores these fields
+
+  AddPatientForm (Legacy Form):
+  - Only has single registrationNumber field
+  - No MRN history support at all
+
+  EditPatient Form:
+  - Has full MRN history support
+  - Properly handles mrnHistory and latestMrn in updates
+  - Works correctly but only for updates
+
+  3. Data Flow Issues
+
+  1. Creation: MRN history is built in frontend forms but never sent to backend
+  2. Backend Response: Backend likely only returns single MRN, not history
+  3. Frontend Display: MrnOverview component expects mrnHistory array but receives incomplete data
+  4. State Management: No data refresh after patient creation in PatientDetail page
+                                                                                                     
+⏺ User approved Claude's plan:
+  ⎿  Fix MRN Update Functionality
+
+     Issues Identified:
+
+     1. API CREATE endpoint only accepts single registrationNumber, ignoring mrnHistory and latestMrn
+     2. Patient Registration Form builds MRN history but it's lost during creation
+     3. MrnOverview component shows mock data because backend doesn't return MRN history
+     4. PatientDetail page doesn't refresh data after edits, so changes aren't visible
+
+     Fix Plan:
+
+     1. Update Patient Creation API (src/lib/api.ts)
+
+     - Modify api.patients.create to send mrnHistory and latestMrn fields
+     - Update the request body to include these fields in the backend payload
+     - Ensure consistent data structure between create/update operations
+
+     2. Fix Backend Schema Alignment
+
+     - Update the create endpoint payload to match the DynamoDB schema from docs
+     - Send MRN history as structured array with scheme, mrn, and date fields
+     - Ensure latestMrn is properly set from the form data
+
+     3. Update PatientRegistrationForm Integration
+
+     - Ensure the adapter properly maps mrnHistory to the API payload
+     - Fix any missing field mappings between form and API
+
+     4. Add Data Refresh in PatientDetail
+
+     - Add data refresh when returning from edit pages
+     - Ensure MrnOverview receives real data instead of mock data
+     - Add proper state management for MRN updates
+
+     5. Make Legacy Form Consistent
+
+     - Update AddPatientForm to support basic MRN history (optional)
+     - Or ensure it properly integrates with the new MRN system
+
+     Expected Outcome:
+
+     - New MRN entries added in forms will be saved to backend
+     - MRN history will display correctly in patient overview
+     - Navigation between MRN labs will work with real data
+     - Edit page will show previously entered MRN numbers

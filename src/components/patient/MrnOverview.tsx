@@ -1,8 +1,27 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Star, Calendar, TestTube, FileBarChart, Activity } from "lucide-react";
+import { ChevronDown, ChevronRight, Star, Calendar, TestTube, FileBarChart, Activity, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
 
 interface MrnHistoryEntry {
   mrn: string;
@@ -14,31 +33,35 @@ interface MrnOverviewProps {
   patientId: string;
   mrnHistory?: MrnHistoryEntry[];
   latestMrn?: string;
+  onMrnUpdate?: (updatedHistory: MrnHistoryEntry[], newLatestMrn: string) => void;
 }
 
-export function MrnOverview({ patientId, mrnHistory, latestMrn }: MrnOverviewProps) {
+export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: MrnOverviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAddMrnDialog, setShowAddMrnDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newMrnData, setNewMrnData] = useState({
+    mrn: "",
+    scheme: "",
+    date: new Date().toISOString().slice(0, 10)
+  });
+  
+  const { toast } = useToast();
 
-  // Use mrnHistory from backend or create mock entries
+  // Use mrnHistory from backend or create fallback entry with latest MRN
   const displayMrnHistory: MrnHistoryEntry[] = mrnHistory && mrnHistory.length > 0 
     ? mrnHistory 
-    : [
-        {
-          scheme: "ASP",
-          mrn: latestMrn || "MRN-001",
+    : latestMrn 
+      ? [{
+          scheme: "Unknown",
+          mrn: latestMrn,
           date: new Date().toISOString()
-        },
-        {
-          scheme: "NAM",
-          mrn: "NAM-" + Math.random().toString(36).substr(2, 6).toUpperCase(),
-          date: "2024-01-15T10:30:00.000Z"
-        },
-        {
-          scheme: "Paid", 
-          mrn: "PAID-" + Math.random().toString(36).substr(2, 6).toUpperCase(),
-          date: "2023-12-10T14:45:00.000Z"
-        }
-      ];
+        }]
+      : [{
+          scheme: "Unknown",
+          mrn: "No MRN Available",
+          date: new Date().toISOString()
+        }];
 
   const handleLabClick = (mrnEntry: MrnHistoryEntry) => {
     // Navigate to external LIS system with the specific MRN
@@ -53,6 +76,75 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn }: MrnOverviewPro
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleAddMrn = async () => {
+    if (!newMrnData.mrn.trim() || !newMrnData.scheme) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in both MRN number and scheme",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    console.log("🔄 Starting MRN Addition Process");
+    console.log("📋 Current MRN History:", displayMrnHistory);
+    console.log("🆕 New MRN Data:", newMrnData);
+    console.log("👤 Patient ID:", patientId);
+
+    try {
+      // Create updated MRN history
+      const updatedHistory = [...displayMrnHistory, {
+        mrn: newMrnData.mrn.trim(),
+        scheme: newMrnData.scheme,
+        date: newMrnData.date || new Date().toISOString()
+      }];
+
+      console.log("📦 Updated MRN History:", updatedHistory);
+      
+      const updatePayload = {
+        mrnHistory: updatedHistory,
+        latestMrn: newMrnData.mrn.trim() // Make the new MRN the latest
+      };
+      
+      console.log("🚀 Sending Update Payload:", updatePayload);
+
+      // Update patient with new MRN history
+      const response = await api.patients.update(patientId, updatePayload);
+      
+      console.log("✅ Backend Response:", response);
+
+      // Notify parent component to refresh data
+      if (onMrnUpdate) {
+        onMrnUpdate(updatedHistory, newMrnData.mrn.trim());
+      }
+
+      toast({
+        title: "MRN Added Successfully",
+        description: `New MRN ${newMrnData.mrn} has been added to the patient record`,
+      });
+
+      // Reset form and close dialog
+      setNewMrnData({
+        mrn: "",
+        scheme: "",
+        date: new Date().toISOString().slice(0, 10)
+      });
+      setShowAddMrnDialog(false);
+
+    } catch (error) {
+      console.error("❌ Failed to add MRN - Full Error:", error);
+      console.error("❌ Error Message:", error instanceof Error ? error.message : 'Unknown error');
+      toast({
+        title: "Error",
+        description: `Failed to add MRN: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Sort all MRNs by date (newest first)
@@ -89,6 +181,18 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn }: MrnOverviewPro
               <p className="text-xs text-gray-500 mt-1">{currentMrn.mrn}</p>
             </div>
           )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAddMrnDialog(true);
+            }}
+            className="h-8 px-3 text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Add MRN
+          </Button>
           <div className={`transition-transform duration-200 ${
             isExpanded ? 'rotate-180' : 'rotate-0'
           }`}>
@@ -172,6 +276,74 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn }: MrnOverviewPro
           </div>
         </div>
       )}
+
+      {/* Add MRN Dialog */}
+      <Dialog open={showAddMrnDialog} onOpenChange={setShowAddMrnDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New MRN</DialogTitle>
+            <DialogDescription>
+              Add a new MRN number for this patient. This will be added to the patient's MRN history.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="scheme">Scheme *</Label>
+              <Select
+                value={newMrnData.scheme}
+                onValueChange={(value) => setNewMrnData(prev => ({ ...prev, scheme: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scheme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ASP">ASP</SelectItem>
+                  <SelectItem value="NAM">NAM</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Unknown">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mrn">MRN Number *</Label>
+              <Input
+                id="mrn"
+                value={newMrnData.mrn}
+                onChange={(e) => setNewMrnData(prev => ({ ...prev, mrn: e.target.value }))}
+                placeholder="Enter MRN number (e.g., ABC-1234567)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={newMrnData.date}
+                onChange={(e) => setNewMrnData(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddMrnDialog(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddMrn}
+              disabled={isSubmitting || !newMrnData.mrn.trim() || !newMrnData.scheme}
+            >
+              {isSubmitting ? "Adding..." : "Add MRN"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

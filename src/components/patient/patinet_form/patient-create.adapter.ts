@@ -42,9 +42,27 @@ export type CreatePatientPayload = {
   diagnosis: string;
   comorbidities: string[];
   assignedDoctorId?: string;
+  assignedDoctor?: string;
   latestMrn?: string;
   mrnHistory?: MrnHistoryEntry[];
   currentState?: string;
+  isUrgent?: boolean;
+  urgentReason?: string;
+  urgentUntil?: string;
+  emergencyContact?: {
+    name: string;
+    relationship?: string;
+    phone?: string;
+  };
+  filesUrl?: string;
+  vitals?: {
+    hr?: number;
+    systolic?: number;
+    diastolic?: number;
+    spo2?: number;
+    temp?: number;
+    updatedAt?: string;
+  };
 };
 
 export type NewFormData = {
@@ -61,6 +79,22 @@ export type NewFormData = {
   latestMrn?: string;
   mrnHistory?: MrnHistoryEntry[];
   currentState?: string;
+  isUrgent?: boolean;
+  urgentReason?: string;
+  urgentUntil?: string;
+  emergencyContact?: {
+    name: string;
+    relationship?: string;
+    phone?: string;
+  };
+  filesUrl?: string;
+  vitals?: {
+    hr?: string;
+    systolic?: string;
+    diastolic?: string;
+    spo2?: string;
+    temp?: string;
+  };
 };
 
 export function toCreatePayload(d: NewFormData): CreatePatientPayload {
@@ -78,9 +112,25 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
     pathway: normalizePathway(d.pathway),
     diagnosis: (d.diagnosis || "").trim(),
     comorbidities: normalizeComorbidities(d.comorbidities),
+    assignedDoctor: (d.assignedDoctor || "").trim() || undefined,
     assignedDoctorId: (d.assignedDoctorId || d.assignedDoctor || "").trim() || undefined,
     latestMrn: (d.latestMrn || d.mrn || "").trim(),
     mrnHistory: d.mrnHistory || [],
     currentState: (d.currentState || "").trim() || undefined,
+    isUrgent: d.isUrgent || false,
+    urgentReason: (d.urgentReason || "").trim() || undefined,
+    urgentUntil: (d.urgentUntil || "").trim() || undefined,
+    emergencyContact: d.emergencyContact && (d.emergencyContact.name || d.emergencyContact.phone) 
+      ? d.emergencyContact 
+      : undefined,
+    filesUrl: (d.filesUrl || "").trim() || undefined,
+    vitals: d.vitals && (d.vitals.hr || d.vitals.systolic || d.vitals.spo2 || d.vitals.temp) ? {
+      hr: d.vitals.hr ? Number(d.vitals.hr) : undefined,
+      systolic: d.vitals.systolic ? Number(d.vitals.systolic) : undefined,
+      diastolic: d.vitals.diastolic ? Number(d.vitals.diastolic) : undefined,
+      spo2: d.vitals.spo2 ? Number(d.vitals.spo2) : undefined,
+      temp: d.vitals.temp ? Number(d.vitals.temp) : undefined,
+      updatedAt: new Date().toISOString(),
+    } : undefined,
   };
 }

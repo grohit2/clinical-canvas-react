@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { MrnOverview } from "@/components/patient/MrnOverview";
+import { MrnDebugPanel } from "@/components/debug/MrnDebugPanel";
 import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen } from "lucide-react";
 import {
   Dialog,
@@ -44,7 +45,7 @@ export default function PatientDetail() {
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [selectedStage, setSelectedStage] = useState("");
 
-  const fetchPatientData = async () => {
+  const fetchPatientData = useCallback(async () => {
     if (!id) return;
     try {
       const data = await api.patients.get(id);
@@ -54,11 +55,11 @@ export default function PatientDetail() {
     } catch {
       navigate("/patients");
     }
-  };
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchPatientData();
-  }, [id, navigate]);
+  }, [fetchPatientData]);
 
   // Refetch data when the page becomes visible (e.g., returning from edit)
   useEffect(() => {
@@ -71,15 +72,21 @@ export default function PatientDetail() {
     const handleFocus = () => {
       fetchPatientData();
     };
+    
+    const handlePageShow = () => {
+      fetchPatientData();
+    };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [id]);
+  }, [id, fetchPatientData]);
 
   const titleCase = (s?: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -267,7 +274,22 @@ export default function PatientDetail() {
               patientId={patient?.id || id || ""} 
               latestMrn={patient?.latestMrn}
               mrnHistory={patient?.mrnHistory}
+              onMrnUpdate={(updatedHistory, newLatestMrn) => {
+                // Update local state immediately
+                if (patient) {
+                  setPatient({
+                    ...patient,
+                    mrnHistory: updatedHistory,
+                    latestMrn: newLatestMrn
+                  });
+                }
+                // Also refetch data to ensure consistency
+                fetchPatientData();
+              }}
             />
+
+            {/* Debug Panel - Remove this after testing */}
+            <MrnDebugPanel patientId={patient?.id || id || ""} />
 
             {/* Documents Section */}
             <div>

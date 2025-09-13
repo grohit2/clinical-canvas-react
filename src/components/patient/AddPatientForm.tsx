@@ -93,6 +93,14 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
           ? data.comorbidities.split(",").map((c) => c.trim())
           : [],
         assignedDoctorId: data.assignedDoctor,
+        latestMrn: data.registrationNumber,
+        mrnHistory: [
+          {
+            mrn: data.registrationNumber,
+            scheme: "GENERAL",
+            date: new Date().toISOString()
+          }
+        ]
       });
 
       onAddPatient?.(res.patient);

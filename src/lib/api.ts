@@ -12,15 +12,43 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const fullUrl = `${API_BASE}${path}`;
+  
+  // Log the request
+  if (path.includes('/patients/') && options.method === 'PUT') {
+    console.log("🌍 HTTP Request Details:");
+    console.log("  URL:", fullUrl);
+    console.log("  Method:", options.method);
+    console.log("  Headers:", { 'Content-Type': 'application/json', ...(options.headers || {}) });
+    console.log("  Body:", options.body);
+  }
+  
+  const res = await fetch(fullUrl, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   });
+  
+  // Log the response
+  if (path.includes('/patients/') && options.method === 'PUT') {
+    console.log("📨 HTTP Response Details:");
+    console.log("  Status:", res.status);
+    console.log("  Status Text:", res.statusText);
+    console.log("  Headers:", Object.fromEntries(res.headers.entries()));
+  }
+  
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    console.error("❌ HTTP Error Response:", err);
     throw new Error(err.error || res.statusText);
   }
-  return res.json();
+  
+  const responseData = await res.json();
+  
+  if (path.includes('/patients/') && options.method === 'PUT') {
+    console.log("📦 Response Data:", responseData);
+  }
+  
+  return responseData;
 }
 
 export const api = {
@@ -30,7 +58,7 @@ export const api = {
     get: (uid: string) => request<Patient>(`/patients/${uid}`),
     timeline: (uid: string) => request<TimelineEntry[]>(`/patients/${uid}/timeline`),
     create: (
-      data: Omit<Patient, 'id' | 'lastUpdated' | 'status' | 'latestMrn'> & {
+      data: Omit<Patient, 'id' | 'lastUpdated' | 'status'> & {
         registrationNumber: string;
         name: string;
         department: string;
@@ -43,23 +71,45 @@ export const api = {
           name: data.name,
           age: data.age,
           sex: data.sex,
-          registration: { 
+          registration: {
             mrn: registrationNumber,
-            scheme: "GENERAL", // default scheme
+            scheme: data.mrnHistory?.[0]?.scheme || "GENERAL",
             department: department,
             pathway: data.pathway,
             diagnosis: data.diagnosis,
             comorbidities: data.comorbidities,
-            assigned_doctor_id: data.assignedDoctorId
-          }
+            assignedDoctor: data.assignedDoctor,
+            assignedDoctorId: data.assignedDoctorId,
+            currentState: data.currentState,
+            isUrgent: data.isUrgent,
+            urgentReason: data.urgentReason,
+            urgentUntil: data.urgentUntil,
+            filesUrl: data.filesUrl
+          },
+          emergencyContact: data.emergencyContact,
+          latestMrn: data.latestMrn || registrationNumber,
+          mrnHistory: data.mrnHistory || [
+            {
+              mrn: registrationNumber,
+              scheme: "GENERAL",
+              date: new Date().toISOString()
+            }
+          ],
+          vitals: data.vitals
         }),
       });
     },
-    update: (uid: string, data: Partial<Patient>) =>
-      request<{ patient: Patient }>(`/patients/${uid}`, {
+    update: (uid: string, data: Partial<Patient>) => {
+      // The API expects camelCase and converts to snake_case for DynamoDB
+      console.log("🔧 API Update - Original Data:", data);
+      console.log("🌐 API Update - Endpoint:", `/patients/${uid}`);
+      console.log("📋 API Update - Sending camelCase data to backend API");
+      
+      return request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',
-        body: JSON.stringify(toSnakeCase(data as Record<string, unknown>)),
-      }),
+        body: JSON.stringify(data),
+      });
+    },
     remove: (uid: string) =>
       request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',

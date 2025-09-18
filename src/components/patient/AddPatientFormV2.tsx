@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Patient } from "@/types/api";
-import PatientRegistrationForm from "@/features/patient-details-input/PatientRegistrationForm";
+import PatientRegistrationForm from "./patinet_form/PatientRegistrationForm";
 
 export function AddPatientFormV2({
   open,

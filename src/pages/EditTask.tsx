@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Task, Doctor } from "@/types/api";
 
 export default function EditTask() {
-  const { id, taskId } = useParams();
+  const { id: uid, taskId } = useParams();
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState("");
   const [department, setDepartment] = useState("");
@@ -30,16 +30,16 @@ export default function EditTask() {
   useEffect(() => { document.title = `Edit Task | Clinical Canvas`; }, []);
 
   useEffect(() => {
-    if (!id) return;
-    api.patients.get(id).then(p => {
+    if (!uid) return;
+    api.patients.get(uid).then(p => {
       setPatientName(p.name);
       setDepartment(p.department || "");
     }).catch(() => {});
-  }, [id]);
+  }, [uid]);
 
   useEffect(() => {
-    if (!id || !taskId) return;
-    api.tasks.list(id).then(ts => {
+    if (!uid || !taskId) return;
+    api.tasks.list(uid).then(ts => {
       const t = ts.find(t => t.taskId === taskId);
       if (t) {
         const due = new Date(t.due);
@@ -54,7 +54,7 @@ export default function EditTask() {
         });
       }
     }).catch(() => {});
-  }, [id, taskId]);
+  }, [uid, taskId]);
 
   useEffect(() => {
     if (!department) return;
@@ -63,7 +63,7 @@ export default function EditTask() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !taskId || !form.type || !form.assigneeId || !form.date || !form.time) return;
+    if (!uid || !taskId || !form.type || !form.assigneeId || !form.date || !form.time) return;
     setSubmitting(true);
     try {
       const due = new Date(`${form.date}T${form.time}`);
@@ -75,8 +75,8 @@ export default function EditTask() {
         priority: form.priority,
         status: form.status,
       };
-      await api.tasks.update(id, taskId, payload);
-      navigate(`/patients/${id}`);
+      await api.tasks.update(uid, taskId, payload);
+      navigate(`/patients/${uid}`);
     } catch (e) {
       console.error(e);
     } finally {

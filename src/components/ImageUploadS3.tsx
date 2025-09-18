@@ -4,7 +4,7 @@ import { putToS3Presigned } from "@/lib/s3upload";
 import { Camera, ImageIcon, X } from "lucide-react";
 
 interface ImageUploadS3Props {
-  mrn: string;
+  patientId: string;
   kind: "note" | "med" | "task" | "doc";
   refId: string;
   images: FilesListItem[];
@@ -12,13 +12,13 @@ interface ImageUploadS3Props {
   maxImages?: number;
 }
 
-export function ImageUploadS3({ 
-  mrn, 
-  kind, 
-  refId, 
-  images, 
-  onImagesChange, 
-  maxImages = 10 
+export function ImageUploadS3({
+  patientId,
+  kind,
+  refId,
+  images,
+  onImagesChange,
+  maxImages = 10
 }: ImageUploadS3Props) {
   const [showAttachmentOptions, setShowAttachmentOptions] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export function ImageUploadS3({
       
       // Get presigned upload URL
       const mimeType = file.type as "image/jpeg" | "image/png" | "image/webp" | "image/avif";
-      const uploadResponse = await presignUpload(mrn, {
+      const uploadResponse = await presignUpload(patientId, {
         filename: file.name,
         mimeType,
         kind,
@@ -57,7 +57,7 @@ export function ImageUploadS3({
 
       // Attach the file to the note/med/task
       if (kind === "note") {
-        await attachNoteFile(mrn, refId, uploadResponse.key);
+        await attachNoteFile(patientId, refId, uploadResponse.key);
       }
       // TODO: Add attachMedFile and attachTaskFile when needed
 
@@ -67,10 +67,10 @@ export function ImageUploadS3({
         filename: file.name,
         size: file.size,
         lastModified: new Date().toISOString(),
-        mrn,
+        uid: patientId,
         kind,
         refId,
-        url: null // Will be presigned when needed
+        cdnUrl: null
       };
 
       onImagesChange([...images, newImage]);
@@ -92,8 +92,8 @@ export function ImageUploadS3({
       <div className="grid grid-cols-3 gap-4">
         {images.map((image, index) => (
           <div key={image.key} className="relative">
-            <img 
-              src={image.url || ''} 
+            <img
+              src={image.cdnUrl ?? image.url ?? ''}
               alt={`attachment ${index + 1}`}
               className="rounded-lg w-full h-24 object-cover"
             />

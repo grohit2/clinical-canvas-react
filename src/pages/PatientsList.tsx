@@ -5,8 +5,6 @@ import { PatientCard } from "@/components/patient/PatientCard";
 import { PatientGridCard } from "@/components/patient/PatientGridCard";
 import { ViewToggle } from "@/components/patient/ViewToggle";
 import { FilterPopup } from "@/components/patient/FilterPopup";
-import { flags } from "@/lib/flags";
-import { AddPatientFormV2, AddPatientForm } from "@/components/patient";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getPinnedPatients } from "@/lib/pinnedPatients";
 
 // Initial empty list; will be populated from API
 let mockPatients: Patient[] = [];
@@ -26,7 +25,6 @@ export default function PatientsList() {
   const [selectedStage, setSelectedStage] = useState('all');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [showAddPatientForm, setShowAddPatientForm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(
@@ -40,8 +38,8 @@ export default function PatientsList() {
       .then((data) => {
         const withUi = data.map((p) => ({
           ...p,
-          id: p.id || p.mrn,
-          qrCode: `${window.location.origin}/qr/${p.mrn}`,
+          id: p.id,
+          qrCode: `${window.location.origin}/qr/${p.id}`,
           updateCounter: 0,
           comorbidities: p.comorbidities || [],
         }));
@@ -73,17 +71,6 @@ export default function PatientsList() {
     }
   }, [searchParams]);
 
-  const handleAddPatient = (patient: Patient) => {
-    const withUi = {
-      ...patient,
-      id: patient.id || patient.mrn,
-      qrCode: `${window.location.origin}/qr/${patient.mrn}`,
-      updateCounter: 0,
-      comorbidities: patient.comorbidities || [],
-    };
-    setPatients((prev) => [...prev, withUi]);
-    mockPatients = [...mockPatients, withUi];
-  };
 
   const getActiveFiltersCount = () => {
     let count = 0;
@@ -100,7 +87,9 @@ export default function PatientsList() {
   };
 
   const getFilteredPatients = (tabFilter: string) => {
-    return patients.filter(patient => {
+    const pinnedPatientIds = getPinnedPatients().map(p => p.id);
+    
+    const filtered = patients.filter(patient => {
       const matchesSearch =
         (patient.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (patient.diagnosis ?? "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -108,11 +97,26 @@ export default function PatientsList() {
       const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
-      // Fix doctor filtering - ensure exact name match
-      const matchesDoctor =
-        tabFilter === 'all' || patient.assignedDoctorId === currentDoctorId;
+      // Filter logic based on tab
+      let matchesTab = true;
+      if (tabFilter === 'my') {
+        // Show pinned patients in My Patients tab
+        matchesTab = pinnedPatientIds.includes(patient.id);
+      }
       
-      return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesDoctor;
+      return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesTab;
+    });
+
+    // Sort to show pinned patients at the top
+    return filtered.sort((a, b) => {
+      const aIsPinned = pinnedPatientIds.includes(a.id);
+      const bIsPinned = pinnedPatientIds.includes(b.id);
+      
+      // If both are pinned or both are not pinned, maintain original order
+      if (aIsPinned === bIsPinned) return 0;
+      
+      // Pinned patients come first
+      return aIsPinned ? -1 : 1;
     });
   };
 
@@ -126,7 +130,7 @@ export default function PatientsList() {
         showAdd
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => navigate('/patients/new')}
+        onAdd={() => navigate('/patients/add')}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -247,7 +251,7 @@ export default function PatientsList() {
               <div className="text-center py-12">
                 {getActiveFiltersCount() > 0 || searchQuery ? (
                   <>
-                    <p className="text-muted-foreground">No patients assigned to you matching your criteria</p>
+                    <p className="text-muted-foreground">No pinned patients matching your criteria</p>
                     <Button
                       variant="outline"
                       className="mt-4"
@@ -260,7 +264,10 @@ export default function PatientsList() {
                     </Button>
                   </>
                 ) : (
-                  <p className="text-muted-foreground">No patients allocated to you</p>
+                  <>
+                    <p className="text-muted-foreground mb-2">No patients pinned yet</p>
+                    <p className="text-sm text-muted-foreground">Pin patients you care about using the 3-dot menu on any patient card</p>
+                  </>
                 )}
               </div>
             )}
@@ -268,14 +275,6 @@ export default function PatientsList() {
         </Tabs>
       </div>
 
-      {/* Dialog add flow kept for legacy fallback/manual triggers if needed */}
-      {!flags.patientFormV2 && (
-        <AddPatientForm
-          open={showAddPatientForm}
-          onOpenChange={setShowAddPatientForm}
-          onAddPatient={handleAddPatient}
-        />
-      )}
 
       <NotificationsPopup 
         open={showNotifications}

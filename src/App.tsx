@@ -17,13 +17,15 @@ import AddNote from "./pages/AddNote";
 import AddMedication from "./pages/AddMedication";
 import AddTask from "./pages/AddTask";
 import EditPatient from "./pages/EditPatient";
-import AddPatient from "./pages/AddPatient";
 import EditTask from "./pages/EditTask";
 import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 import DocumentsPage from "./pages/DocumentsPage";
+import DocumentsRoot from "@/features/documents/pages/DocumentsRoot";
+import DocumentsFolder from "@/features/documents/pages/DocumentsFolder";
 import NoteDetail from "./pages/NoteDetail";
+import AddPatientPage from "./pages/AddPatientPage";
 
 const queryClient = new QueryClient();
 
@@ -38,8 +40,12 @@ const App = () => (
           <Route path="/qr/:id" element={<PatientQRView />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/patients" element={<PatientsList />} />
-          <Route path="/patients/new" element={<AddPatient />} />
+          <Route path="/patients/add" element={<AddPatientPage />} />
           <Route path="/patients/:id" element={<PatientDetail />} />
+          {/* New Documents routes: temporarily render legacy DocumentsPage until feature pages are finalized */}
+          <Route path="/patients/:id/docs" element={<DocumentsPage />} />
+          <Route path="/patients/:id/docs/:category" element={<DocumentsPage />} />
+          {/* Legacy Documents route retained for compatibility */}
           <Route path="/patients/:id/documents" element={<DocumentsPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />

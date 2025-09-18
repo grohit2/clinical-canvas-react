@@ -11,14 +11,10 @@
             "id": "50bf6685fd65b40f",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "change-log.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "change-log"
+              "title": "New tab"
             }
           }
         ]
@@ -166,14 +162,17 @@
       "bases:Create new base": false
     }
   },
-  "active": "50bf6685fd65b40f",
+  "active": "eecbdb2a01d87129",
   "lastOpenFiles": [
-    "backend/backend_dynamobd_schmea.md",
-    "Welcome.md",
-    "HMS/Untitled.canvas",
-    "HMS/Untitled.base",
     "create a link.md",
+    "change-log.md",
+    "backend/backend_dynamobd_schmea.md",
+    "backend",
+    "Welcome.md",
+    "HMS/Untitled.base",
+    "HMS/Untitled.canvas",
+    "HMS",
     "1Domain_Knowledge/workflow.md",
-    "change-log.md"
+    "1Domain_Knowledge"
   ]
 }

@@ -395,3 +395,72 @@ sep 12
      - MRN history will display correctly in patient overview
      - Navigation between MRN labs will work with real data
      - Edit page will show previously entered MRN numbers
+
+
+## My Toggle Heading
+This text will be hidden when folded
+
+>
+>[!note] Click to expand
+> This is hidden content inside a callout.
+
+
+    ✔ Update create payload to include MRN fields
+    ✔ Align forms to build latestMrn + history
+    ✔ Render full MRN history in UI
+    ✔ Smoke-check build for regressions
+
+
+==========================================================
+sep 18
+codex
+Summary of changes
+- API alignment: Added `api.patients.switchRegistration(uid, { mrn, scheme, ... 
+})` to call backend `PATCH /patients/{id}/registration`, which is the correct en
+dpoint for MRN changes and history updates.
+- Labs Overview fix: Updated `MrnOverview` to use `switchRegistration` instead o
+f `PUT /patients/{id}`. It now relies on the server response to reflect the upda
+ted `latestMrn` and `mrnHistory`.
+- Debug tool update: Swapped the debug panel to use the registration switch endp
+oint for realistic verification.
+- Create payload improvement: When creating a patient, the scheme sent under `re
+gistration.scheme` now matches the MRN that is marked as current (falls back to 
+the first provided or “GENERAL”).
+
+What this fixes
+- MRN updates previously sent via `PUT` were ignored by the backend (which does 
+not accept MRN mutations on that route). The UI now uses the proper `PATCH /regi
+stration` route that appends to `mrn_history` and updates `active_reg_mrn`.
+- Labs Overview now shows full MRN history from the backend post-update, not jus
+t the latest MRN.
+- Creation uses the correct scheme for the active MRN, improving consistency at 
+seed time.
+
+Files touched
+- `src/lib/api.ts`
+  - Added `patients.switchRegistration(...)`.
+  - Improved `patients.create` to pick scheme matching `latestMrn` (or default).
+- `src/components/patient/MrnOverview.tsx`
+  - `handleAddMrn` now calls `api.patients.switchRegistration(...)` and updates 
+from the server response.
+- `src/components/debug/MrnDebugPanel.tsx`
+  - Now tests MRN changes using `switchRegistration`.
+
+- Ran `npm run build`: build completes successfully.
+
+not `PUT`. The UI and debug code are now aligned.
+the create call to ensure all optional episode fields pass through.
+
+codex
+Removed the MRN Debug Panel from the UI and codebase.
+
+Changes made
+- `src/pages/PatientDetail.tsx`: Removed the `MrnDebugPanel` import and its JSX 
+- `src/components/debug/MrnDebugPanel.tsx`: Deleted the debug component file.
+
+Build status
+- Typecheck and production build succeed.
+
+You can run locally as before:
+- `npm install`
+- `npm run dev` then open `http://localhost:8080`))

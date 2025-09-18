@@ -81,6 +81,9 @@ export default function EditPatient() {
     },
   });
 
+  // Track originally loaded latest MRN to detect changes
+  const originalLatestMrnRef = useRef<string | null>(null);
+
   const categories = [
     { id: "patient-details", title: "PD", mandatory: true },
     { id: "registration", title: "REG", mandatory: true },
@@ -157,6 +160,9 @@ export default function EditPatient() {
             temp: patient.vitals?.temp ? String(patient.vitals.temp) : patient.vitals?.temperature ? String(patient.vitals.temperature) : "",
           },
         });
+
+        // remember original latest MRN for comparison on submit
+        originalLatestMrnRef.current = patient.latestMrn || null;
         
         setLoading(false);
       } catch (error) {
@@ -301,7 +307,35 @@ export default function EditPatient() {
     try {
       setIsSubmitting(true);
 
-      // Build the update payload
+      // Compute cleaned MRN history from form
+      const cleanedHistory = (formData.mrnHistory || []).filter(e => e.mrn && e.mrn.trim());
+
+      // Try one-shot overwrite first; if route not present in backend (404), fall back to two-step
+      try {
+        await api.patients.overwriteMrn(id, cleanedHistory as any);
+      } catch (e: any) {
+        console.error("Failed to overwrite MRN history:", e);
+        const msg = (e && e.message) ? String(e.message) : '';
+        // Fallback for either route missing OR server errors
+        const shouldFallback = msg.toLowerCase().includes('route not found') || msg.toLowerCase().includes('internal server error');
+        if (!shouldFallback) throw e;
+
+        // Fallback: determine desired latest (highest date) and use existing endpoints
+        const originalLatest = originalLatestMrnRef.current;
+        let desiredLatest = formData.latestMrn?.trim() || '';
+        if (!desiredLatest || !cleanedHistory.some(h => h.mrn === desiredLatest)) {
+          const pick = [...cleanedHistory].sort((a, b) => new Date(b.date || '1970-01-01').getTime() - new Date(a.date || '1970-01-01').getTime())[0];
+          desiredLatest = pick?.mrn || desiredLatest;
+        }
+
+        if (desiredLatest && desiredLatest !== (originalLatest || '')) {
+          const scheme = cleanedHistory.find(h => h.mrn === desiredLatest)?.scheme || 'Unknown';
+          await api.patients.switchRegistration(id, { mrn: desiredLatest, scheme });
+        }
+        await api.patients.updateMrnHistory(id, cleanedHistory as any);
+      }
+
+      // Build the update payload (non-MRN fields; backend ignores MRN fields on PUT)
       const payload: Partial<Patient> = {
         name: formData.name,
         age: Number(formData.age),
@@ -313,8 +347,6 @@ export default function EditPatient() {
         currentState: formData.currentState,
         assignedDoctor: formData.assignedDoctor,
         assignedDoctorId: formData.assignedDoctorId,
-        latestMrn: formData.latestMrn,
-        mrnHistory: formData.mrnHistory,
         filesUrl: formData.filesUrl || null,
         isUrgent: formData.isUrgent,
         urgentReason: formData.urgentReason,

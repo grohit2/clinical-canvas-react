@@ -383,16 +383,22 @@ export function mountPatientRoutes(router, ctx) {
     const tl = buildInitialTimelineItem({ patient_uid: uid, mrn: body.mrn, scheme: body.scheme, firstState, now, actorId: body.actorId || null });
     tx.push({ Put: { TableName: TABLE, Item: tl.item } });
 
-    // MRN pointer upsert (idempotent)
+    // MRN pointer upsert (idempotent and safe)
+    // Allow if pointer doesn't exist OR already points to the same patient
     tx.push({
-      Put: {
+      Update: {
         TableName: TABLE,
-        Item: {
-          PK: `MRN#${body.mrn}`, SK: "MRN",
-          mrn: body.mrn, patient_uid: uid, scheme: body.scheme,
-          department: body.department ?? meta.department, status: "ACTIVE", created_at: now,
+        Key: { PK: `MRN#${body.mrn}`, SK: "MRN" },
+        ConditionExpression: "attribute_not_exists(PK) OR patient_uid = :uid",
+        UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, status = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+        ExpressionAttributeValues: {
+          ":mrn": body.mrn,
+          ":uid": uid,
+          ":sch": body.scheme,
+          ":dept": body.department ?? meta.department,
+          ":active": "ACTIVE",
+          ":now": now,
         },
-        ConditionExpression: "attribute_not_exists(PK)"
       }
     });
 
@@ -443,6 +449,147 @@ export function mountPatientRoutes(router, ctx) {
       TableName: TABLE, Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" }
     }));
     return resp(200, { message: "registration-switched", latestMrn: body.mrn, patient: toUiPatient(ref.Item) });
+  });
+
+  /* ---------------- MRN HISTORY REWRITE (prune/replace only) --------------
+     PATCH /patients/{id}/mrn-history
+     Body: { mrnHistory: [{ mrn, scheme, date }] }
+     Notes:
+       - Does NOT change active_reg_mrn or timeline; to change current MRN,
+         call /patients/{id}/registration first.
+       - Requires the resulting history to still include active_reg_mrn.
+  */
+  router.add("PATCH", /^\/?patients\/([^/]+)\/mrn-history\/?$/, async ({ match, event }) => {
+    const rawId = decodeURIComponent(match[1]);
+    const body = parseBody(event) || {};
+    const list = Array.isArray(body.mrnHistory) ? body.mrnHistory : null;
+    if (!list) return resp(400, { error: "mrnHistory array is required" });
+
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+    const uid = resolved.uid, meta = resolved.meta;
+
+    // Validate entries minimally
+    const cleaned = list
+      .filter(e => e && typeof e.mrn === 'string' && e.mrn.trim())
+      .map(e => ({
+        mrn: String(e.mrn).trim(),
+        scheme: (e.scheme ?? 'Unknown'),
+        date: e.date ?? meta.updated_at ?? new Date().toISOString(),
+      }));
+
+    if (!cleaned.length) return resp(400, { error: "mrnHistory must have at least one entry" });
+
+    // Ensure active MRN still present; if not, ask caller to switch first
+    const active = meta.active_reg_mrn || null;
+    if (active && !cleaned.some(e => e.mrn === active)) {
+      return resp(400, { error: "active MRN not present in new history; switch registration first" });
+    }
+
+    const now = nowISO();
+    const upd = await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" },
+      UpdateExpression: "SET mrn_history = :mh, updated_at = :now, last_updated = :now",
+      ExpressionAttributeValues: { ":mh": cleaned, ":now": now },
+      ReturnValues: "ALL_NEW",
+    }));
+
+    return resp(200, { message: "mrn-history-updated", patient: toUiPatient(upd.Attributes) });
+  });
+
+  /* -------------- MRN OVERWRITE (single-call list + current update) --------------
+     PATCH /patients/{id}/mrn-overwrite
+     Body: { mrnHistory: [{ mrn, scheme, date }] }
+     Behavior:
+       - Replaces mrn_history with provided list (cleaned).
+       - Sets active_reg_mrn/scheme to the entry with the highest date (if different),
+         opening a new timeline segment similar to /registration.
+  */
+  router.add("PATCH", /^\/?patients\/([^/]+)\/mrn-overwrite\/?$/, async ({ match, event }) => {
+    const rawId = decodeURIComponent(match[1]);
+    const body = parseBody(event) || {};
+    const list = Array.isArray(body.mrnHistory) ? body.mrnHistory : null;
+    if (!list) return resp(400, { error: "mrnHistory array is required" });
+
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+    const uid = resolved.uid, meta = resolved.meta;
+
+    const cleaned = list
+      .filter(e => e && typeof e.mrn === 'string' && e.mrn.trim())
+      .map(e => ({
+        mrn: String(e.mrn).trim(),
+        scheme: (e.scheme ?? 'Unknown'),
+        date: e.date ?? meta.updated_at ?? new Date().toISOString(),
+      }));
+    if (!cleaned.length) return resp(400, { error: "mrnHistory must have at least one entry" });
+
+    // Pick highest-date as desired current
+    const desired = [...cleaned].sort((a,b)=> new Date(b.date||'1970-01-01') - new Date(a.date||'1970-01-01'))[0];
+    const now = nowISO();
+
+    // If current is already desired, just write history
+    if ((meta.active_reg_mrn || null) === desired.mrn && (meta.active_scheme || null) === desired.scheme) {
+      const upd = await ddb.send(new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" },
+        UpdateExpression: "SET mrn_history = :mh, updated_at = :now, last_updated = :now",
+        ExpressionAttributeValues: { ":mh": cleaned, ":now": now },
+        ReturnValues: "ALL_NEW",
+      }));
+      return resp(200, { message: "mrn-overwrite-updated", patient: toUiPatient(upd.Attributes) });
+    }
+
+    // Otherwise, switch registration to desired and set history in same transaction
+    const tx = [];
+    // Close old TL if any
+    if (meta.timeline_open_sk) {
+      tx.push({ Update: {
+        TableName: TABLE,
+        Key: { PK: `PATIENT#${uid}`, SK: meta.timeline_open_sk },
+        ConditionExpression: "attribute_exists(PK) AND attribute_exists(SK)",
+        UpdateExpression: "SET date_out = :now, updated_at = :now",
+        ExpressionAttributeValues: { ":now": now },
+      }});
+    }
+    // Open new TL
+    const firstState = meta.current_state || 'onboarding';
+    const tl = buildInitialTimelineItem({ patient_uid: uid, mrn: desired.mrn, scheme: desired.scheme, firstState, now, actorId: body.actorId || null });
+    tx.push({ Put: { TableName: TABLE, Item: tl.item } });
+
+    // Pointer upsert (idempotent)
+    tx.push({ Update: {
+      TableName: TABLE,
+      Key: { PK: `MRN#${desired.mrn}`, SK: "MRN" },
+      ConditionExpression: "attribute_not_exists(PK) OR patient_uid = :uid",
+      UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, status = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+      ExpressionAttributeValues: {
+        ":mrn": desired.mrn,
+        ":uid": uid,
+        ":sch": desired.scheme,
+        ":dept": meta.department,
+        ":active": "ACTIVE",
+        ":now": now,
+      },
+    }});
+
+    // META update
+    tx.push({ Update: {
+      TableName: TABLE,
+      Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" },
+      UpdateExpression:
+        "SET active_reg_mrn = :mrn, active_scheme = :sch, mrn_history = :mh, " +
+        "LSI_CUR_MRN = :lsi, timeline_open_sk = :tlsk, updated_at = :now, last_updated = :now",
+      ExpressionAttributeValues: {
+        ":mrn": desired.mrn, ":sch": desired.scheme, ":mh": cleaned, ":lsi": `CUR#${desired.mrn}`, ":tlsk": tl.sk, ":now": now,
+      },
+    }});
+
+    await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+
+    const ref = await ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" } }));
+    return resp(200, { message: "mrn-overwrite-updated", patient: toUiPatient(ref.Item) });
   });
 
   /* ---------------- SOFT DELETE (mark patient episode inactive) ---------------- */

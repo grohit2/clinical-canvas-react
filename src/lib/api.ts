@@ -13,23 +13,26 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const fullUrl = `${API_BASE}${path}`;
-  
+
+  // Build headers: only set Content-Type when sending a body to avoid CORS preflights on GET
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string> | undefined) };
+  if (options.body && typeof headers['Content-Type'] === 'undefined') {
+    headers['Content-Type'] = 'application/json';
+  }
+
   // Log the request
-  if (path.includes('/patients/') && options.method === 'PUT') {
+  if (path.includes('/patients/') && (options.method === 'PUT' || options.method === 'PATCH')) {
     console.log("🌍 HTTP Request Details:");
     console.log("  URL:", fullUrl);
     console.log("  Method:", options.method);
-    console.log("  Headers:", { 'Content-Type': 'application/json', ...(options.headers || {}) });
+    console.log("  Headers:", headers);
     console.log("  Body:", options.body);
   }
-  
-  const res = await fetch(fullUrl, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
+
+  const res = await fetch(fullUrl, { ...options, headers });
   
   // Log the response
-  if (path.includes('/patients/') && options.method === 'PUT') {
+  if (path.includes('/patients/') && (options.method === 'PUT' || options.method === 'PATCH')) {
     console.log("📨 HTTP Response Details:");
     console.log("  Status:", res.status);
     console.log("  Status Text:", res.statusText);
@@ -44,7 +47,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   
   const responseData = await res.json();
   
-  if (path.includes('/patients/') && options.method === 'PUT') {
+  if (path.includes('/patients/') && (options.method === 'PUT' || options.method === 'PATCH')) {
     console.log("📦 Response Data:", responseData);
   }
   
@@ -64,7 +67,12 @@ export const api = {
         department: string;
       },
     ) => {
-      const { registrationNumber, department, ...rest } = data;
+      const { registrationNumber, department } = data;
+      // Choose scheme for the registration from the matching MRN entry when possible
+      const chosenMrn = (data.latestMrn || registrationNumber || '').trim();
+      const schemeForRegistration = (data.mrnHistory || []).find(h => h.mrn === chosenMrn)?.scheme 
+        || data.mrnHistory?.[0]?.scheme 
+        || "GENERAL";
       return request<{ patientId: string; patient: Patient }>(`/patients`, {
         method: 'POST',
         body: JSON.stringify({
@@ -73,7 +81,7 @@ export const api = {
           sex: data.sex,
           registration: {
             mrn: registrationNumber,
-            scheme: data.mrnHistory?.[0]?.scheme || "GENERAL",
+            scheme: schemeForRegistration,
             department: department,
             pathway: data.pathway,
             diagnosis: data.diagnosis,
@@ -110,6 +118,29 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
+    // Switch active MRN/scheme and append to MRN history
+    // Backend route: PATCH /patients/{id}/registration
+    switchRegistration: (
+      uid: string,
+      data: { mrn: string; scheme: string; department?: string; pathway?: string; diagnosis?: string; comorbidities?: string[]; assigned_doctor?: string; assigned_doctor_id?: string; files_url?: string; is_urgent?: boolean; urgent_reason?: string; urgent_until?: string; firstState?: string; actorId?: string }
+    ) => {
+      return request<{ message: string; latestMrn: string; patient: Patient }>(`/patients/${uid}/registration`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+    // Replace/prune MRN history without changing the active MRN
+    updateMrnHistory: (uid: string, mrnHistory: { mrn: string; scheme: string; date: string }[]) =>
+      request<{ message: string; patient: Patient }>(`/patients/${uid}/mrn-history`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mrnHistory }),
+      }),
+    // One-shot: overwrite history and set latest to highest-date in one call
+    overwriteMrn: (uid: string, mrnHistory: { mrn: string; scheme: string; date: string }[], actorId?: string) =>
+      request<{ message: string; patient: Patient }>(`/patients/${uid}/mrn-overwrite`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mrnHistory, actorId }),
+      }),
     remove: (uid: string) =>
       request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',

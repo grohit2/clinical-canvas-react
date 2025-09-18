@@ -95,31 +95,20 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
     console.log("👤 Patient ID:", patientId);
 
     try {
-      // Create updated MRN history
-      const updatedHistory = [...displayMrnHistory, {
+      // Switch registration using backend-supported endpoint
+      const payload = {
         mrn: newMrnData.mrn.trim(),
         scheme: newMrnData.scheme,
-        date: newMrnData.date || new Date().toISOString()
-      }];
-
-      console.log("📦 Updated MRN History:", updatedHistory);
-      
-      const updatePayload = {
-        mrnHistory: updatedHistory,
-        latestMrn: newMrnData.mrn.trim() // Make the new MRN the latest
+        // Optionally: pass actorId or episode fields if needed
       };
-      
-      console.log("🚀 Sending Update Payload:", updatePayload);
+      console.log("🚀 Sending Registration Switch Payload:", payload);
 
-      // Update patient with new MRN history
-      const response = await api.patients.update(patientId, updatePayload);
-      
+      const response = await api.patients.switchRegistration(patientId, payload);
       console.log("✅ Backend Response:", response);
 
-      // Notify parent component to refresh data
-      if (onMrnUpdate) {
-        onMrnUpdate(updatedHistory, newMrnData.mrn.trim());
-      }
+      // Use server-returned patient to ensure consistency
+      const updated = response.patient;
+      if (onMrnUpdate) onMrnUpdate(updated.mrnHistory || [], updated.latestMrn || payload.mrn);
 
       toast({
         title: "MRN Added Successfully",

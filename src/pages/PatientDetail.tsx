@@ -9,7 +9,6 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { MrnOverview } from "@/components/patient/MrnOverview";
-import { MrnDebugPanel } from "@/components/debug/MrnDebugPanel";
 import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen } from "lucide-react";
 import {
   Dialog,
@@ -288,8 +287,7 @@ export default function PatientDetail() {
               }}
             />
 
-            {/* Debug Panel - Remove this after testing */}
-            <MrnDebugPanel patientId={patient?.id || id || ""} />
+            {/* Debug Panel removed */}
 
             {/* Documents Section */}
             <div>

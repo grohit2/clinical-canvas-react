@@ -464,3 +464,41 @@ Build status
 You can run locally as before:
 - `npm install`
 - `npm run dev` then open `http://localhost:8080`))
+\nsep-18
+==============================================================
+MRN Management – Backend + Frontend Integration
+
+Deployment
+- Stack: hms-hyd-dev (ap-south-1)
+- Lambda URL: https://kfzsv6at3amrxzl5kzuehljfju0rhkup.lambda-url.ap-south-1.on.aws/
+- CloudFront: d9j52cd9e77ji.cloudfront.net
+- DynamoDB: HMS-HYD
+
+Backend
+- Added PATCH /patients/{id}/mrn-history: replace/prune `mrn_history` (active MRN must remain present).
+- Added PATCH /patients/{id}/mrn-overwrite: single-call overwrite of `mrn_history` and set current MRN to highest-date entry; opens new timeline and upserts MRN pointer.
+- Hardened PATCH /patients/{id}/registration: MRN pointer upsert is idempotent (`attribute_not_exists(PK) OR patient_uid = :uid`).
+- Note: If transactions return 500, inspect CloudWatch CancellationReasons to learn which step failed (timeline close, pointer upsert, META update) and return specific 4xx.
+
+Frontend
+- API (src/lib/api.ts)
+  - New: `patients.switchRegistration`, `patients.updateMrnHistory`, `patients.overwriteMrn`.
+  - `patients.create` now seeds `mrnHistory` and `latestMrn`; picks scheme from matching MRN when available.
+  - Request headers: only set `Content-Type` when a body exists to avoid CORS preflight on GET.
+- EditPatient (src/pages/EditPatient.tsx)
+  - Primary: call `overwriteMrn(mrnHistory)` to perform simple list edit + auto-latest.
+  - Fallback: on 404/500, compute highest-date entry, then `registration` (if needed) + `mrn-history`.
+  - Excludes MRN fields from PUT (backend ignores MRN on PUT).
+- Labs Overview (src/components/patient/MrnOverview.tsx)
+  - Uses `switchRegistration` for adding a new MRN; refreshes from server response.
+- Debug cleanup: Removed MrnDebugPanel and references.
+- Dev env: `.env.local` uses `VITE_API_BASE_URL=/api` with Vite proxy to Lambda; avoids CORS in local dev.
+
+Bug Fixes
+- Labs Overview shows full `mrnHistory` instead of only latest MRN.
+- Edit MRN list: deleting a non-current MRN removes it; deleting the current MRN promotes highest-date MRN to latest.
+- Avoided CORS preflight by not sending `Content-Type` header on GET.
+
+Status
+- ✅ Frontend and backend aligned for MRN history management.
+- ✅ Single-call edit via `mrn-overwrite` with robust fallback when unavailable or erroring.

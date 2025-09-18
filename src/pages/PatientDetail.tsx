@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
+import { MrnOverview } from "@/components/patient/MrnOverview";
 import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen } from "lucide-react";
 import {
   Dialog,
@@ -35,7 +36,7 @@ export default function PatientDetail() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] =
-    useState<"overview" | "notes" | "meds" | "tasks">("notes");
+    useState<'overview' | 'notes' | 'meds' | 'tasks'>('overview');
   const [patient, setPatient] = useState<Patient | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -43,17 +44,48 @@ export default function PatientDetail() {
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [selectedStage, setSelectedStage] = useState("");
 
-  useEffect(() => {
+  const fetchPatientData = useCallback(async () => {
     if (!id) return;
-    api.patients
-      .get(id)
-      .then((data) => {
-        setPatient(data);
-        return api.patients.timeline(id);
-      })
-      .then(setTimeline)
-      .catch(() => navigate("/patients"));
+    try {
+      const data = await api.patients.get(id);
+      setPatient(data);
+      const timeline = await api.patients.timeline(id);
+      setTimeline(timeline);
+    } catch {
+      navigate("/patients");
+    }
   }, [id, navigate]);
+
+  useEffect(() => {
+    fetchPatientData();
+  }, [fetchPatientData]);
+
+  // Refetch data when the page becomes visible (e.g., returning from edit)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPatientData();
+      }
+    };
+    
+    const handleFocus = () => {
+      fetchPatientData();
+    };
+    
+    const handlePageShow = () => {
+      fetchPatientData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [id, fetchPatientData]);
 
   const titleCase = (s?: string) =>
     s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -122,7 +154,7 @@ export default function PatientDetail() {
                 {patient.age !== undefined && patient.sex ? " / " : ""}
                 {patient.sex ? titleCase(patient.sex) : ""}
                 {(patient.age !== undefined || patient.sex) ? " / " : ""}
-                {patient.mrn}
+                {patient.latestMrn ?? ''}
               </div>
             </div>
 
@@ -141,7 +173,7 @@ export default function PatientDetail() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    onClick={() => navigator.clipboard.writeText(patient.mrn)}
+                    onClick={() => navigator.clipboard.writeText(patient.latestMrn ?? '')}
                   >
                     Copy MRN
                   </DropdownMenuItem>
@@ -212,7 +244,7 @@ export default function PatientDetail() {
       </section>
 
       {/* ===== TABS ===== */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v: 'overview' | 'notes' | 'meds' | 'tasks') => setActiveTab(v)}>
         <div className="px-3 sm:px-4">
           <TabsList className="grid w-full grid-cols-4 bg-transparent p-0 border-b">
             {(["overview", "notes", "meds", "tasks"] as const).map((val) => (
@@ -236,11 +268,32 @@ export default function PatientDetail() {
 
         <TabsContent value="overview" className="bg-transparent">
           <div className="px-3 sm:px-4 py-4 space-y-6">
+            {/* MRN Overview Section */}
+            <MrnOverview 
+              patientId={patient?.id || id || ""} 
+              latestMrn={patient?.latestMrn}
+              mrnHistory={patient?.mrnHistory}
+              onMrnUpdate={(updatedHistory, newLatestMrn) => {
+                // Update local state immediately
+                if (patient) {
+                  setPatient({
+                    ...patient,
+                    mrnHistory: updatedHistory,
+                    latestMrn: newLatestMrn
+                  });
+                }
+                // Also refetch data to ensure consistency
+                fetchPatientData();
+              }}
+            />
+
+            {/* Debug Panel removed */}
+
             {/* Documents Section */}
             <div>
               <div 
                 className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => navigate(`/patients/${id}/documents`)}
+                onClick={() => navigate(`/patients/${id}/docs`)}
               >
                 <div className="flex-shrink-0">
                   <FolderOpen className="h-6 w-6 text-blue-600" />
@@ -269,19 +322,19 @@ export default function PatientDetail() {
 
         <TabsContent value="notes" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientNotes patientId={patient.mrn} />
+            <PatientNotes patientId={patient.id} />
           </div>
         </TabsContent>
 
         <TabsContent value="meds" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientMeds patientId={patient.mrn} />
+            <PatientMeds patientId={patient.id} />
           </div>
         </TabsContent>
 
         <TabsContent value="tasks" className="bg-transparent">
           <div className="px-3 sm:px-4 pb-4">
-            <PatientTasks patientId={patient.mrn} />
+            <PatientTasks patientId={patient.id} />
           </div>
         </TabsContent>
       </Tabs>

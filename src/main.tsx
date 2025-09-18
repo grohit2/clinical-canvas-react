@@ -9,7 +9,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Listen for Android share target messages
-navigator.serviceWorker?.addEventListener?.('message', (e: any) => {
+navigator.serviceWorker?.addEventListener?.('message', (e: MessageEvent) => {
   if (e.data?.type === 'shared-image') {
     const { name, fileType, data } = e.data;
     const blob = new Blob([new Uint8Array(data)], { type: fileType });

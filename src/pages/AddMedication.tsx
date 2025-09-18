@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Medication } from "@/types/api";
 
 export default function AddMedication() {
-  const { id } = useParams();
+  const { id: uid } = useParams();
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState("");
   const [form, setForm] = useState({
@@ -31,13 +31,13 @@ export default function AddMedication() {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
-    api.patients.get(id).then((p) => setPatientName(p.name)).catch(() => {});
-  }, [id]);
+    if (!uid) return;
+    api.patients.get(uid).then((p) => setPatientName(p.name)).catch(() => {});
+  }, [uid]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!uid) return;
     setSubmitting(true);
     try {
       const payload: Omit<Medication, "medId" | "patientId" | "createdAt" | "updatedAt"> = {
@@ -50,8 +50,8 @@ export default function AddMedication() {
         priority: form.priority,
         scheduleTimes: form.scheduleTimes ? form.scheduleTimes.split(",").map((s) => s.trim()) : [],
       };
-      await api.meds.create(id, payload);
-      navigate(`/patients/${id}`);
+      await api.meds.create(uid, payload);
+      navigate(`/patients/${uid}`);
     } catch (e) {
       console.error(e);
     } finally {

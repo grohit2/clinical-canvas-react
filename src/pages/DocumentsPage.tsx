@@ -1,91 +1,478 @@
-import React, { useEffect, useRef, useState } from "react";
+// app/pages/DocumentsPage.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { getDocuments } from "../lib/filesApi";
-import DocumentCategory from "../components/DocumentCategory";
-import ImageUploader from "../components/ImageUploader";
-import FileGrid from "../components/FileGrid";
-import { categoryToDocType } from "../lib/support";
+// import { Card } from "@/components/ui/card"; // not used in simplified view
+import {
+  getDocuments,
+  DocumentsProfile,
+  DocumentsCategory,
+} from "../lib/filesApi";
+import DocumentGrid from "../components/DocumentGrid";
+import PhotoUploader from "../components/PhotoUploader";
+import CategorySelector from "../components/CategorySelector";
+import {
+  Camera,
+  FileText,
+  Stethoscope,
+  Scissors,
+  ClipboardList,
+  Activity,
+  FileCheck,
+  FolderOpen,
+  Plus,
+} from "lucide-react";
 
-const CATEGORY_TITLES: Record<string, string> = {
-  preop_pics: "Pre-op",
-  lab_reports: "Lab Reports",
-  radiology: "Radiology",
-  intraop_pics: "Intra-op",
-  ot_notes: "OT Notes",
-  postop_pics: "Post-op",
-  discharge_pics: "Discharge",
+// Helper function to get documents for a specific category
+function getCategoryDocuments(docs: DocumentsProfile, category: DocumentsCategory) {
+  switch (category) {
+    case 'preop_pics': return docs.preopPics || [];
+    case 'lab_reports': return docs.labReports || [];
+    case 'radiology': return docs.radiology || [];
+    case 'intraop_pics': return docs.intraopPics || [];
+    case 'ot_notes': return docs.otNotes || [];
+    case 'postop_pics': return docs.postopPics || [];
+    case 'discharge_pics': return docs.dischargePics || [];
+    default: return [];
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CATEGORY CONFIG (icons, labels, colors)
+   ────────────────────────────────────────────────────────────────────────── */
+const CATEGORY_CONFIG: Record<
+  DocumentsCategory | "all",
+  {
+    title: string;
+    shortLabel: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string; // tailwind text-* color for pill
+    bgFrom?: string; // gradient bg start (for icon chip)
+    bgTo?: string; // gradient bg end
+  }
+> = {
+  preop_pics: {
+    title: "Pre-operative",
+    shortLabel: "Pre-op",
+    icon: Camera,
+    color: "text-blue-600",
+    bgFrom: "from-blue-500",
+    bgTo: "to-blue-600",
+  },
+  lab_reports: {
+    title: "Lab Reports",
+    shortLabel: "Labs",
+    icon: FileText,
+    color: "text-green-600",
+    bgFrom: "from-green-500",
+    bgTo: "to-green-600",
+  },
+  radiology: {
+    title: "Radiology",
+    shortLabel: "Radio",
+    icon: Activity,
+    color: "text-purple-600",
+    bgFrom: "from-purple-500",
+    bgTo: "to-purple-600",
+  },
+  intraop_pics: {
+    title: "Intra-operative",
+    shortLabel: "Intra",
+    icon: Scissors,
+    color: "text-red-600",
+    bgFrom: "from-red-500",
+    bgTo: "to-red-600",
+  },
+  ot_notes: {
+    title: "OT Notes",
+    shortLabel: "Notes",
+    icon: ClipboardList,
+    color: "text-orange-600",
+    bgFrom: "from-orange-500",
+    bgTo: "to-orange-600",
+  },
+  postop_pics: {
+    title: "Post-operative",
+    shortLabel: "Post",
+    icon: Stethoscope,
+    color: "text-teal-600",
+    bgFrom: "from-teal-500",
+    bgTo: "to-teal-600",
+  },
+  discharge_pics: {
+    title: "Discharge",
+    shortLabel: "Disc",
+    icon: FileCheck,
+    color: "text-indigo-600",
+    bgFrom: "from-indigo-500",
+    bgTo: "to-indigo-600",
+  },
+  all: {
+    title: "All Documents",
+    shortLabel: "All",
+    icon: FolderOpen,
+    color: "text-gray-600",
+    bgFrom: "from-gray-500",
+    bgTo: "to-gray-600",
+  },
 };
 
+const CATEGORY_KEYS: DocumentsCategory[] = [
+  "preop_pics",
+  "lab_reports",
+  "radiology",
+  "intraop_pics",
+  "ot_notes",
+  "postop_pics",
+  "discharge_pics",
+];
+
+// Simplified version - unused types and helpers removed
+
+// Simplified page: only the "All Documents" section with category counts
+
+/* ──────────────────────────────────────────────────────────────────────────
+   PAGE
+   ────────────────────────────────────────────────────────────────────────── */
 export default function DocumentsPage() {
-  const { id } = useParams();
+  const { id: uid, category: categoryParam } = useParams();
   const navigate = useNavigate();
-  const [docs, setDocs] = useState<any>(null);
-  const [opened, setOpened] = useState<string | null>(null);
+
+  const [docs, setDocs] = useState<DocumentsProfile | null>(null);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [selectedUploadCategory, setSelectedUploadCategory] = useState<DocumentsCategory | null>(null);
+  // No filters/sorting/upload controls in the simplified view
 
   async function refresh() {
-    if (!id) return;
-    setDocs(await getDocuments(id));
+    if (!uid) return;
+    console.time('🏥 Documents API Call');
+    try {
+      const res = await getDocuments(uid);
+      console.timeEnd('🏥 Documents API Call');
+      console.log('📊 Documents loaded:', {
+        categories: Object.keys(res).filter(k => Array.isArray(res[k])),
+        totalDocs: Object.values(res).reduce((acc, val) => 
+          Array.isArray(val) ? acc + val.length : acc, 0
+        )
+      });
+      setDocs(res);
+    } catch (error) {
+      console.timeEnd('🏥 Documents API Call');
+      console.error('❌ Failed to load documents:', error);
+    }
   }
-  const debounceRef = useRef<number | null>(null);
-  function debouncedRefresh(delay = 200) {
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => {
-      refresh();
-    }, delay);
-  }
+
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [uid]);
 
-  const cats = docs
-    ? [
-        { k: "preop_pics", count: docs.preopPics?.length ?? 0 },
-        { k: "lab_reports", count: docs.labReports?.length ?? 0 },
-        { k: "radiology", count: docs.radiology?.length ?? 0 },
-        { k: "intraop_pics", count: docs.intraopPics?.length ?? 0 },
-        { k: "ot_notes", count: docs.otNotes?.length ?? 0 },
-        { k: "postop_pics", count: docs.postopPics?.length ?? 0 },
-        { k: "discharge_pics", count: docs.dischargePics?.length ?? 0 },
-      ]
-    : [];
+  /* Counts per category */
+  const counts = useMemo(() => {
+    if (!docs)
+      return {
+        preop_pics: 0,
+        lab_reports: 0,
+        radiology: 0,
+        intraop_pics: 0,
+        ot_notes: 0,
+        postop_pics: 0,
+        discharge_pics: 0,
+      } as Record<DocumentsCategory, number>;
+    return {
+      preop_pics: docs.preopPics?.length ?? 0,
+      lab_reports: docs.labReports?.length ?? 0,
+      radiology: docs.radiology?.length ?? 0,
+      intraop_pics: docs.intraopPics?.length ?? 0,
+      ot_notes: docs.otNotes?.length ?? 0,
+      postop_pics: docs.postopPics?.length ?? 0,
+      discharge_pics: docs.dischargePics?.length ?? 0,
+    } as Record<DocumentsCategory, number>;
+  }, [docs]);
+
+  const total = (Object.values(counts) as number[]).reduce((a, b) => a + b, 0);
+
+  // Simplified view doesn't compute per-file lists here
+
+  // Determine if we're in category view or main view
+  const isInCategoryView = uid && isValidCategory(categoryParam) && docs;
+  const currentCategory = categoryParam as DocumentsCategory;
+  const categoryDocuments = isInCategoryView ? getCategoryDocuments(docs, currentCategory) : [];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Documents" showBack onBack={() => navigate(-1)} />
-      <main className="p-4 space-y-4">
-        <Card className="p-4">
-          <div className="grid grid-cols-2 gap-2">
-            {cats.map(({ k, count }) => (
-              <DocumentCategory key={k} title={CATEGORY_TITLES[k]} count={count} onOpen={() => setOpened(k)} />
-            ))}
-          </div>
-        </Card>
+    <div className="min-h-screen bg-slate-50 pb-20">
+      {/* Dynamic Header based on view */}
+      {isInCategoryView ? (
+        <Header 
+          title={CATEGORY_CONFIG[currentCategory].title} 
+          showBack 
+          onBack={() => navigate(`/patients/${uid}/docs`)} 
+        />
+      ) : (
+        <Header title="Documents" showBack onBack={() => navigate(-1)} />
+      )}
 
-        {opened && id && (
-          <Card className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{CATEGORY_TITLES[opened]}</h3>
-              <Button variant="outline" onClick={() => setOpened(null)}>
-                Close
-              </Button>
+      <main className="p-4">
+        {!isInCategoryView ? (
+          /* Main Documents Overview */
+          <>
+            <h2 className="text-[#0d141c] text-[22px] font-bold tracking-[-0.015em] pb-3 pt-1">
+              All Documents
+            </h2>
+            <CategoriesOverview
+              counts={counts}
+              total={total}
+              onOpenCategory={(k) => {
+                if (!uid) return;
+                navigate(`/patients/${uid}/docs/${k}`);
+              }}
+            />
+          </>
+        ) : (
+          /* Category Gallery View */
+          <div className="space-y-6">
+            {/* Category Header with Icon */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`p-3 rounded-full bg-gradient-to-r ${CATEGORY_CONFIG[currentCategory].bgFrom} ${CATEGORY_CONFIG[currentCategory].bgTo}`}>
+                {React.createElement(CATEGORY_CONFIG[currentCategory].icon, { 
+                  className: "h-6 w-6 text-white" 
+                })}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-[#0d141c] mb-1">
+                  {CATEGORY_CONFIG[currentCategory].title}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {categoryDocuments.length} {categoryDocuments.length === 1 ? 'document' : 'documents'}
+                </p>
+              </div>
+              <PhotoUploader
+                patientId={uid}
+                category={currentCategory}
+                onUploadComplete={() => refresh()}
+              />
             </div>
 
-            <ImageUploader
-              mrn={id}
-              ctx={{ kind: "doc", docType: categoryToDocType(opened) as any, category: opened as any }}
-              onDone={() => debouncedRefresh()}
-            />
+            {/* Gallery Grid */}
+            {categoryDocuments.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {categoryDocuments.map((doc, index) => (
+                  <div 
+                    key={doc.key} 
+                    className="relative group aspect-square bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200"
+                  >
+                    {doc.cdnUrl ? (
+                      <>
+                        {/* Loading skeleton */}
+                        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+                          <div className="text-xs text-gray-400">Loading...</div>
+                        </div>
+                        <img 
+                          src={doc.cdnUrl} 
+                          alt={doc.caption || `${CATEGORY_CONFIG[currentCategory].title} ${index + 1}`}
+                          className="w-full h-full object-cover relative z-10 cursor-pointer" 
+                          loading="lazy"
+                          decoding="async"
+                          onLoad={(e) => {
+                            console.log('✅ Gallery image loaded:', doc.key);
+                            const skeleton = e.currentTarget.previousElementSibling;
+                            if (skeleton) skeleton.style.display = 'none';
+                          }}
+                          onError={(e) => {
+                            console.warn('❌ Gallery image failed:', doc.key);
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.style.display = 'none';
+                            const parent = img.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="flex items-center justify-center h-full bg-gray-100 text-xs p-2 text-center"><span>Image unavailable</span></div>`;
+                            }
+                          }}
+                        />
+                        
+                        {/* Overlay with image info */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-end">
+                          <div className="w-full p-3 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-200">
+                            {doc.caption && (
+                              <p className="text-sm font-medium truncate mb-1">{doc.caption}</p>
+                            )}
+                            <p className="text-xs opacity-80">
+                              {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Unknown date'}
+                            </p>
+                          </div>
+                        </div>
 
-            <FileGrid mrn={id} kind="doc" docType={categoryToDocType(opened)} detachable docCategory={opened} onDetached={() => debouncedRefresh()} />
-          </Card>
+                        {/* Delete button */}
+                        <button
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                          title="Remove image"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Use the detach function from DocumentGrid
+                            const detachFunction = async () => {
+                              try {
+                                const { detachDocument } = await import("../lib/filesApi");
+                                const patientId = doc.key.split('/')[1];
+                                await detachDocument(patientId, { category: currentCategory, key: doc.key });
+                                refresh();
+                                const { toast } = await import("@/components/ui/sonner");
+                                toast("Image removed");
+                              } catch (error) {
+                                console.error("Remove failed", error);
+                                const { toast } = await import("@/components/ui/sonner");
+                                toast("Failed to remove image");
+                              }
+                            };
+                            detachFunction();
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-gray-100 text-sm text-gray-500">
+                        <span>No image</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Empty State */
+              <div className="text-center py-12">
+                <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-r ${CATEGORY_CONFIG[currentCategory].bgFrom} ${CATEGORY_CONFIG[currentCategory].bgTo} flex items-center justify-center mb-4`}>
+                  {React.createElement(CATEGORY_CONFIG[currentCategory].icon, { 
+                    className: "h-8 w-8 text-white" 
+                  })}
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No {CATEGORY_CONFIG[currentCategory].title.toLowerCase()} yet
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Start by uploading your first document to this category
+                </p>
+                <PhotoUploader
+                  patientId={uid}
+                  category={currentCategory}
+                  onUploadComplete={() => refresh()}
+                  className="inline-block"
+                />
+              </div>
+            )}
+          </div>
         )}
       </main>
+
       <BottomBar />
+
+      {/* Floating Action Button for Quick Upload */}
+      {uid && !categoryParam && (
+        <button
+          onClick={() => setShowCategorySelector(true)}
+          className="fixed bottom-24 right-6 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors z-40"
+          title="Add Photo"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Category Selector Modal */}
+      <CategorySelector
+        isOpen={showCategorySelector}
+        onClose={() => setShowCategorySelector(false)}
+        onSelectCategory={(category) => {
+          setSelectedUploadCategory(category);
+          // Navigate to the category page for upload
+          navigate(`/patients/${uid}/docs/${category}`);
+        }}
+      />
+
+      {/* Hidden PhotoUploader for category-based uploads */}
+      {selectedUploadCategory && uid && (
+        <div className="hidden">
+          <PhotoUploader
+            patientId={uid}
+            category={selectedUploadCategory}
+            onUploadComplete={() => {
+              refresh();
+              setSelectedUploadCategory(null);
+            }}
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   COMPONENTS
+   ────────────────────────────────────────────────────────────────────────── */
+
+// Unused components removed for cleaner simplified version
+
+function CategoriesOverview({
+  counts,
+  total,
+  onOpenCategory,
+}: {
+  counts: Record<DocumentsCategory, number>;
+  total: number;
+  onOpenCategory: (k: DocumentsCategory) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(158px,1fr))] gap-3">
+      {CATEGORY_KEYS.map((k) => {
+        const cfg = CATEGORY_CONFIG[k];
+        const Icon = cfg.icon;
+        return (
+          <button
+            key={k}
+            onClick={() => onOpenCategory(k)}
+            className="text-left flex flex-1 gap-3 rounded-lg border border-[#cedbe9] bg-slate-50 p-4 flex-col hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-label={`Open ${cfg.title}`}
+          >
+            <div className="text-[#0d141c]">
+              <Icon className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h4 className="text-[#0d141c] text-base font-bold leading-tight">
+                {cfg.title}
+              </h4>
+              <p className="text-[#47739e] text-sm leading-normal">
+                {counts[k]} {counts[k] === 1 ? "Document" : "Documents"}
+              </p>
+            </div>
+          </button>
+        );
+      })}
+      {/* Optional overall tile */}
+      <div className="flex flex-1 gap-3 rounded-lg border border-[#cedbe9] bg-slate-50 p-4 flex-col">
+        <div className="text-[#0d141c]">
+          <FolderOpen className="h-6 w-6" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <h4 className="text-[#0d141c] text-base font-bold leading-tight">All</h4>
+          <p className="text-[#47739e] text-sm leading-normal">
+            {total} {total === 1 ? "Document" : "Documents"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+  // (Helpers removed; simplified page doesn't need them)
+
+function isValidCategory(x: unknown): x is DocumentsCategory {
+  return (
+    x === "preop_pics" ||
+    x === "lab_reports" ||
+    x === "radiology" ||
+    x === "intraop_pics" ||
+    x === "ot_notes" ||
+    x === "postop_pics" ||
+    x === "discharge_pics"
   );
 }

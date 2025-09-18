@@ -3,8 +3,10 @@ export function assertNever(x: never): never {
   throw new Error("Unreachable");
 }
 
-export function categoryToDocType(category: string) {
-  const map: Record<string, string> = {
+import type { DocumentsCategory, DocType } from "./filesApi";
+
+export function categoryToDocType(category: DocumentsCategory): DocType {
+  const map: Record<DocumentsCategory, DocType> = {
     preop_pics: "preop",
     lab_reports: "lab",
     radiology: "radiology",
@@ -13,6 +15,6 @@ export function categoryToDocType(category: string) {
     postop_pics: "postop",
     discharge_pics: "discharge",
   };
-  return map[category] || "misc";
+  return map[category];
 }
 

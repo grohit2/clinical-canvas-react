@@ -4,6 +4,14 @@
 import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { resolveAnyPatientId } from "./ids.mjs";
 
+// CloudFront CDN URL generation
+const CF_DOMAIN = process.env.CF_DOMAIN || process.env.CDN_DOMAIN || "";
+function makeCdnUrl(s3Key) {
+  if (!CF_DOMAIN) return null;
+  const domain = CF_DOMAIN.startsWith('http') ? CF_DOMAIN : `https://${CF_DOMAIN}`;
+  return `${domain}/${s3Key}`;
+}
+
 const DOC_SK = "DOCS#PROFILE";
 
 // categories -> Dynamo attributes
@@ -17,15 +25,23 @@ const CATS = {
   discharge_pics: "discharge_pics",
 };
 
+// Helper to add CDN URLs to document entries
+function enrichWithCdnUrls(entries) {
+  return (entries || []).map(entry => ({
+    ...entry,
+    cdnUrl: makeCdnUrl(entry.key)
+  }));
+}
+
 const toUiDocs = (it = {}) => ({
-  patientId: it.patient_uid,
-  preopPics:     it.preop_pics     || [],
-  labReports:    it.lab_reports    || [],
-  radiology:     it.radiology      || [],
-  intraopPics:   it.intraop_pics   || [],
-  otNotes:       it.ot_notes       || [],
-  postopPics:    it.postop_pics    || [],
-  dischargePics: it.discharge_pics || [],
+  uid: it.patient_uid,
+  preopPics:     enrichWithCdnUrls(it.preop_pics),
+  labReports:    enrichWithCdnUrls(it.lab_reports),
+  radiology:     enrichWithCdnUrls(it.radiology),
+  intraopPics:   enrichWithCdnUrls(it.intraop_pics),
+  otNotes:       enrichWithCdnUrls(it.ot_notes),
+  postopPics:    enrichWithCdnUrls(it.postop_pics),
+  dischargePics: enrichWithCdnUrls(it.discharge_pics),
   createdAt: it.created_at,
   updatedAt: it.updated_at,
 });

@@ -9,13 +9,12 @@ import type { Note } from "@/types/api";
 import { ArrowLeft } from "lucide-react";
 
 export default function EditNote() {
-  const { id, noteId } = useParams();
+  const { id: uid, noteId } = useParams();
   const navigate = useNavigate();
   const [category, setCategory] = useState<Note['category'] | "">("");
   const [content, setContent] = useState("");
   const [authorId, setAuthorId] = useState("");
   const [patientName, setPatientName] = useState("");
-  const [patient, setPatient] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<FilesListItem[]>([]);
   const [note, setNote] = useState<Note | null>(null);
@@ -25,42 +24,41 @@ export default function EditNote() {
   }, []);
 
   useEffect(() => {
-    if (!id || !noteId) return;
-    
-    // Load patient data
-    api.patients.get(id).then(p => {
-      setPatientName(p.name);
-      setPatient(p);
-      
-      // Load existing note images
-      listFiles({
-        mrn: p.mrn,
-        kind: "note",
-        refId: noteId,
-        presign: true
-      }).then(response => {
+    if (!uid || !noteId) return;
+
+    api.patients
+      .get(uid)
+      .then((p) => {
+        setPatientName(p.name);
+      })
+      .catch(() => {});
+
+    listFiles(uid, { kind: "note", refId: noteId })
+      .then((response) => {
         setImages(response.items);
-      }).catch(console.error);
-    }).catch(() => {});
-    
-    // Load note data
-    api.notes.list(id, 50).then(res => {
-      const foundNote = res.items.find(n => n.noteId === noteId);
-      if (foundNote) {
-        setNote(foundNote);
-        setCategory(foundNote.category);
-        setContent(foundNote.content);
-        setAuthorId(foundNote.authorId);
-      }
-    }).catch(() => {});
-  }, [id, noteId]);
+      })
+      .catch(console.error);
+
+    api.notes
+      .list(uid, 50)
+      .then((res) => {
+        const foundNote = res.items.find((n) => n.noteId === noteId);
+        if (foundNote) {
+          setNote(foundNote);
+          setCategory(foundNote.category);
+          setContent(foundNote.content);
+          setAuthorId(foundNote.authorId);
+        }
+      })
+      .catch(() => {});
+  }, [uid, noteId]);
 
   const handleSave = async () => {
-    if (!id || !noteId || !category || !content) return;
+    if (!uid || !noteId || !category || !content) return;
     setSubmitting(true);
     try {
-      await api.notes.update(id, noteId, { category, content });
-      navigate(`/patients/${id}/notes/${noteId}`);
+      await api.notes.update(uid, noteId, { category, content });
+      navigate(`/patients/${uid}/notes/${noteId}`);
     } catch (e) {
       console.error(e);
     } finally {
@@ -79,7 +77,7 @@ export default function EditNote() {
     });
   };
 
-  if (!note || !patient) {
+  if (!note) {
     return (
       <div className="flex flex-col h-screen bg-gray-50">
         <div className="flex-1 flex items-center justify-center">
@@ -94,9 +92,9 @@ export default function EditNote() {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="p-4 flex items-center justify-between">
-          <button 
+          <button
             className="text-gray-600 hover:text-gray-800"
-            onClick={() => navigate(`/patients/${id}/notes/${noteId}`)}
+            onClick={() => navigate(`/patients/${uid}/notes/${noteId}`)}
           >
             <ArrowLeft size={24} />
           </button>
@@ -146,16 +144,14 @@ export default function EditNote() {
           </div>
 
           {/* Image Upload Component */}
-          {patient && (
-            <ImageUploadS3
-              mrn={patient.mrn}
-              kind="note"
-              refId={noteId!}
-              images={images}
-              onImagesChange={setImages}
-              maxImages={10}
-            />
-          )}
+          <ImageUploadS3
+            patientId={uid!}
+            kind="note"
+            refId={noteId!}
+            images={images}
+            onImagesChange={setImages}
+            maxImages={10}
+          />
         </div>
       </main>
 

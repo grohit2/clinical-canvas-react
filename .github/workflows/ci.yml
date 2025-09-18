@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - name: Block MRN usage
+        run: |
+          if rg -n '\bmrn\b' -g 'src/**' -g '!**/node_modules/**' -g '!**/*.md'; then
+            echo "❌ MRN found in code. Use UID."
+            exit 1
+          fi
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build

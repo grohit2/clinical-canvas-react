@@ -245,6 +245,12 @@ export const api = {
         method: 'DELETE',
       }),
   },
+  uploads: {
+    getPresignedUrl: (fileName: string, fileType: string) =>
+      request<{ uploadUrl: string; fileUrl: string }>(
+        `/uploads/presigned?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}`
+      ),
+  },
 };
 
 export default api;

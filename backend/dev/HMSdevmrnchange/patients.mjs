@@ -150,13 +150,26 @@ export function mountPatientRoutes(router, ctx) {
       department: reg.department, status: "ACTIVE", created_at: now,
     };
 
-    await ddb.send(new TransactWriteCommand({
-      TransactItems: [
-        { Put: { TableName: TABLE, Item: item, ConditionExpression: "attribute_not_exists(PK)" } },
-        { Put: { TableName: TABLE, Item: tl.item } },
-        { Put: { TableName: TABLE, Item: mrnPtr, ConditionExpression: "attribute_not_exists(PK)" } },
-      ]
-    }));
+    try {
+      await ddb.send(new TransactWriteCommand({
+        TransactItems: [
+          { Put: { TableName: TABLE, Item: item, ConditionExpression: "attribute_not_exists(PK)" } },
+          { Put: { TableName: TABLE, Item: tl.item } },
+          { Put: { TableName: TABLE, Item: mrnPtr, ConditionExpression: "attribute_not_exists(PK)" } },
+        ]
+      }));
+    } catch (err) {
+      const name = err?.name || "";
+      const msg  = err?.message || "";
+      console.error("create patient tx failed", { uid, mrn: reg?.mrn, step: "create", name, msg, reasons: err?.CancellationReasons });
+      if (name === "TransactionCanceledException" && msg.includes("ConditionalCheckFailed")) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+      if (name === "ValidationException" && (msg.includes("reserved keyword") || msg.includes("list_append"))) {
+        return resp(400, { error: "Invalid expression or mrn_history shape", detail: msg });
+      }
+      return resp(500, { error: "registration failed", detail: `${name}: ${msg}` });
+    }
 
     return resp(201, { message: "created", patient_uid: uid, latestMrn: reg.mrn, patient: toUiPatient(item) });
   });
@@ -338,7 +351,20 @@ export function mountPatientRoutes(router, ctx) {
       }
     });
 
-    await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    try {
+      await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    } catch (err) {
+      const name = err?.name || "";
+      const msg  = err?.message || "";
+      console.error("state change tx failed", { uid, mrn: meta?.active_reg_mrn, step: "state-change", name, msg, reasons: err?.CancellationReasons });
+      if (name === "TransactionCanceledException" && msg.includes("ConditionalCheckFailed")) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+      if (name === "ValidationException" && (msg.includes("reserved keyword") || msg.includes("list_append"))) {
+        return resp(400, { error: "Invalid expression or mrn_history shape", detail: msg });
+      }
+      return resp(500, { error: "registration failed", detail: `${name}: ${msg}` });
+    }
 
     const ref = await ddb.send(new GetCommand({
       TableName: TABLE, Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" }
@@ -363,6 +389,16 @@ export function mountPatientRoutes(router, ctx) {
 
     const now = nowISO();
     const firstState = body.firstState || meta.current_state || "onboarding";
+
+    // Optional pre-check: early MRN conflict detection
+    try {
+      const pre = await ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `MRN#${body.mrn}`, SK: "MRN" } }));
+      if (pre?.Item && pre.Item.patient_uid && pre.Item.patient_uid !== uid) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+    } catch (e) {
+      // Non-fatal: proceed to transactional safety
+    }
 
     const tx = [];
 
@@ -390,12 +426,13 @@ export function mountPatientRoutes(router, ctx) {
         TableName: TABLE,
         Key: { PK: `MRN#${body.mrn}`, SK: "MRN" },
         ConditionExpression: "attribute_not_exists(PK) OR patient_uid = :uid",
-        UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, status = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+        UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, #s = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+        ExpressionAttributeNames: { "#s": "status" },
         ExpressionAttributeValues: {
           ":mrn": body.mrn,
           ":uid": uid,
           ":sch": body.scheme,
-          ":dept": body.department ?? meta.department,
+          ":dept": body.department ?? meta.department ?? "Unknown",
           ":active": "ACTIVE",
           ":now": now,
         },
@@ -408,12 +445,14 @@ export function mountPatientRoutes(router, ctx) {
       ":push": [{ mrn: body.mrn, scheme: body.scheme, date: now }],
       ":lsi": `CUR#${body.mrn}`,
     };
+    const historyIsList = Array.isArray(meta.mrn_history);
     let setExpr = "SET active_reg_mrn = :mrn, active_scheme = :sch, " +
-                  "mrn_history = list_append(if_not_exists(mrn_history, :empty), :push), " +
+                  (historyIsList ? "mrn_history = list_append(mrn_history, :push), "
+                                 : "mrn_history = :push, ") +
                   "LSI_CUR_MRN = :lsi, timeline_open_sk = :tlsk, " +
                   "current_state = :fs, #sd.#fs = if_not_exists(#sd.#fs, :now), " +
                   "updated_at = :now, last_updated = :now";
-    names["#fs"] = String(firstState); values[":fs"] = firstState; values[":empty"] = []; values[":tlsk"] = tl.sk;
+    names["#fs"] = String(firstState); values[":fs"] = firstState; values[":tlsk"] = tl.sk;
 
     // optional episode fields
     const epMap = {
@@ -443,7 +482,21 @@ export function mountPatientRoutes(router, ctx) {
       }
     });
 
-    await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    try {
+      await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    } catch (err) {
+      const name = err?.name || "";
+      const msg  = err?.message || "";
+      // Log rich diagnostics
+      console.error("registration tx failed", { uid, mrn: body?.mrn, step: "registration", name, msg, reasons: err?.CancellationReasons });
+      if (name === "TransactionCanceledException" && msg.includes("ConditionalCheckFailed")) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+      if (name === "ValidationException" && (msg.includes("reserved keyword") || msg.includes("list_append"))) {
+        return resp(400, { error: "Invalid expression or mrn_history shape", detail: msg });
+      }
+      return resp(500, { error: "registration failed", detail: `${name}: ${msg}` });
+    }
 
     const ref = await ddb.send(new GetCommand({
       TableName: TABLE, Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" }
@@ -541,6 +594,16 @@ export function mountPatientRoutes(router, ctx) {
       return resp(200, { message: "mrn-overwrite-updated", patient: toUiPatient(upd.Attributes) });
     }
 
+    // Optional pre-check: early MRN conflict detection for desired MRN
+    try {
+      const pre = await ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `MRN#${desired.mrn}`, SK: "MRN" } }));
+      if (pre?.Item && pre.Item.patient_uid && pre.Item.patient_uid !== uid) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+    } catch (e) {
+      // proceed to transaction regardless
+    }
+
     // Otherwise, switch registration to desired and set history in same transaction
     const tx = [];
     // Close old TL if any
@@ -563,12 +626,13 @@ export function mountPatientRoutes(router, ctx) {
       TableName: TABLE,
       Key: { PK: `MRN#${desired.mrn}`, SK: "MRN" },
       ConditionExpression: "attribute_not_exists(PK) OR patient_uid = :uid",
-      UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, status = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+      UpdateExpression: "SET mrn = :mrn, patient_uid = :uid, scheme = :sch, department = :dept, #s = :active, created_at = if_not_exists(created_at, :now), updated_at = :now",
+      ExpressionAttributeNames: { "#s": "status" },
       ExpressionAttributeValues: {
         ":mrn": desired.mrn,
         ":uid": uid,
         ":sch": desired.scheme,
-        ":dept": meta.department,
+        ":dept": meta.department ?? "Unknown",
         ":active": "ACTIVE",
         ":now": now,
       },
@@ -586,10 +650,58 @@ export function mountPatientRoutes(router, ctx) {
       },
     }});
 
-    await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    try {
+      await ddb.send(new TransactWriteCommand({ TransactItems: tx }));
+    } catch (err) {
+      const name = err?.name || "";
+      const msg  = err?.message || "";
+      console.error("mrn-overwrite tx failed", { uid, mrn: desired?.mrn, step: "mrn-overwrite", name, msg, reasons: err?.CancellationReasons });
+      if (name === "TransactionCanceledException" && msg.includes("ConditionalCheckFailed")) {
+        return resp(409, { error: "MRN already assigned to another patient" });
+      }
+      if (name === "ValidationException" && (msg.includes("reserved keyword") || msg.includes("list_append"))) {
+        return resp(400, { error: "Invalid expression or mrn_history shape", detail: msg });
+      }
+      return resp(500, { error: "registration failed", detail: `${name}: ${msg}` });
+    }
 
     const ref = await ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" } }));
     return resp(200, { message: "mrn-overwrite-updated", patient: toUiPatient(ref.Item) });
+  });
+
+  /* ---------------- Data Janitor: normalize mrn_history ----------------
+     POST /patients/janitor/mrn-history-normalize
+     - For META rows where mrn_history is missing or not a List, set to []
+  */
+  router.add("POST", /^\/?patients\/janitor\/mrn-history-normalize\/?$/, async () => {
+    const now = nowISO();
+    let fixed = 0;
+    let startKey = undefined;
+    do {
+      const scan = await ddb.send(new ScanCommand({
+        TableName: TABLE,
+        FilterExpression: "#sk = :meta AND (attribute_not_exists(mrn_history) OR NOT attribute_type(mrn_history, :l))",
+        ExpressionAttributeNames: { "#sk": "SK" },
+        ExpressionAttributeValues: { ":meta": "META_LATEST", ":l": "L" },
+        ExclusiveStartKey: startKey,
+      }));
+      const items = scan.Items || [];
+      for (const it of items) {
+        try {
+          await ddb.send(new UpdateCommand({
+            TableName: TABLE,
+            Key: { PK: it.PK, SK: it.SK },
+            UpdateExpression: "SET mrn_history = :empty, updated_at = :now, last_updated = :now",
+            ExpressionAttributeValues: { ":empty": [], ":now": now },
+          }));
+          fixed++;
+        } catch (err) {
+          console.error("janitor update failed", { pk: it.PK, sk: it.SK, name: err?.name, msg: err?.message });
+        }
+      }
+      startKey = scan.LastEvaluatedKey;
+    } while (startKey);
+    return resp(200, { message: "mrn_history normalized", fixed });
   });
 
   /* ---------------- SOFT DELETE (mark patient episode inactive) ---------------- */

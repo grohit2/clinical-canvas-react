@@ -502,3 +502,116 @@ Bug Fixes
 Status
 - ✅ Frontend and backend aligned for MRN history management.
 - ✅ Single-call edit via `mrn-overwrite` with robust fallback when unavailable or erroring.
+
+
+sep 21
+========================================
+codex
+I made targeted backend changes to fix the MRN-registration 500s and harden the 
+flow.
+
+What I changed
+- Reserved word aliasing: Updated both MRN pointer upserts to alias status as #s
+ and added ExpressionAttributeNames.
+  - File: backend/dev/HMSdevmrnchange/patients.mjs
+  - /registration pointer upsert:
+    - UpdateExpression uses #s = :active
+    - ExpressionAttributeNames: { "#s": "status" }
+    - Added safe department default: ":dept": body.department ?? meta.department
+ ?? "Unknown"
+  - /mrn-overwrite pointer upsert:
+    - UpdateExpression uses #s = :active
+    - ExpressionAttributeNames: { "#s": "status" }
+    - Safe department default: ":dept": meta.department ?? "Unknown"
+
+- Error mapping and logging: Wrapped all TransactWriteCommand calls in try/catch
+ with mapping and CloudWatch-friendly logs.
+  - Endpoints wrapped: POST /patients, PATCH /patients/{id}/state, PATCH /patien
+ts/{id}/registration, PATCH /patients/{id}/mrn-overwrite
+  - 409 on TransactionCanceledException + ConditionalCheckFailed
+  - 400 on ValidationException mentioning reserved keyword or list_append
+  - 500 default with { error: "registration failed", detail }
+  - Logs include uid, mrn, step, and CancellationReasons if present
+
+- mrn_history hardening: In /registration, pick the UpdateExpression based on me
+ta.mrn_history type.
+  - If Array.isArray(meta.mrn_history) → mrn_history = list_append(mrn_history, 
+:push)
+  - Else → mrn_history = :push
+  - Removed use of :empty initializer
+
+- Optional conflict pre-checks: Early GET for MRN pointers to short-circuit conf
+licts with 409.
+  - /registration: checks PK=MRN#<body.mrn>, SK=MRN
+  - /mrn-overwrite: checks PK=MRN#<desired.mrn>, SK=MRN
+
+- Data janitor endpoint: Normalizes bad mrn_history shapes.
+  - Route: POST /patients/janitor/mrn-history-normalize
+  - Scans META_LATEST rows and sets mrn_history = [] where missing or not a List
+  - Logs failures; returns count of fixed rows
+
+Key code diffs applied
+- status alias and dept default (/registration)
+  - UpdateExpression: SET mrn = :mrn, patient_uid = :uid, scheme = :sch, departm
+ent = :dept, #s = :active, created_at = if_not_exists(created_at, :now), updated
+_at = :now
+  - ExpressionAttributeNames: { "#s": "status" }
+  - ":dept": body.department ?? meta.department ?? "Unknown"
+
+- status alias (/mrn-overwrite)
+  - UpdateExpression: SET mrn = :mrn, patient_uid = :uid, scheme = :sch, departm
+ent = :dept, #s = :active, created_at = if_not_exists(created_at, :now), updated
+_at = :now
+  - ExpressionAttributeNames: { "#s": "status" }
+  - ":dept": meta.department ?? "Unknown"
+
+- mrn_history defensive set (/registration)
+  - const historyIsList = Array.isArray(meta.mrn_history)
+  - mrn_history = list_append(mrn_history, :push) if list, else mrn_history = :p
+ush
+  - Removed if_not_exists and :empty
+
+- Error mapping (all transactions)
+  - try/catch around ddb.send(new TransactWriteCommand(...))
+  - 409/400/500 mapping with detailed console.error logs
+
+- Pre-checks for conflicts
+  - Early GET pointer check in /registration and /mrn-overwrite, returns 409 if 
+MRN owned by another patient
+
+Validation and notes
+- Syntax/import check: Local import failed due to missing @aws-sdk libs in this 
+workspace, but changes are scoped and syntactically consistent with the existing
+ code patterns. Recommend verifying in dev.
+Next steps (suggested)
+- Deploy backend (dev) and retry the failing call:
+own"}
+- Smoke-check DynamoDB:
+  - MRN#test1234 -> patient_uid = {uid}, status = ACTIVE
+  - META -> active_reg_mrn = test1234, mrn_history is a List, LSI_CUR_MRN = CUR#
+test1234, fresh timeline_open_sk
+- Optionally run janitor: POST /patients/janitor/mrn-history-normalize
+
+If you want, I can output a single unified diff patch for the current branch to 
+apply directly.
+
+▌ Ask Codex to do anything                                                                                                                                                                                         
+user
+
+⏺ ✅ Deployment Complete
+
+  The lambda has been successfully redeployed with your changes:
+
+  - Stack: hms-hyd-dev
+  - Status: UPDATE_COMPLETE
+  - Region: ap-south-1
+  - Function URL: https://kfzsv6at3amrxzl5kzuehljfju0rhkup.lambda-url.ap-south-1.on.aws/
+
+  Your updates are now live:
+  - Reserved word aliasing for status as #s
+  - Enhanced error mapping with CloudWatch-friendly logs
+  - MRN history hardening with proper list handling
+  - Conflict pre-checks for early 409 responses
+  - Safe department defaults
+
+  You can now test the failing call: PATCH /api/patients/{uid}/registration with your MRN changes. now check

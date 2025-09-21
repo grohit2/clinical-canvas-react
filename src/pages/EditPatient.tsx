@@ -223,15 +223,33 @@ export default function EditPatient() {
   };
 
   const removeMrnEntry = (index: number) => {
-    if (formData.mrnHistory.length > 1) {
-      setFormData(prev => ({
+    if (formData.mrnHistory.length <= 1) return;
+
+    setFormData(prev => {
+      const newHistory = prev.mrnHistory.filter((_, i) => i !== index);
+      const isValid = (e: { mrn: string; scheme: string }) => !!(e?.mrn && e?.scheme);
+      const firstValid = newHistory.find(isValid);
+
+      let newLatest = prev.latestMrn;
+      const removedMrn = prev.mrnHistory[index]?.mrn || "";
+      // If latest was removed or latest no longer exists in new history, pick first valid
+      const latestStillExists = newHistory.some(e => e.mrn === prev.latestMrn);
+      if (!latestStillExists || prev.latestMrn === removedMrn) {
+        newLatest = firstValid?.mrn || "";
+      }
+
+      return {
         ...prev,
-        mrnHistory: prev.mrnHistory.filter((_, i) => i !== index),
-        latestMrn: prev.latestMrn === prev.mrnHistory[index]?.mrn 
-          ? (prev.mrnHistory[0]?.mrn || "") 
-          : prev.latestMrn
-      }));
-    }
+        mrnHistory: newHistory,
+        latestMrn: newLatest,
+      };
+    });
+
+    // Gentle nudge to save changes
+    toast({
+      title: "MRN removed",
+      description: "Remember to Save Changes to persist.",
+    });
   };
 
   const setCurrentMrn = (index: number) => {
@@ -245,6 +263,17 @@ export default function EditPatient() {
       }))
     }));
   };
+
+  // Keep latestMrn consistent with history edits
+  useEffect(() => {
+    setFormData(prev => {
+      const latestInHistory = prev.mrnHistory.some(e => e.mrn === prev.latestMrn);
+      if (latestInHistory) return prev;
+      const firstValid = prev.mrnHistory.find(e => e.mrn && e.scheme);
+      if (!firstValid && prev.latestMrn === "") return prev;
+      return { ...prev, latestMrn: firstValid?.mrn || "" };
+    });
+  }, [formData.mrnHistory.length]);
 
   const getSectionCompletionStatus = (sectionId: string) => {
     switch (sectionId) {
@@ -279,16 +308,13 @@ export default function EditPatient() {
   };
 
   const validateMandatoryFields = () => {
-    const hasValidMrn = formData.mrnHistory.some(entry => 
-      entry.scheme !== "" && entry.mrn.trim() !== ""
-    );
-    
+    const hasValidMrn = formData.mrnHistory.some(entry => entry.scheme && entry.mrn && entry.mrn.trim() !== "");
     return (
       formData.name.trim() !== "" &&
       formData.age !== "" &&
       formData.sex !== "" &&
-      hasValidMrn &&
-      formData.department.trim() !== ""
+      formData.department.trim() !== "" &&
+      hasValidMrn
     );
   };
 

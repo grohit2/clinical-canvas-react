@@ -253,7 +253,7 @@ export default function EditPatient() {
   };
 
   const setCurrentMrn = (index: number) => {
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const currentDate = new Date().toISOString();
     setFormData(prev => ({
       ...prev,
       latestMrn: prev.mrnHistory[index]?.mrn || "",
@@ -334,7 +334,15 @@ export default function EditPatient() {
       setIsSubmitting(true);
 
       // Compute cleaned MRN history from form
-      const cleanedHistory = (formData.mrnHistory || []).filter(e => e.mrn && e.mrn.trim());
+      const nowIso = new Date().toISOString();
+      const cleanedHistory = (formData.mrnHistory || [])
+        .filter(e => e.mrn && e.mrn.trim())
+        .map(e => ({
+          mrn: e.mrn.trim(),
+          scheme: e.scheme || 'Unknown',
+          // Ensure current/latest MRN gets the highest timestamp so backend picks it
+          date: e.mrn === formData.latestMrn ? nowIso : (e.date || nowIso)
+        }));
 
       // Try one-shot overwrite first; if route not present in backend (404), fall back to two-step
       try {
@@ -408,16 +416,16 @@ export default function EditPatient() {
       });
 
       navigate(`/patients/${id}`);
-    } catch (error) {
-      console.error("Failed to update patient:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update patient. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+      } catch (error: any) {
+        console.error("Failed to update patient:", error);
+        toast({
+          title: "Error",
+          description: (error?.message ? String(error.message) : "Failed to update patient. Please try again."),
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
   };
 
   useEffect(() => {

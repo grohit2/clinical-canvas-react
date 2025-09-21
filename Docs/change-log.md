@@ -615,3 +615,49 @@ user
   - Safe department defaults
 
   You can now test the failing call: PATCH /api/patients/{uid}/registration with your MRN changes. now check
+
+
+
+
+sep 21
+
+Thanks — I’ve tightened the Edit Patient MRN “make current + save” flow so it re
+liably persists.
+
+What I changed
+- Current MRN timestamp: When you click “Set Latest”, it now stamps that entry w
+ith a full ISO timestamp (not just YYYY-MM-DD). This ensures the backend’s highe
+st-date selection always picks the one you marked as current.
+- Save normalization: On Save, the form normalizes MRN history so the selected l
+atest MRN gets the newest timestamp and default scheme fallback if blank. This m
+akes the backend “mrn-overwrite” endpoint consistently honor your current select
+ion.
+- Better errors: If the backend rejects the change (e.g., MRN conflict), the toa
+st now shows the real backend message (like “MRN already assigned to another pat
+ient”) instead of a generic error.
+- Latest MRN consistency on delete: If you remove the current MRN, the form auto
+-selects the next valid MRN and nudges you to Save Changes.
+
+Files updated
+- src/pages/EditPatient.tsx
+  - setCurrentMrn now uses full ISO date for the chosen current MRN.
+  - handleSubmit ensures the selected latest MRN has the newest date before call
+ing overwrite.
+  - Error toast shows the actual backend error message.
+  - Keeps latestMrn consistent when MRNs are deleted.
+
+How to verify
+- In Edit Patient:
+  - Click “Set Latest” on the MRN you want current.
+  - Ensure the MRN row has a scheme and MRN number filled.
+  - Click “Save Changes”.
+- You should see a success toast and, after redirect, the Patient detail page wi
+ll show the new current MRN.
+- If the MRN is truly taken by another patient, you’ll now see a clear 409 error
+ message.
+
+If this still doesn’t work in your environment, please share:
+- The toast/error text shown.
+- The MRN(s) involved (to check for conflicts).
+- Whether you navigated to the Edit page by patient UID or by MRN (so we can con
+firm the post-save redirect path).

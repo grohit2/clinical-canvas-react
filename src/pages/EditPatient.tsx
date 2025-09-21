@@ -335,13 +335,14 @@ export default function EditPatient() {
 
       // Compute cleaned MRN history from form
       const nowIso = new Date().toISOString();
+      const oldFallback = '1970-01-01T00:00:00.000Z';
       const cleanedHistory = (formData.mrnHistory || [])
         .filter(e => e.mrn && e.mrn.trim())
         .map(e => ({
           mrn: e.mrn.trim(),
           scheme: e.scheme || 'Unknown',
-          // Ensure current/latest MRN gets the highest timestamp so backend picks it
-          date: e.mrn === formData.latestMrn ? nowIso : (e.date || nowIso)
+          // Ensure selected latest MRN sorts highest; give others a stable older default
+          date: e.mrn === formData.latestMrn ? nowIso : (e.date || oldFallback)
         }));
 
       // Try one-shot overwrite first; if route not present in backend (404), fall back to two-step

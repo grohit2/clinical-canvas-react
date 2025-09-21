@@ -661,3 +661,31 @@ If this still doesn’t work in your environment, please share:
 - The MRN(s) involved (to check for conflicts).
 - Whether you navigated to the Edit page by patient UID or by MRN (so we can con
 firm the post-save redirect path).
+
+What I changed
+- Stable sort for latest MRN: On Save, if some history entries have no date, the
+y no longer get “now” (which could tie). Instead:
+  - Selected latest MRN: date = now (ISO).
+  - All other entries: date = existing date, or 1970-01-01T00:00:00.000Z as a sa
+fe older default.
+  - This guarantees the backend’s “highest-date” logic picks the MRN you marked 
+as current.
+- Full ISO when clicking “Set Latest”: The “Set Latest” action stamps a full ISO
+
+File updated
+- src/pages/EditPatient.tsx
+  - Ensures the selected latest MRN always sorts highest on backend.
+  - Keeps the rest of the flow unchanged (tries mrn-overwrite first, then falls 
+back if needed).
+
+How to verify in the UI
+- Open Edit Patient → Registration.
+- Click “Set Latest” on the MRN you want current (ensure MRN + Scheme filled).
+- Click “Save Changes”.
+- After redirect, the patient details page should show the new current MRN.
+
+If it still doesn’t change:
+- Note the toast message shown (e.g., “MRN already assigned to another patient”)
+.
+- Share the patient ID and the MRN you’re setting, and I can test the exact flow
+ via the backend to diagnose further.

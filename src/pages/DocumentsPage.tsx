@@ -142,6 +142,7 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState<DocumentsProfile | null>(null);
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [selectedUploadCategory, setSelectedUploadCategory] = useState<DocumentsCategory | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   // No filters/sorting/upload controls in the simplified view
 
   async function refresh() {
@@ -199,6 +200,131 @@ export default function DocumentsPage() {
   const isInCategoryView = uid && isValidCategory(categoryParam) && docs;
   const currentCategory = categoryParam as DocumentsCategory;
   const categoryDocuments = isInCategoryView ? getCategoryDocuments(docs, currentCategory) : [];
+
+  // Keyboard navigation for lightbox
+  React.useEffect(() => {
+    if (lightboxIndex === null) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft' && lightboxIndex! > 0) setLightboxIndex(i => (i! - 1));
+      if (e.key === 'ArrowRight' && lightboxIndex! < categoryDocuments.length - 1) setLightboxIndex(i => (i! + 1));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxIndex, categoryDocuments.length]);
+
+  const swipeRef = React.useRef<{x:number,y:number}|null>(null);
+  const movedRef = React.useRef(false);
+  function onPointerDown(e: React.PointerEvent) { swipeRef.current = { x: e.clientX, y: e.clientY }; }
+  function onPointerUp(e: React.PointerEvent) {
+    if (swipeRef.current == null) return;
+    const dx = e.clientX - swipeRef.current.x;
+    const dy = e.clientY - swipeRef.current.y;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    swipeRef.current = null;
+    if (absX > 3 || absY > 3) movedRef.current = true;
+    if (absX > 40 && absX > absY) {
+      if (dx < 0 && lightboxIndex! < categoryDocuments.length - 1) setLightboxIndex(i => (i! + 1));
+      else if (dx > 0 && lightboxIndex! > 0) setLightboxIndex(i => (i! - 1));
+    }
+  }
+
+  // Zoom/Pan state for lightbox
+  const [scale, setScale] = React.useState(1);
+  const [offset, setOffset] = React.useState<{x:number,y:number}>({ x: 0, y: 0 });
+  const lastPan = React.useRef<{ x: number; y: number } | null>(null);
+  const activePointers = React.useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStart = React.useRef<{ dist: number; scale: number } | null>(null);
+  const lastTap = React.useRef<number>(0);
+  const imgRef = React.useRef<HTMLImageElement | null>(null);
+
+  React.useEffect(() => {
+    // Reset zoom when switching image or closing
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+    lastPan.current = null;
+    activePointers.current.clear();
+    pinchStart.current = null;
+  }, [lightboxIndex]);
+
+  function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 4;
+
+  function onLightboxWheel(e: React.WheelEvent) {
+    if (!e.ctrlKey && !e.metaKey) return; // pinch gesture or ctrl+wheel
+    e.preventDefault();
+    setScale((s) => clamp(s + (e.deltaY > 0 ? -0.1 : 0.1), MIN_SCALE, MAX_SCALE));
+  }
+
+  function onLbPointerDown(e: React.PointerEvent) {
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.current.size === 1) {
+      // Start pan if zoomed
+      lastPan.current = { x: e.clientX, y: e.clientY };
+    } else if (activePointers.current.size === 2) {
+      // Start pinch
+      const pts = Array.from(activePointers.current.values());
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      pinchStart.current = { dist: Math.hypot(dx, dy), scale };
+      lastPan.current = null; // disable pan while pinching
+    }
+  }
+
+  function onLbPointerMove(e: React.PointerEvent) {
+    if (!activePointers.current.has(e.pointerId)) return;
+    const prev = activePointers.current.get(e.pointerId)!;
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.current.size === 2 && pinchStart.current) {
+      const pts = Array.from(activePointers.current.values());
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const nextScale = clamp(pinchStart.current.scale * (dist / (pinchStart.current.dist || 1)), MIN_SCALE, MAX_SCALE);
+      setScale(nextScale);
+      return;
+    }
+
+    if (scale > 1 && lastPan.current) {
+      const dx = e.clientX - lastPan.current.x;
+      const dy = e.clientY - lastPan.current.y;
+      setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
+      lastPan.current = { x: e.clientX, y: e.clientY };
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) movedRef.current = true;
+    }
+  }
+
+  function onLbPointerUp(e: React.PointerEvent) {
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchStart.current = null;
+    if (activePointers.current.size === 0) lastPan.current = null;
+  }
+
+  function onLightboxDoubleClick() {
+    setScale((s) => (s === 1 ? 2 : 1));
+    if (scale === 1) setOffset({ x: 0, y: 0 });
+  }
+
+  function onLightboxClick(e: React.MouseEvent) {
+    // double‑tap support on touch devices
+    const now = Date.now();
+    const delta = now - lastTap.current;
+    lastTap.current = now;
+    if (delta < 300) {
+      onLightboxDoubleClick();
+      return;
+    }
+    // Suppress close if there was a drag/pan
+    if (movedRef.current) { movedRef.current = false; return; }
+    // Close when clicking backdrop (not the image or controls)
+    const path: EventTarget[] = (e as any).nativeEvent?.composedPath?.() || [];
+    if (imgRef.current && path.includes(imgRef.current)) return;
+    setLightboxIndex(null);
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -261,6 +387,7 @@ export default function DocumentsPage() {
                   <div 
                     key={doc.key} 
                     className="relative group aspect-square bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200"
+                    onClick={() => doc.cdnUrl && setLightboxIndex(index)}
                   >
                     {doc.cdnUrl ? (
                       <>
@@ -366,6 +493,67 @@ export default function DocumentsPage() {
       </main>
 
       <BottomBar />
+
+      {/* Lightbox overlay */}
+      {isInCategoryView && lightboxIndex !== null && categoryDocuments[lightboxIndex] && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 text-white"
+          role="dialog"
+          aria-modal="true"
+          onClick={onLightboxClick}
+          onPointerDown={(e) => { onPointerDown(e); onLbPointerDown(e); }}
+          onPointerMove={onLbPointerMove}
+          onPointerUp={(e) => { onPointerUp(e); onLbPointerUp(e); }}
+          onWheel={onLightboxWheel}
+          style={{ touchAction: 'none' }}
+        >
+          <button
+            aria-label="Close"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-3 right-3 p-2 rounded-md bg-white/10 hover:bg-white/20"
+          >
+            ×
+          </button>
+
+          <button
+            disabled={lightboxIndex === 0}
+            onClick={(e) => { e.stopPropagation(); if (lightboxIndex! > 0) setLightboxIndex(lightboxIndex - 1); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-30"
+            aria-label="Previous"
+          >
+            ‹
+          </button>
+
+          <button
+            disabled={lightboxIndex === categoryDocuments.length - 1}
+            onClick={(e) => { e.stopPropagation(); if (lightboxIndex! < categoryDocuments.length - 1) setLightboxIndex(lightboxIndex + 1); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-30"
+            aria-label="Next"
+          >
+            ›
+          </button>
+
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden select-none">
+            {categoryDocuments[lightboxIndex].cdnUrl ? (
+              <img
+                src={categoryDocuments[lightboxIndex].cdnUrl!}
+                alt={categoryDocuments[lightboxIndex].caption || 'Document'}
+                className="max-h-[90vh] max-w-[90vw] object-contain"
+                draggable={false}
+                onDoubleClick={onLightboxDoubleClick}
+                ref={imgRef}
+                style={{
+                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                  transformOrigin: 'center center',
+                  transition: activePointers.current.size ? 'none' : 'transform 120ms ease',
+                }}
+              />
+            ) : (
+              <div className="text-sm opacity-80">Preview not available</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating Action Button for Quick Upload */}
       {uid && !categoryParam && (

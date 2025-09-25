@@ -689,3 +689,278 @@ If it still doesn’t change:
 .
 - Share the patient ID and the MRN you’re setting, and I can test the exact flow
  via the backend to diagnose further.
+
+
+ sep 24
+
+ user
+what changed from backend and front end
+
+thinking
+**Summarizing backend changes**
+
+We need to provide a concise summary of changes between the backend and front en
+d. In `patients.mjs`, the following backend changes were made: 
+
+- Status alias #s for MRN pointer upsert in `/registration` and `/mrn-overwrite`
+.
+- Default fallback for department.
+- Hardened `mrn_history` with type-based list_append or set.
+- Implemented specific try/catch error mapping for 409 and 400, with logs captur
+ing cancellation reasons, uid, mrn, and step.
+- Added optional pre-check GET MRN pointer before transaction.
+- Created Janitor endpoint for normalizing `mrn_history`.
+- Wrapped transactions in various operations, including a removal of `preop_pics
+` limit in `documents.mjs` and `checklists.mjs`.**Summarizing frontend changes**
+
+For the frontend changes, here are the key updates:
+
+- In `EditPatient.tsx`: Updated `removeMrnEntry` logic to select the first valid
+ remaining MRN as the latest, added a toast reminder for saving, ensured `latest
+Mrn` consistency, utilized full ISO in `setCurrentMrn`, cleaned history in `hand
+leSubmit`, and improved error toast messages.
+  
+- In `PhotoUploader.tsx`: Added a handler to prompt replacing the oldest photo a
+nd allowed retry with `replaceOldest` set to true. Although we removed the backe
+nd limit, it's noted as a no-op.
+
+We've also added a janitor endpoint route and performed live tests. The user spe
+cifically asked for these changes, so I've provided a bullet summary separating 
+Backend and Frontend, including file paths in monospace.**Presenting structured 
+changes**
+
+Let's organize the changes into clear bullet points:
+
+- **Backend**
+  - In `patients.mjs`: Implemented reserved-word aliasing (#s), set default depa
+rtment, hardened `mrn_history`, enhanced error mapping, introduced pre-check, ad
+ded a janitor endpoint, and incorporated try/catch in create and state operation
+s.
+  - In `documents.mjs` and `checklists.mjs`: Removed the 3-item cap on `preop_pi
+cs`.
+
+- **Frontend**
+  - In `src/pages/EditPatient.tsx`: Updates detailed previously.
+  - In `src/components/PhotoUploader.tsx`: Added a conditional retry with `repla
+ceOldest`, which is no longer needed after the backend changes. 
+
+I’ll also note that there’s “No change to API shapes,” as the `attachDocument` s
+till supports the `replaceOldest` parameter but it’s no longer required. Adjustm
+ent to error codes is included as well.
+
+thinking
+**Summarizing frontend changes**
+
+For the frontend changes, here are the key updates:
+
+- In `EditPatient.tsx`: Updated `removeMrnEntry` logic to select the first valid
+ remaining MRN as the latest, added a toast reminder for saving, ensured `latest
+Mrn` consistency, utilized full ISO in `setCurrentMrn`, cleaned history in `hand
+leSubmit`, and improved error toast messages.
+  
+- In `PhotoUploader.tsx`: Added a handler to prompt replacing the oldest photo a
+nd allowed retry with `replaceOldest` set to true. Although we removed the backe
+nd limit, it's noted as a no-op.
+
+We've also added a janitor endpoint route and performed live tests. The user spe
+cifically asked for these changes, so I've provided a bullet summary separating 
+Backend and Frontend, including file paths in monospace.
+
+thinking
+**Presenting structured changes**
+
+Let's organize the changes into clear bullet points:
+
+rtment, hardened `mrn_history`, enhanced error mapping, introduced pre-check, ad
+ded a janitor endpoint, and incorporated try/catch in create and state operation
+s.
+  - In `documents.mjs` and `checklists.mjs`: Removed the 3-item cap on `preop_pi
+cs`.
+
+- **Frontend**
+  - In `src/pages/EditPatient.tsx`: Updates detailed previously.
+  - In `src/components/PhotoUploader.tsx`: Added a conditional retry with `repla
+ceOldest`, which is no longer needed after the backend changes. 
+
+I’ll also note that there’s “No change to API shapes,” as the `attachDocument` s
+till supports the `replaceOldest` parameter but it’s no longer required. Adjustm
+ent to error codes is included as well.
+
+codex
+Here’s a concise rundown of what I changed.
+
+**Backend**
+- `backend/dev/HMSdevmrnchange/patients.mjs`:
+  - Reserved-word fix: alias `status` as `#s` in MRN pointer upserts for `/regis
+tration` and `/mrn-overwrite`.
+  - Defaults: safe fallback for `department` in MRN pointer upserts (`"Unknown"`
+).
+  - mrn_history hardening: use `list_append(mrn_history, :push)` only when store
+d type is List; otherwise initialize with `:push`.
+  - Error mapping: wrap all `TransactWriteCommand` calls and return:
+    - 409 on `TransactionCanceledException` + `ConditionalCheckFailed`
+    - 400 on `ValidationException` with “reserved keyword” or “list_append”
+    - 500 fallback with `{ error: "registration failed", detail }`
+    - Logs include `uid`, `mrn`, step, and `CancellationReasons` (for CloudWatch
+).
+  - Optional conflict pre-check: GET `MRN#<mrn>` before transaction to quickly r
+eturn 409 if owned by another patient.
+  - Data janitor: `POST /patients/janitor/mrn-history-normalize` to coerce malfo
+rmed or missing `mrn_history` to `[]`.
+
+- `backend/dev/HMSdevmrnchange/documents.mjs` and `backend/dev/HMSdevmrnchange/c
+hecklists.mjs`:
+  - Removed pre-op photo cap: no more 3-item limit for `preop_pics` (deleted the
+ 409 guard; `replaceOldest` ignored).
+
+**Frontend**
+- `src/pages/EditPatient.tsx` (Edit Patient form):
+  - “Set Latest” uses full ISO timestamp to ensure backend selects your chosen M
+RN.
+amp; others get stable older default, so overwrite reliably updates current MRN.
+  - Deletion behavior: if you delete the latest MRN, auto-selects the next valid
+ MRN and nudges you to “Save Changes”.
+  - Error toast: shows real backend error messages (e.g., 409 conflict) instead 
+of a generic message.
+
+- `src/components/PhotoUploader.tsx`:
+  - Pre-op capacity UX (now mostly moot): on a 409 preop limit (older backends),
+ prompts to “Replace oldest?” and retries with `replaceOldest: true`. With the b
+ackend limit removed, uploads proceed without prompts.
+
+**Net effect**
+- MRN registration and overwrite return 200 or meaningful 409/400, not opaque 50
+0s.
+- Legacy `mrn_history` shapes no longer cause failures.
+- Pre-op photo uploads are unlimited; no 409 “limit reached” error.
+- Edit page reliably changes the current MRN after “Set Latest” + “Save Changes”
+.
+
+user
+there should not be any limit in any place front edn and backend with limit of anyimages     } catch (error: any) {
+      // Handle preop_pics capacity with replaceOldest retry
+      const msg = error?.message ? String(error.message) : '';
+      const status = error?.status ?? 0;
+      const isPreopLimit = category === 'preop_pics' && status === 409 && msg.includes('preop_pics already has 3');
+      if (isPreopLimit) {
+        const confirmReplace = window.confirm('Pre-op already has 3 photos. Replace the oldest with this new photo?');
+        if (confirmReplace) {
+          try {
+              key: presignResponse!.key,
+              mimeType: file.type,
+              size: file.size,
+              replaceOldest: true,
+            });
+            toast(`Replaced oldest with ${file.name}`);
+            onUploadComplete();
+            return;
+          } catch (e: any) {
+            console.error('❌ Replace-oldest failed:', e);
+            toast(`Upload failed: ${e?.message ? String(e.message) : 'Unknown error'}`);
+            return;
+          }
+        }
+      }
+
+thinking
+**Adjusting image upload limits**
+
+We need to eliminate any front-end and back-end limits on images. The user provi
+ded a code snippet from PhotoUploader.tsx related to the retry logic for preop_p
+ics capacity, asking for the removal of any image limits. We've already tackled 
+backend limits, so now I’m focusing on front-end conditions and checking for oth
+er enforcement areas, like category counts or UI. I'll also remove the retry bra
+nch and simplify the error response, but documentation edits aren't necessary. L
+et’s proceed with applying the patch to src/components/PhotoUploader.tsx!**Updat
+ing PhotoUploader.tsx**
+
+I’m going to modify the catch block in PhotoUploader.tsx to stop handling the pr
+eop limit and instead just show a default toast. There’s no need to change impor
+ts, so I'll remove the window.confirm usage. I’ll apply the patch to simplify th
+e catch block. We should check for any UI limits, like disabling buttons for cou
+nts, but I see we didn't add any constraints. I also need to look at CategorySel
+ector and any code that references replaceOldest. Let’s run a search for 'replac
+eOldest' in the repo.**Clarifying user request on limits**
+
+The user asked for no limits on the front-end and back-end, so I’m focusing on r
+emoving the logic rather than the parameter. I’ll patch the code to eliminate th
+at branch. The message "Upload failed" should be shown with the real error messa
+ge, which I’ve already addressed. We’ll take out the previous logic for catching
+ preop limits, and I’ll adjust the error messaging accordingly. After I've patch
+ed it, I’ll inform the user. We’ve also removed limits in backend documents alre
+ady, so let’s proceed with applying the patch!
+
+thinking
+**Updating PhotoUploader.tsx**
+
+I’m going to modify the catch block in PhotoUploader.tsx to stop handling the pr
+eop limit and instead just show a default toast. There’s no need to change impor
+ts, so I'll remove the window.confirm usage. I’ll apply the patch to simplify th
+e catch block. We should check for any UI limits, like disabling buttons for cou
+nts, but I see we didn't add any constraints. I also need to look at CategorySel
+ector and any code that references replaceOldest. Let’s run a search for 'replac
+eOldest' in the repo.
+
+thinking
+**Clarifying user request on limits**
+
+The user asked for no limits on the front-end and back-end, so I’m focusing on r
+emoving the logic rather than the parameter. I’ll patch the code to eliminate th
+at branch. The message "Upload failed" should be shown with the real error messa
+ge, which I’ve already addressed. We’ll take out the previous logic for catching
+ preop limits, and I’ll adjust the error messaging accordingly. After I've patch
+ed it, I’ll inform the user. We’ve also removed limits in backend documents alre
+ady, so let’s proceed with applying the patch!
+
+✏️ Applying patch to 1 file (+0 -27)
+  ⎿ /Users/rohitgarlapati/Documents/GitHub/clinical-canvas-react/src/components/PhotoUploader.tsx (+0 -27)
+    126       } catch (error: any) {
+    127   -      // Handle preop_pics capacity with replaceOldest retry
+    128   -      const msg = error?.message ? String(error.message) : '';
+    129   -      const status = error?.status ?? 0;
+    130   -      const isPreopLimit = category === 'preop_pics' && status === 409 && msg.includes('preop_pics already has 3');
+    131   -      if (isPreopLimit) {
+    132   -        const confirmReplace = window.confirm('Pre-op already has 3 photos. Replace the oldest with this new photo?');
+    133   -        if (confirmReplace) {
+    134   -          try {
+    135   -            const retry = await attachDocument(patientId, {
+    136   -              category,
+    139   -              caption: uploadRequest.label,
+    142   -              replaceOldest: true,
+    143   -            });
+    144   -            toast(`Replaced oldest with ${file.name}`);
+    145   -            onUploadComplete();
+    146   -            return;
+    147   -          } catch (e: any) {
+    148   -            console.error('❌ Replace-oldest failed:', e);
+    149   -            toast(`Upload failed: ${e?.message ? String(e.message) : 'Unknown error'}`);
+    150   -            return;
+    151   -          }
+    152   -        }
+    153   -      }
+    127         console.error('❌ Upload failed:', error);
+
+
+codex
+Done. I removed all image count limits from both backend and frontend, and delet
+ed the “replace oldest” retry path.
+
+Backend changes
+  - Removed the preop_pics 3-item guard entirely. No 409 errors for “limit reach
+ed”.
+  - New behavior: always appends the new entry; ignores replaceOldest if sent.
+- backend/dev/HMSdevmrnchange/checklists.mjs:
+  - Removed the same preop_pics limit logic in this legacy/alternate attach path
+ for consistency.
+
+Frontend changes
+- src/components/PhotoUploader.tsx:
+  - Removed the special-case retry that prompted to replace the oldest photo on 
+409.
+  - Now it just shows the backend error if any (there should be none for limits 
+now).
+
+What this means
+- You can upload any number of images in every category, including pre-op.
+- No prompts or blocking on the 4th+ upload.
+- Existing UI continues to work as before, just without capacity constraints.

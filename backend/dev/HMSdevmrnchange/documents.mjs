@@ -167,15 +167,7 @@ export function mountDocumentRoutes(router, ctx) {
     };
 
     const list = Array.isArray(docs[catAttr]) ? [...docs[catAttr]] : [];
-    if (body.category === "preop_pics") {
-      if (list.length >= 3 && !body.replaceOldest) {
-        return resp(409, { error: "preop_pics already has 3 items; pass replaceOldest=true to replace the oldest" });
-      }
-      if (list.length >= 3 && body.replaceOldest) {
-        list.sort((a, b) => (a.uploadedAt || "").localeCompare(b.uploadedAt || ""));
-        list.shift();
-      }
-    }
+    // No limit for preop_pics anymore. Ignoring replaceOldest for backward compatibility.
     list.push(entry);
 
     // optimistic concurrency on updated_at (prevents lost updates if two users attach at once)

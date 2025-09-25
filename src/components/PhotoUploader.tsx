@@ -4,7 +4,7 @@ import {
   presignUpload, 
   attachDocument, 
   DocumentsCategory, 
-  PresignUploadRequest 
+  PresignUploadRequest,
 } from "../lib/filesApi";
 import { toast } from "@/components/ui/sonner";
 
@@ -123,7 +123,7 @@ export const PhotoUploader: React.FC<Props> = ({
       toast(`Successfully uploaded ${file.name}`);
       onUploadComplete();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Upload failed:', error);
       toast(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {

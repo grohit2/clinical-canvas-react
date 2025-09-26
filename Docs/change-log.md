@@ -94,6 +94,38 @@
 
 ---
 
+## Sep-21
+
+### 1) Overview
+
+| Date       | Release/Area       | Changes (summary)                                              | Status | Notes                                         |
+| ---------- | ------------------ | -------------------------------------------------------------- | ------ | --------------------------------------------- |
+| 2025-09-21 | MRN Flow           | Fix reserved words, add conflict mapping, history hardening    | ✅ Live | See Prompts-and-Ideology.md                   |
+| 2025-09-21 | Error Mapping      | 409/400/500 with rich CloudWatch logs                          | ✅ Live | CancellationReasons logged                    |
+| 2025-09-21 | Uploads            | Removed all image count limits                                  | ✅ Live | preop_pics cap removed everywhere             |
+| 2025-09-21 | Lightbox           | Google Photos-style viewer (swipe, pinch, double tap)          | ✅ Live | Mobile friendly                               |
+| 2025-09-21 | Patient Grid (LIS) | Long-press opens LIS reliably on iOS/Android                    | ✅ Live | Gesture handled on touchend/mouseup           |
+| 2025-09-21 | TID Fields         | Add tidStatus/tidNumber/surgeryCode (create, edit, detail)     | ✅ Live | Buttons instead of dropdown for TID Status    |
+| 2025-09-21 | Detail Spacing     | Tighter vertical spacing; compact TID row above Labs           | ✅ Live | Copy button copies TID + Surgery with toast   |
+
+### 2) Technical Changes
+
+- Backend
+  - Alias `status` as `#s` in MRN pointer upserts.
+  - Pre-check MRN pointer; transaction mapping to 409/400/500.
+  - Harden `mrn_history` update for legacy values; add janitor endpoint.
+  - Accept & persist `tid_number`, `tid_status`, `surgery_code` on META.
+- Frontend
+  - Registration switch and PUT flows wired; Edit + Create include new fields.
+  - Lightbox: swipe, pinch, pan, double-tap, Esc/backdrop close.
+  - Patient Detail: concise TID row (status pill right; copy button below).
+  - Patient Grid long-press: timer/gesture safe for iOS.
+
+### 3) References
+
+- Docs/HMS/Prompts-and-Ideology.md — session prompts and guiding principles.
+
+
 ## (Undated) 2nd Change — **EditPatient Enhancement** (Plan → Implemented)
 
 ### A) Gap Analysis & Plan

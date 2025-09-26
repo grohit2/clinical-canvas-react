@@ -9,7 +9,8 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { MrnOverview } from "@/components/patient/MrnOverview";
-import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen } from "lucide-react";
+import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
   DialogContent,
@@ -267,7 +268,51 @@ export default function PatientDetail() {
         </div>
 
         <TabsContent value="overview" className="bg-transparent">
-          <div className="px-3 sm:px-4 py-4 space-y-6">
+          <div className="px-3 sm:px-4 py-3 space-y-3">
+            {/* TID / Surgery summary (compact) */}
+            <div className="bg-white rounded-lg border border-gray-200 p-2">
+              <div className="flex items-start gap-3 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-muted-foreground">TID:</span>
+                    <span className="font-semibold truncate" title={(patient as any).tidNumber || '—'}>
+                      {(patient as any).tidNumber || '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 min-w-0">
+                    <span className="text-muted-foreground">Surgery:</span>
+                    <span className="font-medium truncate">{(patient as any).surgeryCode || '—'}</span>
+                  </div>
+                </div>
+                <div className="ml-auto flex flex-col items-end gap-1">
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${
+                    (patient as any).tidStatus === 'DONE'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {(patient as any).tidStatus || 'PENDING'}
+                  </span>
+                  {(patient as any).tidNumber && (
+                    <button
+                      aria-label="Copy TID and Surgery"
+                      className="px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-[11px] text-gray-700 flex items-center gap-1"
+                      onClick={() => {
+                        const tid = (patient as any).tidNumber || '';
+                        const surg = (patient as any).surgeryCode || '';
+                        const text = surg ? `TID: ${tid} | Surgery: ${surg}` : `TID: ${tid}`;
+                        navigator.clipboard.writeText(text).then(() => {
+                          toast("Copied to clipboard");
+                        });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copy
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* MRN Overview Section */}
             <MrnOverview 
               patientId={patient?.id || id || ""} 
@@ -292,7 +337,7 @@ export default function PatientDetail() {
             {/* Documents Section */}
             <div>
               <div 
-                className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => navigate(`/patients/${id}/docs`)}
               >
                 <div className="flex-shrink-0">
@@ -310,7 +355,7 @@ export default function PatientDetail() {
               {timeline.length > 0 ? (
                 <Timeline entries={timeline} currentState={patient.currentState || ""} />
               ) : (
-                <div className="p-4 bg-white rounded-lg border border-gray-200">
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
                   <p className="text-muted-foreground text-center text-sm">
                     No timeline data available for this patient
                   </p>

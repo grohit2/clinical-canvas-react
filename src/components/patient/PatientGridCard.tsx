@@ -16,9 +16,14 @@ interface PatientGridCardProps {
 }
 
 export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isPressing, setIsPressing] = useState(false);
   const [pinned, setPinned] = useState(() => isPinned(patient.id));
+  const pressStartAt = useRef<number | null>(null);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const moved = useRef(false);
+  const LONG_PRESS_MS = 600;
+  const MOVE_TOLERANCE = 12; // px
   const labsUrl = patient.latestMrn
     ? `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.latestMrn}`
     : '';
@@ -46,37 +51,66 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   };
 
   const startPress = (e: MouseEvent | TouchEvent) => {
-    e.preventDefault();
     setIsPressing(true);
-    pressTimer.current = setTimeout(() => {
-      setIsPressing(false);
-      if (labsUrl) {
-        window.open(labsUrl, "_blank");
-      }
-    }, 600);
-  };
-
-  const cancelPress = () => {
-    setIsPressing(false);
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
+    moved.current = false;
+    pressStartAt.current = Date.now();
+    if ('touches' in e && e.touches && e.touches[0]) {
+      startX.current = e.touches[0].clientX;
+      startY.current = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      startX.current = (e as MouseEvent).clientX;
+      startY.current = (e as MouseEvent).clientY;
     }
   };
 
+  const trackMove = (e: MouseEvent | TouchEvent) => {
+    if (startX.current == null || startY.current == null) return;
+    let x = 0, y = 0;
+    if ('touches' in e && e.touches && e.touches[0]) {
+      x = e.touches[0].clientX; y = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      x = (e as MouseEvent).clientX; y = (e as MouseEvent).clientY;
+    }
+    const dx = Math.abs(x - startX.current);
+    const dy = Math.abs(y - startY.current);
+    if (dx > MOVE_TOLERANCE || dy > MOVE_TOLERANCE) moved.current = true;
+  };
+
+  const endPress = (e: MouseEvent | TouchEvent) => {
+    const started = pressStartAt.current;
+    pressStartAt.current = null;
+    setIsPressing(false);
+    if (!started) return;
+    const duration = Date.now() - started;
+    if (duration >= LONG_PRESS_MS && !moved.current && labsUrl) {
+      // Trigger navigation within user gesture (mouseup/touchend) for iOS reliability
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      window.location.href = labsUrl;
+      return;
+    }
+    // else: short tap; let onClick handler fire naturally
+  };
+
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <Card
+      ref={cardRef}
       onClick={onClick}
       onMouseDown={startPress}
-      onMouseUp={cancelPress}
-      onMouseLeave={cancelPress}
+      onMouseMove={trackMove}
+      onMouseUp={endPress}
+      onMouseLeave={() => { setIsPressing(false); pressStartAt.current = null; }}
       onTouchStart={startPress}
-      onTouchEnd={cancelPress}
+      onTouchMove={trackMove}
+      onTouchEnd={endPress}
       onContextMenu={(e) => e.preventDefault()}
       className={`group p-3 hover:shadow-sm transition-all cursor-pointer select-none ${
         isPressing ? "scale-95 ring-2 ring-primary" : getCardColorClass(patient.currentState)
       } h-[160px] flex flex-col`}
     >
+      {/* content */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm truncate">{patient.name}</span>

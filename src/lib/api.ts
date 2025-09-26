@@ -65,6 +65,9 @@ export const api = {
         registrationNumber: string;
         name: string;
         department: string;
+        tidNumber?: string;
+        tidStatus?: string;
+        surgeryCode?: string;
       },
     ) => {
       const { registrationNumber, department } = data;
@@ -92,7 +95,11 @@ export const api = {
             isUrgent: data.isUrgent,
             urgentReason: data.urgentReason,
             urgentUntil: data.urgentUntil,
-            filesUrl: data.filesUrl
+            filesUrl: data.filesUrl,
+            // new optional registration fields
+            tid_number: data.tidNumber,
+            tid_status: data.tidStatus,
+            surgery_code: data.surgeryCode,
           },
           emergencyContact: data.emergencyContact,
           latestMrn: data.latestMrn || registrationNumber,
@@ -113,9 +120,15 @@ export const api = {
       console.log("🌐 API Update - Endpoint:", `/patients/${uid}`);
       console.log("📋 API Update - Sending camelCase data to backend API");
       
+      // Add snake_case shadow fields for backend compatibility (selective)
+      const shadow: Record<string, unknown> = { ...data };
+      if ((data as any).tidStatus !== undefined) shadow['tid_status'] = (data as any).tidStatus;
+      if ((data as any).tidNumber !== undefined) shadow['tid_number'] = (data as any).tidNumber;
+      if ((data as any).surgeryCode !== undefined) shadow['surgery_code'] = (data as any).surgeryCode;
+
       return request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(shadow),
       });
     },
     // Switch active MRN/scheme and append to MRN history

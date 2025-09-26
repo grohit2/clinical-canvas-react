@@ -42,7 +42,9 @@ const PERSON_UPDATABLE = new Set(["name", "age", "sex", "emergency_contact"]);
 const EPISODE_UPDATABLE = new Set([
   "department", "status", "pathway", "diagnosis", "comorbidities",
   "assigned_doctor", "assigned_doctor_id", "files_url",
-  "is_urgent", "urgent_reason", "urgent_until"
+  "is_urgent", "urgent_reason", "urgent_until",
+  // New optional fields
+  "tid_number", "tid_status", "surgery_code",
 ]); // current_state is handled in /state
 
 /* ------------------------------- UI mapper ------------------------------ */
@@ -71,6 +73,11 @@ const toUiPatient = (it = {}) => ({
   isUrgent: !!it.is_urgent,
   urgentReason: it.urgent_reason ?? null,
   urgentUntil: it.urgent_until ?? null,
+
+  // new optional fields surfaced to UI
+  tidNumber: it.tid_number ?? null,
+  tidStatus: it.tid_status ?? null,
+  surgeryCode: it.surgery_code ?? null,
 
   lastUpdated: it.last_updated || it.updated_at || null,
 });
@@ -126,6 +133,10 @@ export function mountPatientRoutes(router, ctx) {
       is_urgent: !!reg.is_urgent,
       urgent_reason: reg.urgent_reason ?? null,
       urgent_until: reg.urgent_until ?? null,
+      // new optional fields (from registration payload)
+      tid_number: reg.tid_number ?? null,
+      tid_status: reg.tid_status ?? null,
+      surgery_code: reg.surgery_code ?? null,
       state_dates: { [String(firstState)]: now },
       timeline_open_sk: tl.sk,
 
@@ -459,6 +470,7 @@ export function mountPatientRoutes(router, ctx) {
       department: "department", status: "status", pathway: "pathway", diagnosis: "diagnosis",
       comorbidities: "comorbidities", assigned_doctor: "assigned_doctor", assigned_doctor_id: "assigned_doctor_id",
       files_url: "files_url", is_urgent: "is_urgent", urgent_reason: "urgent_reason", urgent_until: "urgent_until",
+      tid_number: "tid_number", tid_status: "tid_status", surgery_code: "surgery_code",
     };
     for (const [jsKey, dbKey] of Object.entries(epMap)) {
       if (body[jsKey] !== undefined) {

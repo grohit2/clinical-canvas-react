@@ -235,7 +235,141 @@
 * Keep code in short inline snippets inside tables; place long code in the **Appendix** and reference it by row.
 * For a web UI, this schema maps cleanly to: `Release{ date, entries[] }`, where each `entry` has `{ section, subsection, title, details, artifacts[], status, tags[] }`.
 
+Changelog — 2025-09-25
+Highlights
 
+Long-press on patient cards → opens Labs (LIS) URL (overlay removed; gesture-safe on iOS/Android).
+
+TID registration fields added to Create + Edit pages:
+
+TID Status (DONE / PENDING) now shown as buttons (not a dropdown).
+
+TID Number (optional), Surgery Code (optional).
+
+API + Backend wired end-to-end (camelCase ↔ snake_case) for the new TID fields.
+
+Details
+✨ Feature: Long-press to open Labs
+
+Behavior
+
+Press & hold ≥ 600ms with movement ≤ 12px ⇒ navigate to labsUrl in the same tab.
+
+Short tap behaves as before (triggers existing onClick).
+
+onMouseLeave cancels an in-progress press; context menu suppressed on desktop.
+
+Implementation
+
+Kept isPressing for visual feedback; added refs: pressStartAt, startX, startY, moved.
+
+Handlers: onMouseDown/onTouchStart → start; onMouseMove/onTouchMove → track; onMouseUp/onTouchEnd → end; onMouseLeave → cancel.
+
+Constants: LONG_PRESS_MS = 600, MOVE_TOLERANCE = 12.
+
+Removed timer-based overlay flow; navigation happens inside the user-gesture end handler for iOS reliability.
+
+Navigation: window.location.href = labsUrl to retain focus.
+
+Notes
+
+Removed unused code & type imports; no overlay UI anymore.
+
+🧩 Feature: TID Registration (Create + Edit)
+
+Fields
+
+TID Status: DONE / PENDING via ButtonGroup (consistent with other forms).
+
+TID Number: optional text.
+
+Surgery Code: optional text.
+
+Create Page
+
+State extended; UI added under Registration section.
+
+Submit payload now includes tidNumber, tidStatus, surgeryCode.
+
+Edit Page
+
+State extended & pre-populated from backend (toUiPatient mapping).
+
+UI added under Registration section (ButtonGroup + inputs).
+
+Save payload includes the three new fields.
+
+🛠️ Frontend: API client updates
+
+Create (patients.create)
+
+Sends registration with snake_case: tid_number, tid_status, surgery_code.
+
+Update (patients.update)
+
+Adds shadow snake_case keys before PUT:
+
+tidStatus → tid_status
+
+tidNumber → tid_number
+
+surgeryCode → surgery_code
+
+🗄️ Backend: patient service
+
+Allowlist (EPISODE_UPDATABLE) now includes:
+
+tid_number, tid_status, surgery_code
+
+Create (POST /patients)
+
+Accepts & stores the new fields on the META row.
+
+Registration switch (PATCH /patients/{id}/registration)
+
+Maps the same fields (available if sent during MRN switch).
+
+toUiPatient
+
+Exposes tidNumber, tidStatus, surgeryCode to the UI (camelCase).
+
+QA Checklist
+
+Patient card long-press
+
+Hold ~600ms with minimal movement ⇒ navigates to Labs in the same tab.
+
+Move finger/mouse >12px during press ⇒ does not navigate.
+
+Short click/tap ⇒ normal onClick (open patient details).
+
+Desktop: right-click menu suppressed on the card.
+
+Create Patient
+
+See TID Status (buttons), TID Number, Surgery Code in Registration.
+
+Submit ⇒ fields appear server-side (check create request body).
+
+Edit Patient (3-dots → Edit)
+
+Same TID controls visible and pre-filled (if values exist).
+
+Save ⇒ PUT body contains tid_status, tid_number, surgery_code; refreshed GET shows values.
+
+Files touched
+
+src/components/patient/PatientGridCard.tsx — long-press implementation; removed overlay/timer.
+
+src/components/patient/patinet_form/PatientRegistrationForm.tsx — TID controls (ButtonGroup), payload wiring.
+
+src/components/patient/patinet_form/patient-create.adapter.ts — types & toCreatePayload extended.
+
+src/pages/EditPatient.tsx — TID controls (ButtonGroup), state load/save wiring.
+
+src/lib/api.ts — create: snake_case registration; update: snake_case shadowing.
+
+backend/dev/HMSdevmrnchange/patients.mjs — allowlist & mappings for TID fields; UI mapping.
 sep-11
 ==============================================================
 Performance Optimization – Faster document retrieval and rendering.

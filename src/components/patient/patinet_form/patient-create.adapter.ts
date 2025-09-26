@@ -63,6 +63,10 @@ export type CreatePatientPayload = {
     temp?: number;
     updatedAt?: string;
   };
+  // New optional registration fields
+  tidNumber?: string;
+  tidStatus?: string; // 'DONE' | 'PENDING'
+  surgeryCode?: string;
 };
 
 export type NewFormData = {
@@ -95,6 +99,10 @@ export type NewFormData = {
     spo2?: string;
     temp?: string;
   };
+  // New optional registration fields for create form
+  tidNumber?: string;
+  tidStatus?: string; // 'DONE' | 'PENDING'
+  surgeryCode?: string;
 };
 
 export function toCreatePayload(d: NewFormData): CreatePatientPayload {
@@ -132,5 +140,9 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
       temp: d.vitals.temp ? Number(d.vitals.temp) : undefined,
       updatedAt: new Date().toISOString(),
     } : undefined,
+    // pass through new optional fields
+    tidNumber: (d.tidNumber || "").trim() || undefined,
+    tidStatus: (d.tidStatus || "").trim() || undefined,
+    surgeryCode: (d.surgeryCode || "").trim() || undefined,
   };
 }

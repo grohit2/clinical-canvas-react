@@ -67,6 +67,10 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         country: "",
       },
     },
+    // New optional registration fields
+    tidNumber: "",
+    tidStatus: "",
+    surgeryCode: "",
   });
 
   const categories = [
@@ -391,6 +395,10 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         diagnosis: formData.diagnosis || "",
         comorbidities: formData.comorbidities || [],
         currentState: formData.currentState,
+        // new optional fields
+        tidNumber: formData.tidNumber,
+        tidStatus: formData.tidStatus,
+        surgeryCode: formData.surgeryCode,
       });
 
       const res = await api.patients.create(payload);
@@ -556,10 +564,10 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-800 mb-1">Registration Details</h2>
               <p className="text-sm text-gray-600">Hospital registration and department information</p>
-            </div>
+          </div>
 
-            {/* Multiple MRN Entries */}
-            <div className="space-y-4">
+          {/* Multiple MRN Entries */}
+          <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-semibold text-gray-700">
                   MRN Entries <span className="text-red-500">*</span>
@@ -652,9 +660,44 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                   </div>
                 </div>
               ))}
-            </div>
+          </div>
 
-            {/* State Field */}
+          {/* TID Registration */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">TID Status</label>
+              <ButtonGroup
+                options={[
+                  { value: "DONE", label: "DONE" },
+                  { value: "PENDING", label: "PENDING" },
+                ]}
+                value={formData.tidStatus}
+                onChange={(value) => handleInputChange('tidStatus', value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">TID Number</label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                value={formData.tidNumber}
+                onChange={(e) => handleInputChange('tidNumber', e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Surgery Code</label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                value={formData.surgeryCode}
+                onChange={(e) => handleInputChange('surgeryCode', e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+
+          {/* State Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Current State

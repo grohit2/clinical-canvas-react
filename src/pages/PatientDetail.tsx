@@ -24,13 +24,78 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import api from "@/lib/api";
-import type { Patient, TimelineEntry } from "@/types/api";
+import type { Patient, TimelineEntry, MrnHistoryEntry } from "@/types/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+type SchemeOption = typeof SCHEME_OPTIONS[number];
+
+const normalizeScheme = (value?: string): SchemeOption => {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as SchemeOption)) {
+    return raw as SchemeOption;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return raw ? (raw as SchemeOption) : 'OTHERS';
+};
+
+const normalizeMrnHistory = (history?: MrnHistoryEntry[]): MrnHistoryEntry[] | undefined => {
+  if (!history) return undefined;
+  return history.map((entry) => ({
+    ...entry,
+    scheme: normalizeScheme(entry.scheme),
+  }));
+};
+
+const coerceRoomNumber = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  return undefined;
+};
+
+const normalizePatientRecord = (raw: Patient): Patient => {
+  const normalizedHistory = normalizeMrnHistory(raw.mrnHistory);
+  const schemeCandidates: Array<string | undefined> = [
+    raw.scheme,
+    normalizedHistory?.find((entry) => entry.mrn === raw.latestMrn)?.scheme,
+    normalizedHistory?.[0]?.scheme,
+    (raw as unknown as { registration?: { scheme?: string } }).registration?.scheme,
+  ];
+  const resolvedScheme = normalizeScheme(schemeCandidates.find(Boolean));
+  const roomCandidate = (raw as unknown as {
+    roomNumber?: string;
+    room_number?: string;
+    room?: string;
+    registration?: { roomNumber?: string; room_number?: string };
+  });
+  const resolvedRoom = coerceRoomNumber(
+    raw.roomNumber ??
+      roomCandidate?.roomNumber ??
+      roomCandidate?.room_number ??
+      roomCandidate?.room ??
+      roomCandidate?.registration?.roomNumber ??
+      roomCandidate?.registration?.room_number,
+  );
+
+  return {
+    ...raw,
+    scheme: resolvedScheme,
+    roomNumber: resolvedRoom,
+    mrnHistory: normalizedHistory,
+  };
+};
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -49,7 +114,7 @@ export default function PatientDetail() {
     if (!id) return;
     try {
       const data = await api.patients.get(id);
-      setPatient(data);
+      setPatient(normalizePatientRecord(data));
       const timeline = await api.patients.timeline(id);
       setTimeline(timeline);
     } catch {
@@ -100,6 +165,17 @@ export default function PatientDetail() {
     "follow-up"
   ];
 
+  const deriveScheme = (p?: Patient | null): string | undefined => {
+    if (!p) return undefined;
+    const schemeCandidates = [
+      p.scheme,
+      p.mrnHistory?.find((entry) => entry.mrn === p.latestMrn)?.scheme,
+      p.mrnHistory?.[0]?.scheme,
+    ];
+    const resolved = schemeCandidates.find((value): value is string => Boolean(value));
+    return resolved ? resolved.toUpperCase() : undefined;
+  };
+
   const handleStageChange = async () => {
     if (!selectedStage || !id) return;
     try {
@@ -133,6 +209,10 @@ export default function PatientDetail() {
     );
   }
 
+  const activeScheme = deriveScheme(patient);
+  const roomNumber = patient.roomNumber?.trim();
+  const schemeDisplay = activeScheme ? (roomNumber ? `${activeScheme} (R# ${roomNumber})` : activeScheme) : undefined;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
       {/* ===== FULL-BLEED WHITE TOP SECTION ===== */}
@@ -157,6 +237,12 @@ export default function PatientDetail() {
                 {(patient.age !== undefined || patient.sex) ? " / " : ""}
                 {patient.latestMrn ?? ''}
               </div>
+              {schemeDisplay && (
+                <div className="mt-0.5 text-[12px] text-muted-foreground uppercase">
+                  Scheme:{' '}
+                  <span className="text-emerald-600 font-semibold">{schemeDisplay}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-start gap-2 shrink-0">
@@ -318,16 +404,15 @@ export default function PatientDetail() {
               patientId={patient?.id || id || ""} 
               latestMrn={patient?.latestMrn}
               mrnHistory={patient?.mrnHistory}
+              roomNumber={patient?.roomNumber}
               onMrnUpdate={(updatedHistory, newLatestMrn) => {
-                // Update local state immediately
                 if (patient) {
-                  setPatient({
+                  setPatient(normalizePatientRecord({
                     ...patient,
                     mrnHistory: updatedHistory,
-                    latestMrn: newLatestMrn
-                  });
+                    latestMrn: newLatestMrn,
+                  }));
                 }
-                // Also refetch data to ensure consistency
                 fetchPatientData();
               }}
             />

@@ -1,10 +1,26 @@
 // patient-create.adapter.ts - Normalize form data for patient creation API
 
+const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+type SchemeOption = typeof SCHEME_OPTIONS[number];
+
+const normalizeScheme = (value?: string): SchemeOption => {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as SchemeOption)) {
+    return raw as SchemeOption;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return 'OTHERS';
+};
+
 export interface CreatePayloadInput {
   name: string;
   age: string | number;
   sex: string; // "M" | "F" | "Other"
   mrn: string;
+  scheme?: string;
+  roomNumber?: string;
   department: string;
   pathway?: string;
   diagnosis?: string;
@@ -19,10 +35,14 @@ export interface CreatePayloadOutput {
   department: string;
   age: number;
   sex: string;
+  scheme?: SchemeOption;
+  roomNumber?: string;
   pathway?: string;
   diagnosis?: string;
   comorbidities?: string[];
   assignedDoctorId?: string;
+  latestMrn?: string;
+  mrnHistory?: { mrn: string; scheme: SchemeOption; date: string }[];
 }
 
 /**
@@ -41,6 +61,18 @@ export function toCreatePayload(input: CreatePayloadInput): CreatePayloadOutput 
     throw new Error('Invalid age provided');
   }
 
+  const registrationNumber = input.mrn?.trim() || '';
+  const scheme = input.scheme ? normalizeScheme(input.scheme) : 'OTHERS';
+  const roomNumber = input.roomNumber?.trim() || undefined;
+
+  const mrnHistory = registrationNumber
+    ? [{
+        mrn: registrationNumber,
+        scheme,
+        date: new Date().toISOString(),
+      }]
+    : [];
+
   // Validate required fields
   if (!input.name?.trim()) {
     throw new Error('Patient name is required');
@@ -53,14 +85,18 @@ export function toCreatePayload(input: CreatePayloadInput): CreatePayloadOutput 
   }
 
   return {
-    registrationNumber: input.mrn.trim(),
+    registrationNumber,
     name: input.name.trim(),
     department: input.department.trim(),
     age,
     sex: normalizedSex,
+    scheme,
+    roomNumber,
     pathway: input.pathway || undefined,
     diagnosis: input.diagnosis?.trim() || undefined,
     comorbidities: input.comorbidities?.filter(c => c.trim()) || undefined,
     assignedDoctorId: input.assignedDoctorId?.trim() || undefined,
+    latestMrn: registrationNumber || undefined,
+    mrnHistory: mrnHistory.length ? mrnHistory : undefined,
   };
 }

@@ -34,4 +34,9 @@ test("toCreatePayload happy path", () => {
   expect(p.sex).toBe("female");
   expect(p.pathway).toBe("surgical");
   expect(p.comorbidities).toEqual(["DM2"]);
+  expect(p.scheme).toBe("OTHERS");
+  expect(p.roomNumber).toBeUndefined();
+  expect(p.mrnHistory).toEqual([
+    expect.objectContaining({ mrn: "ABC-123", scheme: "OTHERS" })
+  ]);
 });

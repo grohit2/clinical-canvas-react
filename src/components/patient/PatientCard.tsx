@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Patient } from "@/types/api";
-import { Clock, MoreVertical, FileText, Pin } from "lucide-react";
+import { MoreVertical, FileText, Pin } from "lucide-react";
 import { isPinned, togglePin } from "@/lib/pinnedPatients";
 
 interface PatientCardProps {
@@ -22,6 +22,19 @@ interface PatientCardProps {
 export function PatientCard({ patient, onClick }: PatientCardProps) {
   const [showQR, setShowQR] = useState(false);
   const [pinned, setPinned] = useState(() => isPinned(patient.id));
+
+  const activeScheme = (() => {
+    const schemeCandidates = [
+      patient.scheme,
+      patient.mrnHistory?.find((entry) => entry.mrn === patient.latestMrn)?.scheme,
+      patient.mrnHistory?.[0]?.scheme,
+    ];
+    const resolved = schemeCandidates.find((value): value is string => Boolean(value));
+    return resolved ? resolved.toUpperCase() : undefined;
+  })();
+  const roomNumber = patient.roomNumber?.trim();
+  const showRoomWithMrn = roomNumber && activeScheme ? ['EHS', 'PAID'].includes(activeScheme) : false;
+  const schemeLabel = activeScheme;
 
   const handleTogglePin = () => {
     const newPinned = togglePin(patient.id);
@@ -113,30 +126,9 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
     }
   };
 
-  const formatAgo = (dateString?: string) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const h = Math.floor(diffMs / (1000 * 60 * 60));
-    if (h < 1) return "Just now";
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  };
-
-  // ---- vitals (optional, safe if missing) ----
-  const vitals = patient.vitals || {};
-  const HR: string = vitals.hr != null ? String(vitals.hr) : "-";
-  const BP: string =
-    vitals.bp != null
-      ? String(vitals.bp)
-      : vitals.systolic && vitals.diastolic
-      ? `${vitals.systolic}/${vitals.diastolic}`
-      : "-";
-  const SPO2: string = vitals.spo2 != null ? `${vitals.spo2}%` : "-";
-  const TEMP: string =
-    vitals.temp != null ? `${vitals.temp}°` : vitals.temperature ? `${vitals.temperature}°` : "-";
-  const lastChecked: string = formatAgo(vitals.updatedAt || patient.lastUpdated);
+  const comorbidities = (patient.comorbidities ?? [])
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item && item.length > 0));
 
   return (
     <div
@@ -173,7 +165,16 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
                   {patient.name}
                 </h3>
               </div>
-              <p className="text-xs text-neutral-500">MRN: {patient.latestMrn ?? ''}</p>
+              <p className="text-xs text-neutral-500">
+                MRN: {patient.latestMrn ?? ''}
+                {schemeLabel && (
+                  <>
+                    {' • '}
+                    <span className="text-emerald-600 font-semibold">{schemeLabel}</span>
+                  </>
+                )}
+                {showRoomWithMrn && roomNumber ? ` • R# ${roomNumber}` : ''}
+              </p>
             </div>
           </div>
 
@@ -222,37 +223,24 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
           </div>
         )}
 
-        {/* ===== Footer vitals strip ===== */}
-        <div className="mt-3 bg-neutral-50 px-3 py-2 border-t border-neutral-200/80 rounded-b-xl -mx-3 -mb-0">
-          <div className="flex items-center justify-between">
-            <div className="grid grid-cols-4 gap-2 text-center flex-grow">
-              <div className="text-xs">
-                <p className="text-[10px] text-neutral-500">HR</p>
-                <p className="font-semibold text-success-700">{HR}</p>
-              </div>
-              <div className="text-xs">
-                <p className="text-[10px] text-neutral-500">BP</p>
-                <p className="font-semibold text-success-700">{BP}</p>
-              </div>
-              <div className="text-xs">
-                <p className="text-[10px] text-neutral-500">SpO2</p>
-                <p className="font-semibold text-success-700">{SPO2}</p>
-              </div>
-              <div className="text-xs">
-                <p className="text-[10px] text-neutral-500">Temp</p>
-                <p className="font-semibold text-success-700">{TEMP}</p>
-              </div>
+        {/* ===== Comorbidities ===== */}
+        <div className="mt-3 -mx-3 px-3 py-2 border-t border-neutral-200/80 bg-neutral-50 rounded-b-xl">
+          <p className="text-[10px] uppercase tracking-wide text-neutral-500">Comorbidities</p>
+          {comorbidities.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+            {comorbidities.map((condition) => (
+              <Badge
+                key={condition}
+                variant="outline"
+                className="text-[11px] font-medium px-2 py-0.5 bg-blue-50 border-blue-200 text-blue-700"
+              >
+                {condition}
+              </Badge>
+            ))}
             </div>
-            <div className="text-right pl-2">
-              <p className="text-[10px] text-neutral-500 font-medium whitespace-nowrap">
-                Last checked
-              </p>
-              <p className="text-xs text-neutral-600 font-semibold flex items-center justify-end gap-1">
-                <Clock className="h-3 w-3" />
-                {lastChecked}
-              </p>
-            </div>
-          </div>
+          ) : (
+            <p className="mt-2 text-xs text-neutral-400">Not recorded</p>
+          )}
         </div>
       </Card>
     </div>

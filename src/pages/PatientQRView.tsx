@@ -22,7 +22,7 @@ const mockPatientData = {
     updateCounter: 5,
     lastUpdated: '2025-07-19T14:30:09Z',
     assignedDoctor: 'Dr. Sarah Wilson',
-    room: 'Room 204B',
+    roomNumber: '204B',
     vitals: {
       temperature: '98.6°F',
       bloodPressure: '120/80',
@@ -106,7 +106,9 @@ export default function PatientQRView() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{patient.room}</span>
+                  <span className="text-sm font-medium">
+                    {patient.roomNumber ? `R# ${patient.roomNumber}` : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />

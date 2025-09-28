@@ -1,0 +1,11 @@
+# LLM READER GUIDE (llm.txt)
+
+Read these first: /pages/context/engineering-framework.mdx → /pages/docs/metadata.md → /pages/vision.md → /pages/changelog/index.mdx.
+
+Folder meanings:
+- /pages/product — user problems, philosophy
+- /pages/architecture — system, ADRs
+- /pages/implementation — FE/BE/data/infra details
+- /pages/processes — testing, CI/CD, migrations, dependencies
+- /pages/changelog — instances → days → months → years → versions
+- /pages/traces — records of doc/code edit events

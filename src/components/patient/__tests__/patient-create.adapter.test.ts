@@ -96,7 +96,7 @@ describe("toCreatePayload", () => {
 
     const result = toCreatePayload(formData);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       registrationNumber: "ABC-123",
       name: "Jane Roe",
       department: "General",
@@ -106,7 +106,17 @@ describe("toCreatePayload", () => {
       diagnosis: "Appendicitis",
       comorbidities: ["DM2", "HTN"],
       assignedDoctorId: "dr_smith",
+      scheme: "OTHERS",
+      latestMrn: "ABC-123",
     });
+    expect(result.roomNumber).toBeUndefined();
+    expect(result.mrnHistory).toBeDefined();
+    expect(result.mrnHistory).toHaveLength(1);
+    expect(result.mrnHistory?.[0]).toMatchObject({
+      mrn: "ABC-123",
+      scheme: "OTHERS",
+    });
+    expect(new Date(result.mrnHistory?.[0]?.date || '').toString()).not.toBe('Invalid Date');
   });
 
   test("handles minimal form data", () => {
@@ -120,7 +130,7 @@ describe("toCreatePayload", () => {
 
     const result = toCreatePayload(formData);
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       registrationNumber: "XYZ-456",
       name: "John Doe", 
       department: "Cardiology",
@@ -130,7 +140,11 @@ describe("toCreatePayload", () => {
       diagnosis: "", // empty default
       comorbidities: [], // empty default
       assignedDoctorId: undefined,
+      scheme: "OTHERS",
+      latestMrn: "XYZ-456",
     });
+    expect(result.mrnHistory).toHaveLength(1);
+    expect(result.mrnHistory?.[0]).toMatchObject({ mrn: "XYZ-456", scheme: "OTHERS" });
   });
 
   test("throws error for invalid age", () => {

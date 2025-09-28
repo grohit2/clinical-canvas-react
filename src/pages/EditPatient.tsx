@@ -6,7 +6,7 @@ import { BottomBar } from "@/components/layout/BottomBar";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
-import { mapSexToApi, normalizePathway, normalizeComorbidities } from "@/components/patient/patinet_form/patient-create.adapter";
+import { mapSexToApi, normalizePathway, normalizeComorbidities, normalizeScheme, SCHEME_OPTIONS } from "@/components/patient/patinet_form/patient-create.adapter";
 
 export default function EditPatient() {
   const { id } = useParams();
@@ -34,6 +34,7 @@ export default function EditPatient() {
     ],
     latestMrn: "",
     department: "",
+    roomNumber: "",
     status: "ACTIVE",
 
     // Current state field
@@ -118,12 +119,13 @@ export default function EditPatient() {
           mrnHistory: patient.mrnHistory && patient.mrnHistory.length > 0 
             ? patient.mrnHistory.map(entry => ({
                 mrn: entry.mrn || "",
-                scheme: entry.scheme || "",
+                scheme: entry.scheme ? normalizeScheme(entry.scheme) : "",
                 date: entry.date || ""
               }))
             : [{ mrn: patient.latestMrn || "", scheme: "", date: "" }],
           latestMrn: patient.latestMrn || "",
           department: patient.department || "",
+          roomNumber: patient.roomNumber || "",
           status: patient.status || "ACTIVE",
           
           currentState: patient.currentState || "",
@@ -222,10 +224,11 @@ export default function EditPatient() {
   };
 
   const updateMrnEntry = (index: number, field: string, value: any) => {
+    const nextValue = field === "scheme" ? normalizeScheme(value) : value;
     setFormData(prev => ({
       ...prev,
       mrnHistory: prev.mrnHistory.map((entry, i) =>
-        i === index ? { ...entry, [field]: value } : entry
+        i === index ? { ...entry, [field]: nextValue } : entry
       )
     }));
   };
@@ -348,10 +351,15 @@ export default function EditPatient() {
         .filter(e => e.mrn && e.mrn.trim())
         .map(e => ({
           mrn: e.mrn.trim(),
-          scheme: e.scheme || 'Unknown',
+          scheme: normalizeScheme(e.scheme),
           // Ensure selected latest MRN sorts highest; give others a stable older default
           date: e.mrn === formData.latestMrn ? nowIso : (e.date || oldFallback)
         }));
+
+      const latestMrnTrimmed = formData.latestMrn?.trim() || '';
+      const activeScheme = cleanedHistory.find(h => h.mrn === latestMrnTrimmed)?.scheme
+        || cleanedHistory[0]?.scheme
+        || normalizeScheme();
 
       // Try one-shot overwrite first; if route not present in backend (404), fall back to two-step
       try {
@@ -372,7 +380,7 @@ export default function EditPatient() {
         }
 
         if (desiredLatest && desiredLatest !== (originalLatest || '')) {
-          const scheme = cleanedHistory.find(h => h.mrn === desiredLatest)?.scheme || 'Unknown';
+          const scheme = cleanedHistory.find(h => h.mrn === desiredLatest)?.scheme || normalizeScheme();
           await api.patients.switchRegistration(id, { mrn: desiredLatest, scheme });
         }
         await api.patients.updateMrnHistory(id, cleanedHistory as any);
@@ -411,11 +419,19 @@ export default function EditPatient() {
           temp: formData.vitals.temp ? Number(formData.vitals.temp) : undefined,
           updatedAt: new Date().toISOString(),
         },
+        scheme: activeScheme,
+        roomNumber: formData.roomNumber.trim(),
       };
 
       // Clean up payload - remove undefined/empty values
       Object.keys(payload).forEach(key => {
         const value = payload[key as keyof typeof payload];
+        if (key === 'roomNumber') {
+          if (value === undefined) {
+            delete payload[key as keyof typeof payload];
+          }
+          return;
+        }
         if (value === undefined || value === null || value === "") {
           delete payload[key as keyof typeof payload];
         }
@@ -617,6 +633,19 @@ export default function EditPatient() {
                 <p className="text-sm text-gray-600">Hospital registration and department information</p>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Room Number (R#)
+                </label>
+                <input
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  value={formData.roomNumber}
+                  onChange={e => handleInputChange("roomNumber", e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+
               {/* Multiple MRN Entries */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -675,12 +704,7 @@ export default function EditPatient() {
                           Scheme <span className="text-red-500">*</span>
                         </label>
                         <ButtonGroup
-                          options={[
-                            { value: "ASP", label: "ASP" },
-                            { value: "NAM", label: "NAM" },
-                            { value: "Paid", label: "Paid" },
-                            { value: "Unknown", label: "Unknown" },
-                          ]}
+                          options={SCHEME_OPTIONS.map(option => ({ value: option, label: option }))}
                           value={entry.scheme}
                           onChange={value => updateMrnEntry(index, "scheme", value)}
                         />

@@ -1,0 +1,29 @@
+{
+  "name": "nexify-docs",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "chg:inst": "node scripts/new-change-instance.mjs",
+    "chg:aggregate": "node scripts/aggregate-changelog.mjs",
+    "chg:version": "node scripts/version-changelog.mjs",
+    "trace:new": "node scripts/new-trace.mjs",
+    "tmpl:doc": "cp templates/PAGE_TEMPLATE.md NEW_DOC.md || copy templates/PAGE_TEMPLATE.md NEW_DOC.md",
+    "tmpl:adr": "cp templates/ADR_TEMPLATE.md NEW_ADR.md || copy templates/ADR_TEMPLATE.md NEW_ADR.md"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "nextra": "latest",
+    "nextra-theme-docs": "latest",
+    "gray-matter": "latest",
+    "globby": "latest",
+    "fs-extra": "latest",
+    "slugify": "latest",
+    "semver": "latest"
+  }
+}

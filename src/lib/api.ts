@@ -71,11 +71,14 @@ export const api = {
       },
     ) => {
       const { registrationNumber, department } = data;
+      const fallbackScheme = (data.scheme || '').trim();
+      const normalizedFallbackScheme = fallbackScheme ? fallbackScheme.toUpperCase() : 'OTHERS';
       // Choose scheme for the registration from the matching MRN entry when possible
       const chosenMrn = (data.latestMrn || registrationNumber || '').trim();
       const schemeForRegistration = (data.mrnHistory || []).find(h => h.mrn === chosenMrn)?.scheme 
         || data.mrnHistory?.[0]?.scheme 
-        || "GENERAL";
+        || normalizedFallbackScheme
+        || 'OTHERS';
       return request<{ patientId: string; patient: Patient }>(`/patients`, {
         method: 'POST',
         body: JSON.stringify({
@@ -96,17 +99,20 @@ export const api = {
             urgentReason: data.urgentReason,
             urgentUntil: data.urgentUntil,
             filesUrl: data.filesUrl,
+            roomNumber: data.roomNumber,
             // new optional registration fields
             tid_number: data.tidNumber,
             tid_status: data.tidStatus,
             surgery_code: data.surgeryCode,
           },
           emergencyContact: data.emergencyContact,
+          roomNumber: data.roomNumber,
+          scheme: schemeForRegistration,
           latestMrn: data.latestMrn || registrationNumber,
           mrnHistory: data.mrnHistory || [
             {
               mrn: registrationNumber,
-              scheme: "GENERAL",
+              scheme: schemeForRegistration,
               date: new Date().toISOString()
             }
           ],
@@ -125,6 +131,8 @@ export const api = {
       if ((data as any).tidStatus !== undefined) shadow['tid_status'] = (data as any).tidStatus;
       if ((data as any).tidNumber !== undefined) shadow['tid_number'] = (data as any).tidNumber;
       if ((data as any).surgeryCode !== undefined) shadow['surgery_code'] = (data as any).surgeryCode;
+      if ((data as any).roomNumber !== undefined) shadow['room_number'] = (data as any).roomNumber;
+      if ((data as any).scheme !== undefined) shadow['scheme'] = (data as any).scheme;
 
       return request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',

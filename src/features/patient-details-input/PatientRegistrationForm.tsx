@@ -32,6 +32,7 @@ type FormState = {
   age: string;
   sex: string; // "M" | "F" | "Other"
   scheme: string;
+  roomNumber: string;
   mrn: string;
   department: string;
   status: string;
@@ -69,6 +70,18 @@ type PatientRegistrationFormProps = {
   initial?: Partial<FormState> & Record<string, any>;
 };
 
+const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+const normalizeScheme = (value?: string): string => {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as (typeof SCHEME_OPTIONS)[number])) {
+    return raw;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return raw || 'OTHERS';
+};
+
 const defaultFormState: FormState = {
   // Mandatory fields - Patient Details
   name: "",
@@ -77,6 +90,7 @@ const defaultFormState: FormState = {
 
   // Mandatory fields - Registration
   scheme: "",
+  roomNumber: "",
   mrn: "",
   department: "",
   status: "ACTIVE",
@@ -132,6 +146,8 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
       setFormData((prev) => ({
         ...prev,
         ...initial,
+        scheme: (initial as any).scheme ? normalizeScheme((initial as any).scheme) : prev.scheme,
+        roomNumber: (initial as any).roomNumber ?? prev.roomNumber,
         emergencyContact: { ...prev.emergencyContact, ...(initial as any).emergencyContact },
       }));
     }
@@ -273,7 +289,7 @@ REQUIRED FIELDS (must appear, with real values only)
 - name (string)
 - age (number, years; convert if needed)
 - sex ("M" | "F" | "Other")
-- scheme ("ASP" | "NAM" | "Paid" | "Unknown")
+- scheme ("ASP" | "NAM" | "EHS" | "PAID" | "OTHERS")
 - mrn (string; pick the current/most-recent episode if multiple)
 - department (string)
 - status ("ACTIVE" | "INACTIVE")
@@ -310,8 +326,9 @@ NORMALIZATION RULES
 - Scheme → map synonyms:
   * "Aarogyasri", "ASP scheme" → "ASP"
   * "Narayana Aarogyamasthu" → "NAM"
-  * "Self-pay", "Cash", "Paid" → "Paid"
-  * unknown/not stated → "Unknown"
+  * "Employee Health Scheme", "EHS" → "EHS"
+  * "Self-pay", "Cash", "Paid" → "PAID"
+  * unknown/not stated → "OTHERS"
 - Status → "ACTIVE" if currently admitted/under care; "INACTIVE" if explicitly discharged/closed.
 - comorbidities → split on commas/lines; trim; deduplicate.
 - isUrgent → true if documents indicate urgent/emergent/STAT/critical; else false (omit if unclear).
@@ -408,6 +425,9 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           payload.sex = s === 'm' ? 'male' : s === 'f' ? 'female' : 'other';
         }
         if (formData.pathway) payload.pathway = formData.pathway as any;
+        const normalizedScheme = normalizeScheme(formData.scheme);
+        if (normalizedScheme) payload.scheme = normalizedScheme;
+        payload.roomNumber = formData.roomNumber.trim();
         await api.patients.update(patientId, payload);
 
         toast({ title: 'Patient updated', description: `${formData.name} updated successfully.` });
@@ -420,6 +440,8 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           age: formData.age,
           sex: formData.sex,
           mrn: formData.mrn,
+          scheme: formData.scheme,
+          roomNumber: formData.roomNumber,
           department: formData.department,
           pathway: formData.pathway,
           diagnosis: formData.diagnosis || "",
@@ -429,7 +451,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         });
 
         const res = await api.patients.create({
-          mrn: norm.registrationNumber,
+          registrationNumber: norm.registrationNumber,
           name: norm.name,
           department: norm.department,
           age: norm.age,
@@ -438,6 +460,10 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           diagnosis: norm.diagnosis,
           comorbidities: norm.comorbidities,
           assignedDoctorId: norm.assignedDoctorId,
+          scheme: norm.scheme,
+          roomNumber: norm.roomNumber,
+          latestMrn: norm.latestMrn,
+          mrnHistory: norm.mrnHistory,
         });
         onAddPatient?.(res.patient);
 
@@ -572,20 +598,29 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               <p className="text-sm text-gray-600">Hospital registration and department information</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Scheme <span className="text-red-500">*</span>
-              </label>
-              <ButtonGroup
-                options={[
-                  { value: "ASP", label: "ASP" },
-                  { value: "NAM", label: "NAM" },
-                  { value: "Paid", label: "Paid" },
-                  { value: "Unknown", label: "Unknown" },
-                ]}
-                value={formData.scheme}
-                onChange={value => handleInputChange("scheme", value)}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Scheme <span className="text-red-500">*</span>
+                </label>
+                <ButtonGroup
+                  options={SCHEME_OPTIONS.map((option) => ({ value: option, label: option }))}
+                  value={formData.scheme}
+                  onChange={value => handleInputChange("scheme", normalizeScheme(value))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Room Number (R#)
+                </label>
+                <input
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  value={formData.roomNumber}
+                  onChange={(e) => handleInputChange("roomNumber", e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

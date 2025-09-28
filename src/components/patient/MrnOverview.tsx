@@ -23,9 +23,23 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
+const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+type SchemeOption = typeof SCHEME_OPTIONS[number];
+
+const normalizeScheme = (value?: string): string => {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as SchemeOption)) {
+    return raw;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return raw || 'OTHERS';
+};
+
 interface MrnHistoryEntry {
   mrn: string;
-  scheme: 'ASP' | 'NAM' | 'Paid' | 'Unknown' | string;
+  scheme: SchemeOption | string;
   date: string; // ISO8601 string
 }
 
@@ -33,10 +47,11 @@ interface MrnOverviewProps {
   patientId: string;
   mrnHistory?: MrnHistoryEntry[];
   latestMrn?: string;
+  roomNumber?: string;
   onMrnUpdate?: (updatedHistory: MrnHistoryEntry[], newLatestMrn: string) => void;
 }
 
-export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: MrnOverviewProps) {
+export function MrnOverview({ patientId, mrnHistory, latestMrn, roomNumber, onMrnUpdate }: MrnOverviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAddMrnDialog, setShowAddMrnDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,19 +64,24 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
   const { toast } = useToast();
 
   // Use mrnHistory from backend or create fallback entry with latest MRN
-  const displayMrnHistory: MrnHistoryEntry[] = mrnHistory && mrnHistory.length > 0 
+  const rawHistory: MrnHistoryEntry[] = mrnHistory && mrnHistory.length > 0 
     ? mrnHistory 
     : latestMrn 
       ? [{
-          scheme: "Unknown",
+          scheme: "OTHERS",
           mrn: latestMrn,
           date: new Date().toISOString()
         }]
       : [{
-          scheme: "Unknown",
+          scheme: "OTHERS",
           mrn: "No MRN Available",
           date: new Date().toISOString()
         }];
+
+  const displayMrnHistory = rawHistory.map(entry => ({
+    ...entry,
+    scheme: normalizeScheme(entry.scheme),
+  }));
 
   const handleLabClick = (mrnEntry: MrnHistoryEntry) => {
     // Navigate to external LIS system with the specific MRN
@@ -98,7 +118,7 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
       // Switch registration using backend-supported endpoint
       const payload = {
         mrn: newMrnData.mrn.trim(),
-        scheme: newMrnData.scheme,
+        scheme: normalizeScheme(newMrnData.scheme),
         // Optionally: pass actorId or episode fields if needed
       };
       console.log("🚀 Sending Registration Switch Payload:", payload);
@@ -165,7 +185,7 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
           {!isExpanded && (
             <div className="text-right">
               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                {currentMrn.scheme}
+                {roomNumber ? `${currentMrn.scheme} (R# ${roomNumber})` : currentMrn.scheme}
               </Badge>
               <p className="text-xs text-gray-500 mt-1">{currentMrn.mrn}</p>
             </div>
@@ -232,6 +252,11 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
                           >
                             {entry.scheme}
                           </Badge>
+                          {isCurrent && roomNumber && (
+                            <Badge className="bg-white/10 text-white text-xs border border-white/30">
+                              R# {roomNumber}
+                            </Badge>
+                          )}
                           {isCurrent && (
                             <Badge className="bg-white/20 text-white text-xs border-0">
                               Current
@@ -287,10 +312,11 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ASP">ASP</SelectItem>
-                  <SelectItem value="NAM">NAM</SelectItem>
-                  <SelectItem value="Paid">Paid</SelectItem>
-                  <SelectItem value="Unknown">Unknown</SelectItem>
+                  {SCHEME_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

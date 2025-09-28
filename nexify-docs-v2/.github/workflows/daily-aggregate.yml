@@ -1,0 +1,26 @@
+name: Daily Changelog Aggregate
+on:
+  schedule:
+    - cron: "55 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci || npm i
+      - name: Aggregate for today (UTC)
+        run: npm run chg:aggregate
+      - name: Commit aggregates
+        run: |
+          git config user.name "gh-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add pages/changelog/days/*.md pages/changelog/months/*.md pages/changelog/years/*.md || true
+          git commit -m "chore(changelog): daily aggregation" || echo "No changes"
+          git push || true

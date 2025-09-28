@@ -11,6 +11,8 @@ export interface PatientMeta {
   updateCounter: number;
   lastUpdated: string;
   assignedDoctor?: string;
+  scheme?: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
+  roomNumber?: string;
 }
 
 export interface Task {

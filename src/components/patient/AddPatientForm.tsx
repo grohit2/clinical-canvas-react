@@ -97,7 +97,7 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
         mrnHistory: [
           {
             mrn: data.registrationNumber,
-            scheme: "GENERAL",
+            scheme: "OTHERS",
             date: new Date().toISOString()
           }
         ]

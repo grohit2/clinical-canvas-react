@@ -1,5 +1,6 @@
 import { useRef, useState, type MouseEvent, type TouchEvent } from "react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,19 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   const labsUrl = patient.latestMrn
     ? `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${patient.latestMrn}`
     : '';
+
+  const activeScheme = (() => {
+    const schemeCandidates = [
+      patient.scheme,
+      patient.mrnHistory?.find((entry) => entry.mrn === patient.latestMrn)?.scheme,
+      patient.mrnHistory?.[0]?.scheme,
+    ];
+    const resolved = schemeCandidates.find((value): value is string => Boolean(value));
+    return resolved ? resolved.toUpperCase() : undefined;
+  })();
+  const roomNumber = patient.roomNumber?.trim();
+  const showRoomWithMrn = roomNumber && activeScheme ? ['EHS', 'PAID'].includes(activeScheme) : false;
+  const schemeLabel = activeScheme;
 
   const handleTogglePin = (e: MouseEvent) => {
     e.stopPropagation();
@@ -93,6 +107,9 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
   };
 
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const comorbidities = (patient.comorbidities ?? [])
+    .map((item) => item?.trim())
+    .filter((item): item is string => Boolean(item && item.length > 0));
 
   return (
     <Card
@@ -108,14 +125,28 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       onContextMenu={(e) => e.preventDefault()}
       className={`group p-3 hover:shadow-sm transition-all cursor-pointer select-none ${
         isPressing ? "scale-95 ring-2 ring-primary" : getCardColorClass(patient.currentState)
-      } h-[160px] flex flex-col`}
+      } min-h-[160px] flex flex-col`}
     >
       {/* content */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm truncate">{patient.name}</span>
-          {pinned && (
-            <Pin className="h-3 w-3 text-blue-500 fill-current" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm truncate">{patient.name}</span>
+            {pinned && (
+              <Pin className="h-3 w-3 text-blue-500 fill-current" />
+            )}
+          </div>
+          {(patient.latestMrn || showRoomWithMrn || schemeLabel) && (
+            <p className="text-[10px] text-neutral-500 mt-0.5 truncate">
+              {patient.latestMrn ?? ''}
+              {schemeLabel && (
+                <>
+                  {' • '}
+                  <span className="text-emerald-600 font-semibold">{schemeLabel}</span>
+                </>
+              )}
+              {showRoomWithMrn && roomNumber ? ` • R# ${roomNumber}` : ''}
+            </p>
           )}
         </div>
         <DropdownMenu>
@@ -141,6 +172,24 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
         {patient.diagnosis && (
           <p className="line-clamp-2 leading-snug">{patient.diagnosis}</p>
         )}
+        <div className="pt-1">
+          <p className="text-[10px] uppercase tracking-wide text-neutral-500">Comorbidities</p>
+          {comorbidities.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {comorbidities.map((condition) => (
+                <Badge
+                  key={condition}
+                  variant="outline"
+                  className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 border-blue-200 text-blue-700"
+                >
+                  {condition}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-[11px] text-neutral-400">Not recorded</p>
+          )}
+        </div>
       </div>
 
     </Card>

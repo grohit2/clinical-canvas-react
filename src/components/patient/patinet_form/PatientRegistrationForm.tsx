@@ -3,7 +3,7 @@ import { Check, Plus, Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
-import { toCreatePayload } from "./patient-create.adapter";
+import { SCHEME_OPTIONS, normalizeScheme, toCreatePayload } from "./patient-create.adapter";
 
 type PatientRegistrationFormProps = {
   onAddPatient?: (patient: Patient) => void;
@@ -35,6 +35,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     ],
     latestMrn: "", // The current active MRN
     department: "",
+    roomNumber: "",
     status: "ACTIVE", // Always ACTIVE, not shown in UI
 
     // New state field
@@ -130,10 +131,11 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
   };
 
   const updateMrnEntry = (index: number, field: string, value: any) => {
+    const nextValue = field === "scheme" ? normalizeScheme(value) : value;
     setFormData(prev => ({
       ...prev,
       mrnHistory: prev.mrnHistory.map((entry, i) =>
-        i === index ? { ...entry, [field]: value } : entry
+        i === index ? { ...entry, [field]: nextValue } : entry
       )
     }));
   };
@@ -202,13 +204,14 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         sex: data.sex ?? prev.sex,
         mrnHistory: data.scheme && data.mrn ? [
           {
-            scheme: data.scheme,
+            scheme: normalizeScheme(data.scheme),
             mrn: data.mrn,
             date: data.date || new Date().toISOString().slice(0, 10)
           }
         ] : prev.mrnHistory,
         latestMrn: data.mrn || prev.latestMrn,
         department: data.department ?? prev.department,
+        roomNumber: data.roomNumber ?? prev.roomNumber,
         status: "ACTIVE", // Always ACTIVE
         currentState: data.currentState ?? prev.currentState,
         diagnosis: data.diagnosis ?? prev.diagnosis,
@@ -258,7 +261,7 @@ REQUIRED FIELDS (must appear, with real values only)
 - name (string)
 - age (number, years; convert if needed)
 - sex ("M" | "F" | "Other")
-- scheme ("ASP" | "NAM" | "Paid" | "Unknown")
+- scheme ("ASP" | "NAM" | "EHS" | "PAID" | "OTHERS")
 - mrn (string; pick the current/most-recent episode if multiple)
 - department (string)
 - status ("ACTIVE" | "INACTIVE")
@@ -295,8 +298,9 @@ NORMALIZATION RULES
 - Scheme → map synonyms:
   * "Aarogyasri", "ASP scheme" → "ASP"
   * "Narayana Aarogyamasthu" → "NAM"
-  * "Self-pay", "Cash", "Paid" → "Paid"
-  * unknown/not stated → "Unknown"
+  * "Employee Health Scheme", "EHS" → "EHS"
+  * "Self-pay", "Cash", "Paid" → "PAID"
+  * unknown/not stated → "OTHERS"
 - Status → "ACTIVE" if currently admitted/under care; "INACTIVE" if explicitly discharged/closed.
 - comorbidities → split on commas/lines; trim; deduplicate.
 - isUrgent → true if documents indicate urgent/emergent/STAT/critical; else false (omit if unclear).
@@ -391,6 +395,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         mrn: currentMrn,
         latestMrn: formData.latestMrn,
         mrnHistory: formData.mrnHistory,
+        roomNumber: formData.roomNumber,
         department: formData.department,
         diagnosis: formData.diagnosis || "",
         comorbidities: formData.comorbidities || [],
@@ -566,6 +571,19 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               <p className="text-sm text-gray-600">Hospital registration and department information</p>
           </div>
 
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Room Number (R#)
+            </label>
+            <input
+              type="text"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              value={formData.roomNumber}
+              onChange={(e) => handleInputChange("roomNumber", e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+
           {/* Multiple MRN Entries */}
           <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -624,12 +642,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                         Scheme <span className="text-red-500">*</span>
                       </label>
                       <ButtonGroup
-                        options={[
-                          { value: "ASP", label: "ASP" },
-                          { value: "NAM", label: "NAM" },
-                          { value: "Paid", label: "Paid" },
-                          { value: "Unknown", label: "Unknown" },
-                        ]}
+                        options={SCHEME_OPTIONS.map(option => ({ value: option, label: option }))}
                         value={entry.scheme}
                         onChange={value => updateMrnEntry(index, "scheme", value)}
                       />

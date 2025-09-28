@@ -26,9 +26,23 @@ export function normalizeComorbidities(list: string[] | string | undefined): str
   return [...new Set(list.split(",").map(x => x.trim()).filter(Boolean))];
 }
 
+export const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+export type SchemeOption = typeof SCHEME_OPTIONS[number];
+
+export function normalizeScheme(value?: string): SchemeOption {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as SchemeOption)) {
+    return raw as SchemeOption;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return 'OTHERS';
+}
+
 export type MrnHistoryEntry = {
   mrn: string;
-  scheme: 'ASP' | 'NAM' | 'Paid' | 'Unknown' | string;
+  scheme: SchemeOption | string;
   date: string; // ISO8601 string
 };
 
@@ -44,7 +58,9 @@ export type CreatePatientPayload = {
   assignedDoctorId?: string;
   assignedDoctor?: string;
   latestMrn?: string;
-  mrnHistory?: MrnHistoryEntry[];
+  mrnHistory?: { mrn: string; scheme: SchemeOption; date: string }[];
+  scheme?: SchemeOption;
+  roomNumber?: string;
   currentState?: string;
   isUrgent?: boolean;
   urgentReason?: string;
@@ -82,6 +98,7 @@ export type NewFormData = {
   assignedDoctorId?: string;
   latestMrn?: string;
   mrnHistory?: MrnHistoryEntry[];
+  roomNumber?: string;
   currentState?: string;
   isUrgent?: boolean;
   urgentReason?: string;
@@ -111,8 +128,19 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
     throw new Error("Invalid age");
   }
 
+  const registrationNumber = (d.mrn || d.latestMrn || "").trim();
+  const normalizedHistory = (d.mrnHistory || []).map(entry => ({
+    mrn: entry.mrn.trim(),
+    scheme: normalizeScheme(entry.scheme),
+    date: entry.date,
+  })).filter(entry => entry.mrn);
+
+  const activeScheme = normalizedHistory.find(entry => entry.mrn === registrationNumber)?.scheme
+    || normalizedHistory[0]?.scheme
+    || normalizeScheme();
+
   return {
-    registrationNumber: (d.mrn || d.latestMrn || "").trim(),
+    registrationNumber,
     name: (d.name || "").trim(),
     department: (d.department || "General").trim(),
     age: ageNum,
@@ -122,8 +150,10 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
     comorbidities: normalizeComorbidities(d.comorbidities),
     assignedDoctor: (d.assignedDoctor || "").trim() || undefined,
     assignedDoctorId: (d.assignedDoctorId || d.assignedDoctor || "").trim() || undefined,
-    latestMrn: (d.latestMrn || d.mrn || "").trim(),
-    mrnHistory: d.mrnHistory || [],
+    latestMrn: registrationNumber,
+    mrnHistory: normalizedHistory.length ? normalizedHistory : undefined,
+    scheme: activeScheme,
+    roomNumber: (d.roomNumber || "").trim() || undefined,
     currentState: (d.currentState || "").trim() || undefined,
     isUrgent: d.isUrgent || false,
     urgentReason: (d.urgentReason || "").trim() || undefined,

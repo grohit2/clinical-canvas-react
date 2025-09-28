@@ -2,7 +2,7 @@
 
 export interface MrnHistoryEntry {
   mrn: string;
-  scheme: 'ASP' | 'NAM' | 'Paid' | 'Unknown' | string;
+  scheme: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
   date: string; // ISO8601 string
 }
 
@@ -19,6 +19,8 @@ export interface Patient {
   age?: number;
   sex?: string;
   comorbidities?: string[];
+  scheme?: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
+  roomNumber?: string;
   assignedDoctor?: string;
   assignedDoctorId?: string;
   isUrgent?: boolean;

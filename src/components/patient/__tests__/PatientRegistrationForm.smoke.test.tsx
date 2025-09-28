@@ -71,6 +71,9 @@ describe("PatientRegistrationForm smoke test", () => {
       target: { value: "MRN-123" } 
     });
 
+    // Select scheme
+    fireEvent.click(screen.getAllByRole("button", { name: /asp/i })[0]);
+
     // Fill department
     fireEvent.change(screen.getByPlaceholderText(/cardiology, orthopedics/i), { 
       target: { value: "General Surgery" } 
@@ -89,18 +92,26 @@ describe("PatientRegistrationForm smoke test", () => {
 
     // Verify API was called
     await waitFor(() => {
-      expect(api.patients.create).toHaveBeenCalledWith({
-        registrationNumber: "MRN-123",
-        name: "John Doe",
-        department: "General Surgery", 
-        age: 33,
-        sex: "male",
-        pathway: "surgical",
-        diagnosis: "",
-        comorbidities: [],
-        assignedDoctorId: undefined,
-      });
+      expect(api.patients.create).toHaveBeenCalled();
     });
+
+    const payload = vi.mocked(api.patients.create).mock.calls[0][0];
+    expect(payload).toMatchObject({
+      registrationNumber: "MRN-123",
+      name: "John Doe",
+      department: "General Surgery",
+      age: 33,
+      sex: "male",
+      pathway: "surgical",
+      diagnosis: "",
+      comorbidities: [],
+      assignedDoctorId: undefined,
+      scheme: "ASP",
+      latestMrn: "MRN-123",
+    });
+    expect(payload.mrnHistory).toEqual([
+      expect.objectContaining({ mrn: "MRN-123", scheme: "ASP" })
+    ]);
 
     // Verify callbacks were called
     expect(mockOnAddPatient).toHaveBeenCalledWith({
@@ -131,6 +142,7 @@ describe("PatientRegistrationForm smoke test", () => {
     fireEvent.change(screen.getByPlaceholderText(/abc-1234567/i), { 
       target: { value: "MRN-456" } 
     });
+    fireEvent.click(screen.getAllByRole("button", { name: /asp/i })[0]);
     fireEvent.change(screen.getByPlaceholderText(/cardiology, orthopedics/i), { 
       target: { value: "Emergency" } 
     });
@@ -179,6 +191,9 @@ describe("PatientRegistrationForm smoke test", () => {
       target: { value: "TEST-MRN" } 
     });
     expect(screen.getByRole("button", { name: /done/i })).toBeDisabled();
+
+    // Select scheme - still disabled until department & pathway set
+    fireEvent.click(screen.getAllByRole("button", { name: /asp/i })[0]);
 
     // Add department - still disabled (need pathway)
     fireEvent.change(screen.getByPlaceholderText(/cardiology, orthopedics/i), { 

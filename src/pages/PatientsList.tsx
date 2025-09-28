@@ -10,12 +10,77 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
-import type { Patient } from "@/types/api";
+import type { Patient, MrnHistoryEntry } from "@/types/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPinnedPatients } from "@/lib/pinnedPatients";
 
 // Initial empty list; will be populated from API
 let mockPatients: Patient[] = [];
+
+const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
+type SchemeOption = typeof SCHEME_OPTIONS[number];
+
+const normalizeScheme = (value?: string): SchemeOption => {
+  const raw = (value || '').trim().toUpperCase();
+  if (SCHEME_OPTIONS.includes(raw as SchemeOption)) {
+    return raw as SchemeOption;
+  }
+  if (["UNKNOWN", "GENERAL", "OTHER", "OTHERS"].includes(raw)) {
+    return 'OTHERS';
+  }
+  return raw ? (raw as SchemeOption) : 'OTHERS';
+};
+
+const coerceRoomNumber = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  return undefined;
+};
+
+const normalizeMrnHistory = (history?: MrnHistoryEntry[]): MrnHistoryEntry[] | undefined => {
+  if (!history) return undefined;
+  return history.map((entry) => ({
+    ...entry,
+    scheme: normalizeScheme(entry.scheme),
+  }));
+};
+
+const enrichPatient = (patient: Patient): Patient => {
+  const normalizedHistory = normalizeMrnHistory(patient.mrnHistory);
+  const schemeCandidates: Array<string | undefined> = [
+    patient.scheme,
+    normalizedHistory?.find((entry) => entry.mrn === patient.latestMrn)?.scheme,
+    normalizedHistory?.[0]?.scheme,
+    (patient as unknown as { registration?: { scheme?: string } }).registration?.scheme,
+  ];
+  const resolvedScheme = normalizeScheme(schemeCandidates.find(Boolean));
+  const roomCandidate = (patient as unknown as {
+    roomNumber?: string;
+    room_number?: string;
+    room?: string;
+    registration?: { roomNumber?: string; room_number?: string };
+  });
+  const resolvedRoom = coerceRoomNumber(
+    patient.roomNumber ??
+      roomCandidate?.roomNumber ??
+      roomCandidate?.room_number ??
+      roomCandidate?.room ??
+      roomCandidate?.registration?.roomNumber ??
+      roomCandidate?.registration?.room_number,
+  );
+
+  return {
+    ...patient,
+    scheme: resolvedScheme,
+    roomNumber: resolvedRoom,
+    mrnHistory: normalizedHistory,
+  };
+};
 
 export default function PatientsList() {
   const navigate = useNavigate();
@@ -36,13 +101,16 @@ export default function PatientsList() {
     api.patients
       .list()
       .then((data) => {
-        const withUi = data.map((p) => ({
-          ...p,
-          id: p.id,
-          qrCode: `${window.location.origin}/qr/${p.id}`,
-          updateCounter: 0,
-          comorbidities: p.comorbidities || [],
-        }));
+        const withUi = data.map((p) => {
+          const normalized = enrichPatient(p);
+          return {
+            ...normalized,
+            id: normalized.id,
+            qrCode: `${window.location.origin}/qr/${normalized.id}`,
+            updateCounter: normalized.updateCounter ?? 0,
+            comorbidities: normalized.comorbidities || [],
+          };
+        });
         setPatients(withUi);
         mockPatients = withUi;
       })

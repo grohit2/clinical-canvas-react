@@ -21,6 +21,7 @@ export interface Patient {
   comorbidities?: string[];
   scheme?: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
   roomNumber?: string;
+  procedureName?: string;
   assignedDoctor?: string;
   assignedDoctorId?: string;
   isUrgent?: boolean;

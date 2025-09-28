@@ -94,6 +94,7 @@ const normalizePatientRecord = (raw: Patient): Patient => {
     scheme: resolvedScheme,
     roomNumber: resolvedRoom,
     mrnHistory: normalizedHistory,
+    procedureName: raw.procedureName ?? (raw as any)?.procedure_name ?? undefined,
   };
 };
 
@@ -200,6 +201,19 @@ export default function PatientDetail() {
     }
   };
 
+  const comorbidityTokens = useMemo(
+    () =>
+      (patient?.comorbidities ?? [])
+        .flatMap((item) =>
+          String(item)
+            .split(/\s*\+\s*|\s*,\s*/)
+            .map((token) => token.trim())
+            .filter(Boolean)
+        )
+        .map((token) => token.toUpperCase()),
+    [patient?.comorbidities]
+  );
+
   if (!patient) {
     return (
       <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
@@ -212,18 +226,6 @@ export default function PatientDetail() {
   const activeScheme = deriveScheme(patient);
   const roomNumber = patient.roomNumber?.trim();
   const schemeDisplay = activeScheme ? (roomNumber ? `${activeScheme} (R# ${roomNumber})` : activeScheme) : undefined;
-  const comorbidityTokens = useMemo(
-    () =>
-      (patient.comorbidities ?? [])
-        .flatMap((item) =>
-          String(item)
-            .split(/\s*\+\s*|\s*,\s*/)
-            .map((token) => token.trim())
-            .filter(Boolean)
-        )
-        .map((token) => token.toUpperCase()),
-    [patient.comorbidities]
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
@@ -381,6 +383,10 @@ export default function PatientDetail() {
                     <span className="text-muted-foreground">Surgery:</span>
                     <span className="font-medium truncate">{(patient as any).surgeryCode || '—'}</span>
                   </div>
+                  <div className="flex items-center gap-2 mt-1 min-w-0">
+                    <span className="text-muted-foreground">Procedure:</span>
+                    <span className="font-medium truncate">{(patient as any).procedureName || '—'}</span>
+                  </div>
                 </div>
                 <div className="ml-auto flex flex-col items-end gap-1">
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${
@@ -397,7 +403,11 @@ export default function PatientDetail() {
                       onClick={() => {
                         const tid = (patient as any).tidNumber || '';
                         const surg = (patient as any).surgeryCode || '';
-                        const text = surg ? `TID: ${tid} | Surgery: ${surg}` : `TID: ${tid}`;
+                        const proc = (patient as any).procedureName || '';
+                        const parts = [`TID: ${tid}`];
+                        if (surg) parts.push(`Surgery: ${surg}`);
+                        if (proc) parts.push(`Procedure: ${proc}`);
+                        const text = parts.join(' | ');
                         navigator.clipboard.writeText(text).then(() => {
                           toast("Copied to clipboard");
                         });
@@ -416,7 +426,6 @@ export default function PatientDetail() {
               patientId={patient?.id || id || ""} 
               latestMrn={patient?.latestMrn}
               mrnHistory={patient?.mrnHistory}
-              roomNumber={patient?.roomNumber}
               onMrnUpdate={(updatedHistory, newLatestMrn) => {
                 if (patient) {
                   setPatient(normalizePatientRecord({

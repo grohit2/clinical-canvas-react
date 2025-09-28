@@ -101,6 +101,8 @@ export const api = {
             filesUrl: data.filesUrl,
             roomNumber: data.roomNumber,
             room_number: data.roomNumber,
+            procedureName: data.procedureName,
+            procedure_name: data.procedureName,
             // new optional registration fields
             tid_number: data.tidNumber,
             tid_status: data.tidStatus,
@@ -109,6 +111,8 @@ export const api = {
           emergencyContact: data.emergencyContact,
           roomNumber: data.roomNumber,
           room_number: data.roomNumber,
+          procedureName: data.procedureName,
+          procedure_name: data.procedureName,
           scheme: schemeForRegistration,
           latestMrn: data.latestMrn || registrationNumber,
           mrnHistory: data.mrnHistory || [
@@ -135,6 +139,7 @@ export const api = {
       if ((data as any).surgeryCode !== undefined) shadow['surgery_code'] = (data as any).surgeryCode;
       if ((data as any).roomNumber !== undefined) shadow['room_number'] = (data as any).roomNumber;
       if ((data as any).scheme !== undefined) shadow['scheme'] = (data as any).scheme;
+      if ((data as any).procedureName !== undefined) shadow['procedure_name'] = (data as any).procedureName;
 
       return request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',

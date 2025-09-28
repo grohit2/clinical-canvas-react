@@ -69,6 +69,7 @@ export type CreatePatientPayload = {
   mrnHistory?: { mrn: string; scheme: SchemeOption; date: string }[];
   scheme?: SchemeOption;
   roomNumber?: string;
+  procedureName?: string;
   currentState?: string;
   isUrgent?: boolean;
   urgentReason?: string;
@@ -107,6 +108,7 @@ export type NewFormData = {
   latestMrn?: string;
   mrnHistory?: MrnHistoryEntry[];
   roomNumber?: string;
+  procedureName?: string;
   currentState?: string;
   isUrgent?: boolean;
   urgentReason?: string;
@@ -167,6 +169,7 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
     mrnHistory: normalizedHistory.length ? normalizedHistory : undefined,
     scheme: activeScheme,
     roomNumber: (d.roomNumber || "").trim() || undefined,
+    procedureName: (d.procedureName || "").trim() || undefined,
     currentState: (d.currentState || "").trim() || undefined,
     isUrgent: d.isUrgent || false,
     urgentReason: (d.urgentReason || "").trim() || undefined,

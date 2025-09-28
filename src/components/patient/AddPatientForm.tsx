@@ -100,7 +100,8 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
             scheme: "OTHERS",
             date: new Date().toISOString()
           }
-        ]
+        ],
+        procedureName: data.procedureName?.trim() || undefined,
       });
 
       onAddPatient?.(res.patient);
@@ -253,6 +254,19 @@ export function AddPatientForm({ open, onOpenChange, onAddPatient }: AddPatientF
                     <FormLabel>Room Number</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., ICU-101" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="procedureName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Procedure Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Procedure (optional)" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

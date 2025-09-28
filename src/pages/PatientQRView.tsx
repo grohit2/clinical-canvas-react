@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StageChip } from '@/components/patient/StageChip';
 import { UpdateRing } from '@/components/patient/UpdateRing';
-import { Clock, MapPin, User, Activity } from 'lucide-react';
+import { Clock, MapPin, User, Activity, ClipboardList } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 
 // Mock patient data - in real app, this would come from an API
@@ -23,6 +23,7 @@ const mockPatientData = {
     lastUpdated: '2025-07-19T14:30:09Z',
     assignedDoctor: 'Dr. Sarah Wilson',
     roomNumber: '204B',
+    procedureName: 'Laparoscopic Cholecystectomy',
     vitals: {
       temperature: '98.6°F',
       bloodPressure: '120/80',
@@ -121,6 +122,10 @@ export default function PatientQRView() {
                   <span className="text-sm font-medium">
                     {patient.roomNumber ? `R# ${patient.roomNumber}` : '—'}
                   </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{patient.procedureName || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />

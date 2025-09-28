@@ -21,6 +21,7 @@ export interface CreatePayloadInput {
   mrn: string;
   scheme?: string;
   roomNumber?: string;
+  procedureName?: string;
   department: string;
   pathway?: string;
   diagnosis?: string;
@@ -37,6 +38,7 @@ export interface CreatePayloadOutput {
   sex: string;
   scheme?: SchemeOption;
   roomNumber?: string;
+  procedureName?: string;
   pathway?: string;
   diagnosis?: string;
   comorbidities?: string[];
@@ -64,6 +66,7 @@ export function toCreatePayload(input: CreatePayloadInput): CreatePayloadOutput 
   const registrationNumber = input.mrn?.trim() || '';
   const scheme = input.scheme ? normalizeScheme(input.scheme) : 'OTHERS';
   const roomNumber = input.roomNumber?.trim() || undefined;
+  const procedureName = input.procedureName?.trim() || undefined;
 
   const mrnHistory = registrationNumber
     ? [{
@@ -92,6 +95,7 @@ export function toCreatePayload(input: CreatePayloadInput): CreatePayloadOutput 
     sex: normalizedSex,
     scheme,
     roomNumber,
+    procedureName,
     pathway: input.pathway || undefined,
     diagnosis: input.diagnosis?.trim() || undefined,
     comorbidities: input.comorbidities

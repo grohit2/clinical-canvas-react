@@ -196,6 +196,7 @@ export default function EditPatient() {
           tidStatus: (patient as any).tidStatus || "",
           tidNumber: (patient as any).tidNumber || "",
           surgeryCode: (patient as any).surgeryCode || "",
+          procedureName: (patient as any).procedureName || "",
           
           emergencyContact: {
             name: patient.emergencyContact?.name || "",
@@ -505,6 +506,8 @@ export default function EditPatient() {
         scheme: activeScheme,
         roomNumber: formData.roomNumber.trim(),
       };
+
+      payload.procedureName = formData.procedureName.trim() || undefined;
 
       // Clean up payload - remove undefined/empty values
       Object.keys(payload).forEach(key => {
@@ -821,7 +824,7 @@ export default function EditPatient() {
               </div>
 
               {/* TID Registration */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">TID Status</label>
                   <ButtonGroup
@@ -849,10 +852,20 @@ export default function EditPatient() {
                     type="text"
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     value={formData.surgeryCode}
-                    onChange={(e) => handleInputChange('surgeryCode', e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
+                  onChange={(e) => handleInputChange('surgeryCode', e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Procedure Name</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  value={formData.procedureName}
+                  onChange={(e) => handleInputChange('procedureName', e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
               </div>
 
               {/* State Field */}

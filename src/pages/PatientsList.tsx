@@ -73,6 +73,7 @@ const enrichPatient = (patient: Patient): Patient => {
       roomCandidate?.registration?.roomNumber ??
       roomCandidate?.registration?.room_number,
   );
+  const procedureName = (patient as any).procedureName ?? (patient as any)?.procedure_name ?? undefined;
   const comorbidityTokens = (patient.comorbidities ?? [])
     .flatMap((item) =>
       String(item)
@@ -88,6 +89,7 @@ const enrichPatient = (patient: Patient): Patient => {
     roomNumber: resolvedRoom,
     mrnHistory: normalizedHistory,
     comorbidities: comorbidityTokens,
+    procedureName,
   };
 };
 

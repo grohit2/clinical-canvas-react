@@ -103,6 +103,9 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     comorbidities: [] as string[],
     includeOtherComorbidity: false,
     otherComorbidity: "",
+    procedureName: "",
+    includeOtherComorbidity: false,
+    otherComorbidity: "",
 
     // Optional fields - Files & Priority
     filesUrl: "",
@@ -315,6 +318,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         comorbidities: parsed.selections,
         includeOtherComorbidity: parsed.includeOther,
         otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
+        procedureName: data.procedureName ?? prev.procedureName,
         filesUrl: data.filesUrl ?? prev.filesUrl,
         isUrgent: data.isUrgent !== undefined ? data.isUrgent : prev.isUrgent,
         urgentReason: data.urgentReason ?? prev.urgentReason,
@@ -496,6 +500,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         latestMrn: formData.latestMrn,
         mrnHistory: formData.mrnHistory,
         roomNumber: formData.roomNumber,
+        procedureName: formData.procedureName,
         department: formData.department,
         diagnosis: formData.diagnosis || "",
         comorbidities: comorbiditySummary,
@@ -776,7 +781,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           </div>
 
           {/* TID Registration */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">TID Status</label>
               <ButtonGroup
@@ -804,11 +809,21 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                 type="text"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 value={formData.surgeryCode}
-                onChange={(e) => handleInputChange('surgeryCode', e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
+              onChange={(e) => handleInputChange('surgeryCode', e.target.value)}
+              placeholder="Optional"
+            />
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Procedure Name</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              value={formData.procedureName}
+              onChange={(e) => handleInputChange('procedureName', e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+        </div>
 
           {/* State Field */}
             <div>

@@ -97,6 +97,7 @@ type FormState = {
   comorbidities: string[];
   includeOtherComorbidity: boolean;
   otherComorbidity: string;
+  procedureName: string;
   assignedDoctor: string;
   assignedDoctorId: string;
   filesUrl: string;
@@ -161,6 +162,7 @@ const defaultFormState: FormState = {
   comorbidities: [],
   includeOtherComorbidity: false,
   otherComorbidity: "",
+  procedureName: "",
   assignedDoctor: "",
   assignedDoctorId: "",
 
@@ -212,6 +214,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         comorbidities: parsed.selections,
         includeOtherComorbidity: parsed.includeOther,
         otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
+        procedureName: (initial as any).procedureName ?? prev.procedureName,
         emergencyContact: { ...prev.emergencyContact, ...(initial as any).emergencyContact },
       }));
     }
@@ -346,6 +349,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         comorbidities: parsed.selections,
         includeOtherComorbidity: parsed.includeOther,
         otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
+        procedureName: data.procedureName ?? prev.procedureName,
         assignedDoctor: data.assignedDoctor ?? prev.assignedDoctor,
         assignedDoctorId: data.assignedDoctorId ?? prev.assignedDoctorId,
         filesUrl: data.filesUrl ?? prev.filesUrl,
@@ -536,6 +540,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         if (comorbiditySummary.length) payload.comorbidities = comorbiditySummary;
         else payload.comorbidities = [];
         payload.roomNumber = formData.roomNumber.trim();
+        payload.procedureName = formData.procedureName.trim() || undefined;
         await api.patients.update(patientId, payload);
 
         toast({ title: 'Patient updated', description: `${formData.name} updated successfully.` });
@@ -550,6 +555,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           mrn: formData.mrn,
           scheme: formData.scheme,
           roomNumber: formData.roomNumber,
+          procedureName: formData.procedureName,
           department: formData.department,
           pathway: formData.pathway,
           diagnosis: formData.diagnosis || "",
@@ -729,6 +735,19 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                   placeholder="Optional"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Procedure Name
+              </label>
+              <input
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                value={formData.procedureName}
+                onChange={(e) => handleInputChange("procedureName", e.target.value)}
+                placeholder="Optional"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

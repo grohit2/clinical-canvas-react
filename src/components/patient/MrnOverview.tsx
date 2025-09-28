@@ -47,11 +47,10 @@ interface MrnOverviewProps {
   patientId: string;
   mrnHistory?: MrnHistoryEntry[];
   latestMrn?: string;
-  roomNumber?: string;
   onMrnUpdate?: (updatedHistory: MrnHistoryEntry[], newLatestMrn: string) => void;
 }
 
-export function MrnOverview({ patientId, mrnHistory, latestMrn, roomNumber, onMrnUpdate }: MrnOverviewProps) {
+export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: MrnOverviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAddMrnDialog, setShowAddMrnDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,7 +184,7 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, roomNumber, onMr
           {!isExpanded && (
             <div className="text-right">
               <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                {roomNumber ? `${currentMrn.scheme} (R# ${roomNumber})` : currentMrn.scheme}
+                {currentMrn.scheme}
               </Badge>
               <p className="text-xs text-gray-500 mt-1">{currentMrn.mrn}</p>
             </div>
@@ -252,11 +251,6 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, roomNumber, onMr
                           >
                             {entry.scheme}
                           </Badge>
-                          {isCurrent && roomNumber && (
-                            <Badge className="bg-white/10 text-white text-xs border border-white/30">
-                              R# {roomNumber}
-                            </Badge>
-                          )}
                           {isCurrent && (
                             <Badge className="bg-white/20 text-white text-xs border-0">
                               Current

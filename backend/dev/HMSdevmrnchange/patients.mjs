@@ -44,7 +44,7 @@ const EPISODE_UPDATABLE = new Set([
   "assigned_doctor", "assigned_doctor_id", "files_url",
   "is_urgent", "urgent_reason", "urgent_until",
   // New optional fields
-  "tid_number", "tid_status", "surgery_code",
+  "tid_number", "tid_status", "surgery_code", "procedure_name",
   "room_number",
 ]); // current_state is handled in /state
 
@@ -57,6 +57,7 @@ const toUiPatient = (it = {}) => ({
   latestMrn: it.active_reg_mrn || null,
   mrnHistory: Array.isArray(it.mrn_history) ? it.mrn_history : [],
   roomNumber: it.room_number ?? null,
+  procedureName: it.procedure_name ?? null,
 
   name: it.name ?? null,
   age: it.age ?? null,
@@ -109,6 +110,7 @@ export function mountPatientRoutes(router, ctx) {
     const uid = body.patient_uid || ulid();
     const firstState = reg.current_state || "onboarding";
     const roomNumber = reg.room_number ?? reg.roomNumber ?? null;
+    const procedureName = reg.procedure_name ?? reg.procedureName ?? null;
 
     // Seed timeline (no MRN in SK; MRN kept as attribute)
     const tl = buildInitialTimelineItem({ patient_uid: uid, mrn: reg.mrn, scheme: reg.scheme, firstState, now, actorId: body.createdBy || null });
@@ -140,6 +142,7 @@ export function mountPatientRoutes(router, ctx) {
       tid_number: reg.tid_number ?? null,
       tid_status: reg.tid_status ?? null,
       surgery_code: reg.surgery_code ?? null,
+      procedure_name: procedureName,
       room_number: roomNumber,
       state_dates: { [String(firstState)]: now },
       timeline_open_sk: tl.sk,
@@ -159,9 +162,9 @@ export function mountPatientRoutes(router, ctx) {
     };
 
     // MRN pointer for resolve-by-MRN
-    const mrnPtr = {
-      PK: `MRN#${reg.mrn}`, SK: "MRN",
-      mrn: reg.mrn, patient_uid: uid, scheme: reg.scheme,
+      const mrnPtr = {
+        PK: `MRN#${reg.mrn}`, SK: "MRN",
+        mrn: reg.mrn, patient_uid: uid, scheme: reg.scheme,
       department: reg.department, status: "ACTIVE", created_at: now,
     };
 
@@ -253,6 +256,9 @@ export function mountPatientRoutes(router, ctx) {
     }
     if (body?.roomNumber && !body.room_number) {
       body.room_number = body.roomNumber;
+    }
+    if (body?.procedureName && !body.procedure_name) {
+      body.procedure_name = body.procedureName;
     }
 
     const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);

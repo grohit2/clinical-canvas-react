@@ -13,6 +13,7 @@ export interface PatientMeta {
   assignedDoctor?: string;
   scheme?: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
   roomNumber?: string;
+  procedureName?: string;
 }
 
 export interface Task {

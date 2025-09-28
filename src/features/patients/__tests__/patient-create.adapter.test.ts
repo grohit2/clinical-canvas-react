@@ -15,6 +15,7 @@ test("normalizePathway", () => {
 test("normalizeComorbidities", () => {
   expect(normalizeComorbidities([" DM2 ", "HTN", "DM2"])).toEqual(["DM2","HTN"]);
   expect(normalizeComorbidities("DM2, HTN , ")).toEqual(["DM2","HTN"]);
+  expect(normalizeComorbidities(["T2DM + CKD"])).toEqual(["T2DM","CKD"]);
 });
 
 test("toCreatePayload happy path", () => {

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StageChip } from '@/components/patient/StageChip';
 import { UpdateRing } from '@/components/patient/UpdateRing';
 import { Clock, MapPin, User, Activity } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // Mock patient data - in real app, this would come from an API
 const mockPatientData = {
@@ -44,6 +44,18 @@ export default function PatientQRView() {
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<MockPatient | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const comorbidityTokens = useMemo(
+    () =>
+      (patient?.comorbidities ?? [])
+        .flatMap((item) =>
+          String(item)
+            .split(/\s*\+\s*|\s*,\s*/)
+            .map((token) => token.trim())
+            .filter(Boolean)
+        )
+        .map((token) => token.toUpperCase()),
+    [patient?.comorbidities]
+  );
 
   useEffect(() => {
     if (id && mockPatientData[id as keyof typeof mockPatientData]) {
@@ -144,10 +156,10 @@ export default function PatientQRView() {
                 <p className="text-sm font-medium text-primary">{patient.diagnosis}</p>
                 <p className="text-xs text-muted-foreground">Primary diagnosis</p>
               </div>
-              {patient.comorbidities.length > 0 && (
+              {comorbidityTokens.length > 0 && (
                 <div>
                   <div className="flex flex-wrap gap-1">
-                    {patient.comorbidities.map((condition: string, index: number) => (
+                    {comorbidityTokens.map((condition: string, index: number) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         {condition}
                       </Badge>

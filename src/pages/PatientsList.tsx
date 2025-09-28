@@ -73,12 +73,21 @@ const enrichPatient = (patient: Patient): Patient => {
       roomCandidate?.registration?.roomNumber ??
       roomCandidate?.registration?.room_number,
   );
+  const comorbidityTokens = (patient.comorbidities ?? [])
+    .flatMap((item) =>
+      String(item)
+        .split(/\s*\+\s*|\s*,\s*/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+    )
+    .map((token) => token.toUpperCase());
 
   return {
     ...patient,
     scheme: resolvedScheme,
     roomNumber: resolvedRoom,
     mrnHistory: normalizedHistory,
+    comorbidities: comorbidityTokens,
   };
 };
 

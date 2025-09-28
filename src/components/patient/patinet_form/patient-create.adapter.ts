@@ -22,8 +22,16 @@ export function normalizePathway(input?: string): PathwayApi {
 
 export function normalizeComorbidities(list: string[] | string | undefined): string[] {
   if (!list) return [];
-  if (Array.isArray(list)) return [...new Set(list.map(x => x.trim()).filter(Boolean))];
-  return [...new Set(list.split(",").map(x => x.trim()).filter(Boolean))];
+  const toArray = Array.isArray(list) ? list : [list];
+  const tokens = toArray
+    .flatMap((item) =>
+      String(item)
+        .split(/\s*\+\s*|\s*,\s*/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+    )
+    .map((token) => token.toUpperCase());
+  return [...new Set(tokens)];
 }
 
 export const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
@@ -147,7 +155,12 @@ export function toCreatePayload(d: NewFormData): CreatePatientPayload {
     sex: mapSexToApi(d.sex),
     pathway: normalizePathway(d.pathway),
     diagnosis: (d.diagnosis || "").trim(),
-    comorbidities: normalizeComorbidities(d.comorbidities),
+    comorbidities: d.comorbidities
+      ? d.comorbidities
+          .map((c) => c.trim())
+          .filter(Boolean)
+          .map((c) => c.toUpperCase())
+      : [],
     assignedDoctor: (d.assignedDoctor || "").trim() || undefined,
     assignedDoctorId: (d.assignedDoctorId || d.assignedDoctor || "").trim() || undefined,
     latestMrn: registrationNumber,

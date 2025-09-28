@@ -108,8 +108,13 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const comorbidities = (patient.comorbidities ?? [])
-    .map((item) => item?.trim())
-    .filter((item): item is string => Boolean(item && item.length > 0));
+    .flatMap((item) =>
+      String(item)
+        .split(/\s*\+\s*|\s*,\s*/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+    )
+    .map((token) => token.toUpperCase());
 
   return (
     <Card

@@ -61,14 +61,18 @@ describe("normalizePathway", () => {
 describe("normalizeComorbidities", () => {
   test("handles array input", () => {
     expect(normalizeComorbidities([" DM2 ", "HTN", "DM2", ""])).toEqual(["DM2", "HTN"]);
-    expect(normalizeComorbidities(["diabetes", "hypertension"])).toEqual(["diabetes", "hypertension"]);
+    expect(normalizeComorbidities(["diabetes", "hypertension"])).toEqual(["DIABETES", "HYPERTENSION"]);
     expect(normalizeComorbidities([])).toEqual([]);
   });
 
   test("handles string input", () => {
     expect(normalizeComorbidities("DM2, HTN , ")).toEqual(["DM2", "HTN"]);
-    expect(normalizeComorbidities("diabetes,hypertension")).toEqual(["diabetes", "hypertension"]);
+    expect(normalizeComorbidities("diabetes,hypertension")).toEqual(["DIABETES", "HYPERTENSION"]);
     expect(normalizeComorbidities("")).toEqual([]);
+  });
+
+  test("splits on plus separators", () => {
+    expect(normalizeComorbidities(["T2DM + CKD"])).toEqual(["T2DM", "CKD"]);
   });
 
   test("handles undefined input", () => {

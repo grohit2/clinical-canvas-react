@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -212,6 +212,18 @@ export default function PatientDetail() {
   const activeScheme = deriveScheme(patient);
   const roomNumber = patient.roomNumber?.trim();
   const schemeDisplay = activeScheme ? (roomNumber ? `${activeScheme} (R# ${roomNumber})` : activeScheme) : undefined;
+  const comorbidityTokens = useMemo(
+    () =>
+      (patient.comorbidities ?? [])
+        .flatMap((item) =>
+          String(item)
+            .split(/\s*\+\s*|\s*,\s*/)
+            .map((token) => token.trim())
+            .filter(Boolean)
+        )
+        .map((token) => token.toUpperCase()),
+    [patient.comorbidities]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 overflow-x-hidden">
@@ -296,8 +308,8 @@ export default function PatientDetail() {
                   Comorbidities:
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {patient.comorbidities?.length ? (
-                    patient.comorbidities.map((c) => (
+                  {comorbidityTokens.length ? (
+                    comorbidityTokens.map((c) => (
                       <span
                         key={c}
                         className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"

@@ -94,7 +94,12 @@ export function toCreatePayload(input: CreatePayloadInput): CreatePayloadOutput 
     roomNumber,
     pathway: input.pathway || undefined,
     diagnosis: input.diagnosis?.trim() || undefined,
-    comorbidities: input.comorbidities?.filter(c => c.trim()) || undefined,
+    comorbidities: input.comorbidities
+      ? input.comorbidities
+          .map((c) => c.trim())
+          .filter(Boolean)
+          .map((c) => c.toUpperCase())
+      : undefined,
     assignedDoctorId: input.assignedDoctorId?.trim() || undefined,
     latestMrn: registrationNumber || undefined,
     mrnHistory: mrnHistory.length ? mrnHistory : undefined,

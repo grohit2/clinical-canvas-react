@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Check, Plus, Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
@@ -8,6 +8,62 @@ import { SCHEME_OPTIONS, normalizeScheme, toCreatePayload } from "./patient-crea
 type PatientRegistrationFormProps = {
   onAddPatient?: (patient: Patient) => void;
   onClose?: () => void; // if used inside a Dialog
+};
+
+const COMORBIDITY_OPTIONS = [
+  { value: "T2DM", label: "T2DM" },
+  { value: "HTN", label: "HTN" },
+  { value: "CAD", label: "CAD" },
+  { value: "CVD", label: "CVD" },
+  { value: "CKD", label: "CKD" },
+  { value: "THYROID", label: "THYROID" },
+  { value: "EPILEPSY", label: "EPILEPSY" },
+  { value: "BRONCHIAL ASTHMA", label: "BRONCHIAL ASTHMA" },
+  { value: "TUBERCULOSIS", label: "TUBERCULOSIS" },
+  { value: "OTHER", label: "Other" },
+] as const;
+
+const OTHER_COMORBIDITY_VALUE = "OTHER";
+const COMORBIDITY_BASE_VALUES = COMORBIDITY_OPTIONS.filter((opt) => opt.value !== OTHER_COMORBIDITY_VALUE).map((opt) => opt.value);
+const COMORBIDITY_BASE_SET = new Set(COMORBIDITY_BASE_VALUES);
+
+const toUpperTrim = (value: string) => value.trim().toUpperCase();
+
+const parseComorbiditiesFromList = (list?: string[]) => {
+  const flattened = (list || [])
+    .flatMap((item) =>
+      String(item)
+        .split(/\s*\+\s*|\s*,\s*/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+    )
+    .map((token) => token.toUpperCase());
+
+  const baseSelections = Array.from(
+    new Set(flattened.filter((token) => COMORBIDITY_BASE_SET.has(token)))
+  );
+
+  const customTokens = flattened.filter((token) => !COMORBIDITY_BASE_SET.has(token));
+
+  return {
+    selections: baseSelections,
+    includeOther: customTokens.length > 0,
+    otherValue: customTokens.join(' + '),
+  };
+};
+
+const buildComorbidityResult = (
+  selections: string[],
+  includeOther: boolean,
+  otherValue: string
+) => {
+  const tokens = Array.from(new Set(selections.map(toUpperTrim)));
+  if (includeOther) {
+    const custom = toUpperTrim(otherValue);
+    if (custom) tokens.push(custom);
+  }
+  const summary = tokens.length ? [tokens.join(' + ')] : [];
+  return { tokens, summary };
 };
 
 const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAddPatient, onClose }) => {
@@ -45,6 +101,8 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     // Optional fields - Medical Details
     diagnosis: "",
     comorbidities: [] as string[],
+    includeOtherComorbidity: false,
+    otherComorbidity: "",
 
     // Optional fields - Files & Priority
     filesUrl: "",
@@ -96,10 +154,41 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     });
   };
 
-  const handleArrayChange = (path: string, value: string) => {
-    const items = value.split(",").map(item => item.trim()).filter(Boolean);
-    handleInputChange(path, items);
+  const toggleComorbidity = (value: string) => {
+    if (value === OTHER_COMORBIDITY_VALUE) {
+      setFormData(prev => ({
+        ...prev,
+        includeOtherComorbidity: !prev.includeOtherComorbidity,
+        otherComorbidity: !prev.includeOtherComorbidity ? prev.otherComorbidity : "",
+      }));
+      return;
+    }
+
+    const normalized = toUpperTrim(String(value));
+    setFormData(prev => {
+      const exists = prev.comorbidities.includes(normalized);
+      const next = exists
+        ? prev.comorbidities.filter(item => item !== normalized)
+        : [...prev.comorbidities, normalized];
+      return { ...prev, comorbidities: next };
+    });
   };
+
+  const handleOtherComorbidityChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      otherComorbidity: value.toUpperCase(),
+    }));
+  };
+
+  const comorbidityResult = useMemo(
+    () => buildComorbidityResult(
+      formData.comorbidities,
+      formData.includeOtherComorbidity,
+      formData.otherComorbidity
+    ),
+    [formData.comorbidities, formData.includeOtherComorbidity, formData.otherComorbidity]
+  );
 
   const validateMandatoryFields = () => {
     const hasValidMrn = formData.mrnHistory.some(entry => 
@@ -197,6 +286,14 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
     try {
       const data = JSON.parse(jsonString);
 
+      const parsed = parseComorbiditiesFromList(
+        Array.isArray(data.comorbidities)
+          ? data.comorbidities
+          : data.comorbidities
+          ? [data.comorbidities]
+          : undefined
+      );
+
       setFormData(prev => ({
         ...prev,
         name: data.name ?? prev.name,
@@ -215,7 +312,9 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
         status: "ACTIVE", // Always ACTIVE
         currentState: data.currentState ?? prev.currentState,
         diagnosis: data.diagnosis ?? prev.diagnosis,
-        comorbidities: Array.isArray(data.comorbidities) ? data.comorbidities : prev.comorbidities,
+        comorbidities: parsed.selections,
+        includeOtherComorbidity: parsed.includeOther,
+        otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
         filesUrl: data.filesUrl ?? prev.filesUrl,
         isUrgent: data.isUrgent !== undefined ? data.isUrgent : prev.isUrgent,
         urgentReason: data.urgentReason ?? prev.urgentReason,
@@ -382,6 +481,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
 
     try {
       setIsSubmitting(true);
+      const comorbiditySummary = comorbidityResult.summary;
 
       // Build payload identical to your current AddPatientForm's submission
       // Use the latest MRN or the first valid MRN if no latest is set
@@ -398,7 +498,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         roomNumber: formData.roomNumber,
         department: formData.department,
         diagnosis: formData.diagnosis || "",
-        comorbidities: formData.comorbidities || [],
+        comorbidities: comorbiditySummary,
         currentState: formData.currentState,
         // new optional fields
         tidNumber: formData.tidNumber,
@@ -767,13 +867,45 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Comorbidities</label>
-              <input
-                type="text"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                value={formData.comorbidities.join(", ")}
-                onChange={e => handleArrayChange("comorbidities", e.target.value)}
-                placeholder="DM2, HTN, CAD"
-              />
+              <div className="flex flex-wrap gap-2">
+                {COMORBIDITY_OPTIONS.map((option) => {
+                  const isOther = option.value === OTHER_COMORBIDITY_VALUE;
+                  const isActive = isOther
+                    ? formData.includeOtherComorbidity
+                    : formData.comorbidities.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleComorbidity(option.value)}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                        isActive
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.includeOtherComorbidity && (
+                <input
+                  type="text"
+                  className="mt-3 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  placeholder="Specify other comorbidity"
+                  value={formData.otherComorbidity}
+                  onChange={(e) => handleOtherComorbidityChange(e.target.value)}
+                />
+              )}
+              {comorbidityResult.tokens.length > 0 && (
+                <p className="mt-2 text-xs text-gray-600">
+                  Will be saved as{' '}
+                  <span className="font-semibold text-gray-800">
+                    {comorbidityResult.tokens.join(' + ')}
+                  </span>
+                </p>
+              )}
             </div>
 
           </div>

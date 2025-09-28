@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Check, Plus, Trash2, Star } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -7,6 +7,51 @@ import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
 import { mapSexToApi, normalizePathway, normalizeComorbidities, normalizeScheme, SCHEME_OPTIONS } from "@/components/patient/patinet_form/patient-create.adapter";
+
+const COMORBIDITY_OPTIONS = [
+  { value: "T2DM", label: "T2DM" },
+  { value: "HTN", label: "HTN" },
+  { value: "CAD", label: "CAD" },
+  { value: "CVD", label: "CVD" },
+  { value: "CKD", label: "CKD" },
+  { value: "THYROID", label: "THYROID" },
+  { value: "EPILEPSY", label: "EPILEPSY" },
+  { value: "BRONCHIAL ASTHMA", label: "BRONCHIAL ASTHMA" },
+  { value: "TUBERCULOSIS", label: "TUBERCULOSIS" },
+  { value: "OTHER", label: "Other" },
+] as const;
+
+const OTHER_COMORBIDITY_VALUE = "OTHER";
+const COMORBIDITY_BASE_VALUES = COMORBIDITY_OPTIONS.filter((opt) => opt.value !== OTHER_COMORBIDITY_VALUE).map((opt) => opt.value);
+const COMORBIDITY_BASE_SET = new Set(COMORBIDITY_BASE_VALUES);
+
+const toUpperTrim = (value: string) => value.trim().toUpperCase();
+
+const deriveComorbidityState = (list?: string[]) => {
+  const normalizedTokens = normalizeComorbidities(list || []);
+  const baseSelections = normalizedTokens.filter((token) => COMORBIDITY_BASE_SET.has(token));
+  const customTokens = normalizedTokens.filter((token) => !COMORBIDITY_BASE_SET.has(token));
+
+  return {
+    selections: Array.from(new Set(baseSelections)),
+    includeOther: customTokens.length > 0,
+    otherValue: customTokens.join(' + '),
+  };
+};
+
+const buildComorbidityResult = (
+  selections: string[],
+  includeOther: boolean,
+  otherValue: string
+) => {
+  const tokens = Array.from(new Set(selections.map(toUpperTrim)));
+  if (includeOther) {
+    const custom = toUpperTrim(otherValue);
+    if (custom) tokens.push(custom);
+  }
+  const summary = tokens.length ? [tokens.join(' + ')] : [];
+  return { tokens, summary };
+};
 
 export default function EditPatient() {
   const { id } = useParams();
@@ -43,6 +88,8 @@ export default function EditPatient() {
     // Medical Details
     diagnosis: "",
     comorbidities: [] as string[],
+    includeOtherComorbidity: false,
+    otherComorbidity: "",
     pathway: "",
 
     // Assignment
@@ -110,6 +157,8 @@ export default function EditPatient() {
       try {
         const patient = await api.patients.get(id);
         
+        const parsedComorbidities = deriveComorbidityState(patient.comorbidities || []);
+
         // Map patient data to form structure
         setFormData({
           name: patient.name || "",
@@ -131,7 +180,9 @@ export default function EditPatient() {
           currentState: patient.currentState || "",
           
           diagnosis: patient.diagnosis || "",
-          comorbidities: patient.comorbidities || [],
+          comorbidities: parsedComorbidities.selections,
+          includeOtherComorbidity: parsedComorbidities.includeOther,
+          otherComorbidity: parsedComorbidities.includeOther ? parsedComorbidities.otherValue : "",
           pathway: patient.pathway || "",
           
           assignedDoctor: patient.assignedDoctor || "",
@@ -203,10 +254,41 @@ export default function EditPatient() {
     });
   };
 
-  const handleArrayChange = (path: string, value: string) => {
-    const items = value.split(",").map(item => item.trim()).filter(Boolean);
-    handleInputChange(path, items);
+  const toggleComorbidity = (value: string) => {
+    if (value === OTHER_COMORBIDITY_VALUE) {
+      setFormData(prev => ({
+        ...prev,
+        includeOtherComorbidity: !prev.includeOtherComorbidity,
+        otherComorbidity: !prev.includeOtherComorbidity ? prev.otherComorbidity : "",
+      }));
+      return;
+    }
+
+    const normalized = toUpperTrim(String(value));
+    setFormData(prev => {
+      const exists = prev.comorbidities.includes(normalized);
+      const next = exists
+        ? prev.comorbidities.filter(item => item !== normalized)
+        : [...prev.comorbidities, normalized];
+      return { ...prev, comorbidities: next };
+    });
   };
+
+  const handleOtherComorbidityChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      otherComorbidity: value.toUpperCase(),
+    }));
+  };
+
+  const comorbidityResult = useMemo(
+    () => buildComorbidityResult(
+      formData.comorbidities,
+      formData.includeOtherComorbidity,
+      formData.otherComorbidity
+    ),
+    [formData.comorbidities, formData.includeOtherComorbidity, formData.otherComorbidity]
+  );
 
   // MRN management functions
   const addMrnEntry = () => {
@@ -343,6 +425,7 @@ export default function EditPatient() {
 
     try {
       setIsSubmitting(true);
+      const comorbiditySummary = comorbidityResult.summary;
 
       // Compute cleaned MRN history from form
       const nowIso = new Date().toISOString();
@@ -393,7 +476,7 @@ export default function EditPatient() {
         sex: mapSexToApi(formData.sex),
         department: formData.department,
         diagnosis: formData.diagnosis,
-        comorbidities: normalizeComorbidities(formData.comorbidities),
+        comorbidities: comorbiditySummary,
         pathway: normalizePathway(formData.pathway),
         currentState: formData.currentState,
         assignedDoctor: formData.assignedDoctor,
@@ -841,13 +924,45 @@ export default function EditPatient() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Comorbidities</label>
-                <input
-                  type="text"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.comorbidities.join(", ")}
-                  onChange={e => handleArrayChange("comorbidities", e.target.value)}
-                  placeholder="DM2, HTN, CAD"
-                />
+                <div className="flex flex-wrap gap-2">
+                  {COMORBIDITY_OPTIONS.map((option) => {
+                    const isOther = option.value === OTHER_COMORBIDITY_VALUE;
+                    const isActive = isOther
+                      ? formData.includeOtherComorbidity
+                      : formData.comorbidities.includes(option.value);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => toggleComorbidity(option.value)}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                          isActive
+                            ? "bg-blue-600 border-blue-600 text-white"
+                            : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.includeOtherComorbidity && (
+                  <input
+                    type="text"
+                    className="mt-3 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Specify other comorbidity"
+                    value={formData.otherComorbidity}
+                    onChange={(e) => handleOtherComorbidityChange(e.target.value)}
+                  />
+                )}
+                {comorbidityResult.tokens.length > 0 && (
+                  <p className="mt-2 text-xs text-gray-600">
+                    Will be saved as{' '}
+                    <span className="font-semibold text-gray-800">
+                      {comorbidityResult.tokens.join(' + ')}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 

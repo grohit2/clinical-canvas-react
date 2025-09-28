@@ -250,13 +250,8 @@ export default function PatientDetail() {
                 {patient.sex ? titleCase(patient.sex) : ""}
                 {(patient.age !== undefined || patient.sex) ? " / " : ""}
                 {patient.latestMrn ?? ''}
+                {schemeDisplay ? ` / ${schemeDisplay}` : ''}
               </div>
-              {schemeDisplay && (
-                <div className="mt-0.5 text-[12px] text-muted-foreground uppercase">
-                  Scheme:{' '}
-                  <span className="text-emerald-600 font-semibold">{schemeDisplay}</span>
-                </div>
-              )}
             </div>
 
             <div className="flex items-start gap-2 shrink-0">
@@ -294,53 +289,6 @@ export default function PatientDetail() {
             </div>
           </div>
 
-          {/* Inner diagnosis sub-card */}
-          <div className="mt-3 rounded-xl border border-gray-200 p-3 sm:p-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Primary Diagnosis:
-            </p>
-
-            <p className="mt-1 text-[15px] sm:text-base font-semibold uppercase leading-snug text-foreground">
-              {patient.diagnosis}
-            </p>
-
-            <div className="mt-3 flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Comorbidities:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {comorbidityTokens.length ? (
-                    comorbidityTokens.map((c) => (
-                      <span
-                        key={c}
-                        className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                      >
-                        {c}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">None</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Stage pill only (no 'Stage:' label) */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="rounded-full px-3 py-1 bg-muted text-foreground hover:bg-muted"
-                onClick={() => {
-                  setSelectedStage(patient.currentState || "onboarding");
-                  setShowStageDialog(true);
-                }}
-              >
-                {patient.currentState || "onboarding"}
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -369,6 +317,52 @@ export default function PatientDetail() {
 
         <TabsContent value="overview" className="bg-transparent">
           <div className="px-3 sm:px-4 py-3 space-y-3">
+            {/* Diagnosis & Comorbidities (moved from header) */}
+            <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+              <p className="text-sm font-medium text-muted-foreground">
+                Primary Diagnosis:
+              </p>
+
+              <p className="mt-1 text-[15px] sm:text-base font-semibold uppercase leading-snug text-foreground">
+                {patient.diagnosis}
+              </p>
+
+              <div className="mt-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Comorbidities:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {comorbidityTokens.length ? (
+                      comorbidityTokens.map((c) => (
+                        <span
+                          key={c}
+                          className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                        >
+                          {c}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">None</span>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full px-3 py-1 bg-muted text-foreground hover:bg-muted"
+                  onClick={() => {
+                    setSelectedStage(patient.currentState || "onboarding");
+                    setShowStageDialog(true);
+                  }}
+                >
+                  {patient.currentState || "onboarding"}
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
             {/* TID / Surgery summary (compact) */}
             <div className="bg-white rounded-lg border border-gray-200 p-2">
               <div className="flex items-start gap-3 text-sm">

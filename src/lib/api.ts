@@ -100,6 +100,7 @@ export const api = {
             urgentUntil: data.urgentUntil,
             filesUrl: data.filesUrl,
             roomNumber: data.roomNumber,
+            room_number: data.roomNumber,
             // new optional registration fields
             tid_number: data.tidNumber,
             tid_status: data.tidStatus,
@@ -107,6 +108,7 @@ export const api = {
           },
           emergencyContact: data.emergencyContact,
           roomNumber: data.roomNumber,
+          room_number: data.roomNumber,
           scheme: schemeForRegistration,
           latestMrn: data.latestMrn || registrationNumber,
           mrnHistory: data.mrnHistory || [

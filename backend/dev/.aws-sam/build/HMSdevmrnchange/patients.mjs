@@ -45,6 +45,7 @@ const EPISODE_UPDATABLE = new Set([
   "is_urgent", "urgent_reason", "urgent_until",
   // New optional fields
   "tid_number", "tid_status", "surgery_code",
+  "room_number",
 ]); // current_state is handled in /state
 
 /* ------------------------------- UI mapper ------------------------------ */
@@ -55,6 +56,7 @@ const toUiPatient = (it = {}) => ({
   scheme: it.active_scheme || null,
   latestMrn: it.active_reg_mrn || null,
   mrnHistory: Array.isArray(it.mrn_history) ? it.mrn_history : [],
+  roomNumber: it.room_number ?? null,
 
   name: it.name ?? null,
   age: it.age ?? null,
@@ -106,6 +108,7 @@ export function mountPatientRoutes(router, ctx) {
 
     const uid = body.patient_uid || ulid();
     const firstState = reg.current_state || "onboarding";
+    const roomNumber = reg.room_number ?? reg.roomNumber ?? null;
 
     // Seed timeline (no MRN in SK; MRN kept as attribute)
     const tl = buildInitialTimelineItem({ patient_uid: uid, mrn: reg.mrn, scheme: reg.scheme, firstState, now, actorId: body.createdBy || null });
@@ -137,6 +140,7 @@ export function mountPatientRoutes(router, ctx) {
       tid_number: reg.tid_number ?? null,
       tid_status: reg.tid_status ?? null,
       surgery_code: reg.surgery_code ?? null,
+      room_number: roomNumber,
       state_dates: { [String(firstState)]: now },
       timeline_open_sk: tl.sk,
 
@@ -246,6 +250,9 @@ export function mountPatientRoutes(router, ctx) {
 
     if (body?.emergencyContact && !body.emergency_contact) {
       body.emergency_contact = normalizeEmergencyContact(body.emergencyContact);
+    }
+    if (body?.roomNumber && !body.room_number) {
+      body.room_number = body.roomNumber;
     }
 
     const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);

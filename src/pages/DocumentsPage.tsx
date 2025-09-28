@@ -333,7 +333,7 @@ export default function DocumentsPage() {
         <Header 
           title={CATEGORY_CONFIG[currentCategory].title} 
           showBack 
-          onBack={() => navigate(`/patients/${uid}/docs`)} 
+          onBack={() => navigate(`/patients/${uid}/docs`, { replace: true })} 
         />
       ) : (
         <Header title="Documents" showBack onBack={() => navigate(-1)} />

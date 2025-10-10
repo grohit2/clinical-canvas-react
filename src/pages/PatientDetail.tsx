@@ -8,8 +8,8 @@ import { PatientTasks } from "@/components/patient/PatientTasks";
 import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
-import { MrnOverview } from "@/components/patient/MrnOverview";
-import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy } from "lucide-react";
+import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
+import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy, Plus } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -415,22 +415,100 @@ export default function PatientDetail() {
               </div>
             </div>
 
-            {/* MRN Overview Section */}
-            <MrnOverview 
-              patientId={patient?.id || id || ""} 
-              latestMrn={patient?.latestMrn}
+            <LabsOverviewCard
+              title="Labs Overview"
               mrnHistory={patient?.mrnHistory}
-              onMrnUpdate={(updatedHistory, newLatestMrn) => {
-                if (patient) {
-                  setPatient(normalizePatientRecord({
-                    ...patient,
-                    mrnHistory: updatedHistory,
-                    latestMrn: newLatestMrn,
-                  }));
-                }
-                fetchPatientData();
-              }}
-            />
+              latestMrn={patient?.latestMrn ?? null}
+              activeScheme={activeScheme}
+              rightAction={
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
+                  onClick={() => navigate(`/patients/${id}/mrn-add`)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add MRN
+                </button>
+              }
+            >
+              <div className="space-y-2">
+                {patient?.mrnHistory && patient.mrnHistory.length > 0 ? (
+                  [...patient.mrnHistory]
+                    .sort((a, b) =>
+                      a.mrn === patient.latestMrn ? -1 : b.mrn === patient.latestMrn ? 1 : 0
+                    )
+                    .map((entry) => {
+                      const isCurrent = entry.mrn === patient.latestMrn;
+                      const dateStr = entry.date
+                        ? new Date(entry.date).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : null;
+                      return (
+                        <button
+                          key={entry.mrn}
+                          type="button"
+                          onClick={() =>
+                            window.open(
+                              `http://115.241.194.20/LIS/Reports/Patient_Report.aspx?prno=${encodeURIComponent(entry.mrn)}`,
+                              "_blank"
+                            )
+                          }
+                          className={`w-full rounded-lg border text-left shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+                            isCurrent
+                              ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                              : "border-gray-200 bg-white hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {entry.mrn}
+                              </span>
+                              <span
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                                  isCurrent
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-emerald-100 text-emerald-700"
+                                }`}
+                              >
+                                {entry.scheme || "OTHERS"}
+                              </span>
+                            </div>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            {dateStr && <span>{dateStr}</span>}
+                            {isCurrent && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
+                ) : (
+                  <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-muted-foreground text-center">
+                    No MRNs yet. Add one to view labs.
+                  </div>
+                )}
+              </div>
+            </LabsOverviewCard>
 
             {/* Debug Panel removed */}
 

@@ -1,9 +1,0 @@
-{
-  "index": "Overview",
-  "overview": "System Overview",
-  "frontend": "Frontend",
-  "backend": "Backend",
-  "database-schema": "Database & Schema",
-  "integrations": "Integrations",
-  "adr": "ADRs"
-}

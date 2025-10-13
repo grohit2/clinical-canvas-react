@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { Check, Loader2, Save } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { DischargeSummaryVersion } from "@/types/api";
 
@@ -21,8 +27,15 @@ type SectionFieldDefinition = {
 };
 
 type SectionDefinition = {
-  key: "administrative" | "presentingComplaint" | "pastHistory" | "examination" | "localExam" | "systemicExam" | "impression";
-  shortLabel: string;
+  key:
+    | "administrative"
+    | "presentingComplaint"
+    | "pastHistory"
+    | "examination"
+    | "localExam"
+    | "systemicExam"
+    | "impression";
+  shortLabel: string; // used in left panel (compact)
   title: string;
   description?: string;
   fields: SectionFieldDefinition[];
@@ -240,8 +253,8 @@ const formatDateTime = (value?: string | null) => {
   if (!value) return "—";
   try {
     return new Date(value).toLocaleString();
-  } catch (error) {
-    return value;
+  } catch {
+    return value ?? "—";
   }
 };
 
@@ -261,39 +274,43 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     return localStorage.getItem("dischargeAuthorName") || "";
   });
 
+  // NEW: right panel scroll container ref (mirrors Patient Registration)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
   const hasContent = useMemo(() => {
     return SECTION_DEFINITIONS.some((section) =>
       Object.values(sectionState[section.key] || {}).some((value) => value.trim().length > 0),
     );
   }, [sectionState]);
 
-  const persistAuthor = useCallback(
-    (id: string, name: string) => {
-      if (typeof window === "undefined") return;
-      localStorage.setItem("dischargeAuthorId", id || "anon");
-      localStorage.setItem("dischargeAuthorName", name || "");
-    },
-    [],
+  // NEW: section completion check for left ticks
+  const getSectionCompletionStatus = useCallback(
+    (key: SectionKey) =>
+      Object.values(sectionState[key] || {}).some((v) => (v ?? "").trim().length > 0),
+    [sectionState],
   );
 
-  const applyVersion = useCallback(
-    (version: DischargeSummaryVersion | null) => {
-      if (!version) {
-        setLatest(null);
-        setSectionState(buildEmptySectionState());
-        return;
-      }
-      setLatest(version);
-      setSectionState(adaptSections(version.sections));
-      if (typeof version.authorId === "string" && version.authorId.trim()) {
-        setAuthorId(version.authorId);
-      }
-      if (typeof version.authorName === "string") {
-        setAuthorName(version.authorName);
-      }
-    },
-    [],
-  );
+  const persistAuthor = useCallback((id: string, name: string) => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("dischargeAuthorId", id || "anon");
+    localStorage.setItem("dischargeAuthorName", name || "");
+  }, []);
+
+  const applyVersion = useCallback((version: DischargeSummaryVersion | null) => {
+    if (!version) {
+      setLatest(null);
+      setSectionState(buildEmptySectionState());
+      return;
+    }
+    setLatest(version);
+    setSectionState(adaptSections(version.sections));
+    if (typeof version.authorId === "string" && version.authorId.trim()) {
+      setAuthorId(version.authorId);
+    }
+    if (typeof version.authorName === "string") {
+      setAuthorName(version.authorName);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -315,27 +332,27 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
           });
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
-
     loadLatest();
     return () => {
       cancelled = true;
     };
   }, [applyVersion, patientIdOrMrn, toast]);
 
-  const handleFieldChange = useCallback((sectionKey: SectionKey, fieldKey: string, value: string) => {
-    setSectionState((prev) => ({
-      ...prev,
-      [sectionKey]: {
-        ...prev[sectionKey],
-        [fieldKey]: value,
-      },
-    }));
-  }, []);
+  const handleFieldChange = useCallback(
+    (sectionKey: SectionKey, fieldKey: string, value: string) => {
+      setSectionState((prev) => ({
+        ...prev,
+        [sectionKey]: {
+          ...prev[sectionKey],
+          [fieldKey]: value,
+        },
+      }));
+    },
+    [],
+  );
 
   const handleSave = useCallback(
     async (nextStatus: "draft" | "published") => {
@@ -390,7 +407,51 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     [applyVersion, authorId, authorName, hasContent, patientIdOrMrn, persistAuthor, sectionState, toast],
   );
 
-  const activeDefinition = SECTION_MAP[activeSection];
+  // NEW: scroll-to-section like Patient Registration
+  const handleScrollToSection = useCallback((sectionId: SectionKey) => {
+    const el = document.getElementById(sectionId);
+    if (el && scrollContainerRef.current) {
+      const offsetTop = el.offsetTop - 20;
+      scrollContainerRef.current.scrollTo({ top: offsetTop, behavior: "smooth" });
+    }
+  }, []);
+
+  // NEW: track active section while scrolling (mirrors your registration scroll listener)
+  useEffect(() => {
+    const handler = () => {
+      if (!scrollContainerRef.current) return;
+      const container = scrollContainerRef.current;
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      // If scrolled to bottom, highlight the last section
+      if (scrollTop + clientHeight >= scrollHeight - 50) {
+        setActiveSection(SECTION_DEFINITIONS[SECTION_DEFINITIONS.length - 1].key);
+        return;
+      }
+
+      let current: SectionKey = SECTION_DEFINITIONS[0].key;
+      for (const section of SECTION_DEFINITIONS) {
+        const el = document.getElementById(section.key);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        // section whose top is closest to the top inside container
+        if (rect.top <= containerRect.top + 150) {
+          current = section.key;
+        }
+      }
+      setActiveSection(current);
+    };
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", handler);
+    return () => container.removeEventListener("scroll", handler);
+  }, [sectionState]); // reattach if layout changes
+
   const isSaving = savingStatus !== null;
   const lastUpdatedLabel = formatDateTime(latest?.updatedAt);
   const currentStatus = latest?.status ?? "draft";
@@ -438,142 +499,134 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex flex-1 flex-col lg:flex-row">
-        <aside className="hidden w-full max-w-[220px] flex-shrink-0 border-r bg-white lg:flex lg:flex-col">
-          <div className="px-5 py-4 text-sm font-semibold text-foreground">Sections</div>
-          <nav className="flex flex-1 flex-col">
-            {SECTION_DEFINITIONS.map((section) => (
+    <div className="flex h-screen bg-gray-50">
+      {/* LEFT: skinny nav like PatientRegistrationForm */}
+      <div className="w-20 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-2 overflow-y-auto flex-1">
+          {SECTION_DEFINITIONS.map((section) => {
+            const isActive = activeSection === section.key;
+            const isDone = getSectionCompletionStatus(section.key);
+            return (
               <button
                 key={section.key}
                 type="button"
-                onClick={() => setActiveSection(section.key)}
-                className={cn(
-                  "flex w-full items-center gap-2 border-l-4 px-5 py-3 text-left text-sm transition",
-                  activeSection === section.key
-                    ? "border-primary bg-primary/10 font-semibold text-primary"
-                    : "border-transparent text-muted-foreground hover:bg-muted",
-                )}
+                onClick={() => handleScrollToSection(section.key)}
+                className={`w-full flex flex-col items-center p-3 mb-2 rounded-lg transition-all ${
+                  isActive
+                    ? "bg-blue-50 border-2 border-blue-200 text-blue-700"
+                    : "hover:bg-gray-50 border-2 border-transparent text-gray-700"
+                }`}
+                title={section.title}
+                aria-label={section.shortLabel}
               >
-                <span>{section.shortLabel}</span>
+                <div className="flex items-center justify-center mb-1">
+                  {isDone && <Check size={12} className="text-green-500" />}
+                </div>
+                <span className="font-medium text-xs leading-tight text-center">
+                  {section.shortLabel}
+                </span>
               </button>
-            ))}
-          </nav>
-        </aside>
+            );
+          })}
+        </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="border-b bg-white px-4 py-3 lg:hidden">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="discharge-section-select">
-              Section
-            </label>
-            <select
-              id="discharge-section-select"
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              value={activeSection}
-              onChange={(event) => setActiveSection(event.target.value as SectionKey)}
-              disabled={loading || isSaving}
-            >
-              {SECTION_DEFINITIONS.map((section) => (
-                <option key={section.key} value={section.key}>
-                  {section.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h1 className="text-lg font-semibold text-foreground sm:text-xl">Discharge Summary</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Complete each clinical section to capture the patient's discharge narrative.
-                  </p>
+      {/* RIGHT: scrollable content area */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-xl space-y-10">
+          {/* Header card (kept) */}
+          <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-lg font-semibold text-foreground sm:text-xl">Discharge Summary</h1>
+                <p className="text-sm text-muted-foreground">
+                  Complete each clinical section to capture the patient&apos;s discharge narrative.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-muted-foreground">
+                  Last updated: <span className="font-medium text-foreground">{lastUpdatedLabel}</span>
                 </div>
                 <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
                   {currentStatus}
                 </Badge>
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label htmlFor="author-id" className="text-xs font-medium uppercase text-muted-foreground">
-                    Author ID
-                  </label>
-                  <Input
-                    id="author-id"
-                    value={authorId}
-                    onChange={(event) => setAuthorId(event.target.value)}
-                    placeholder="e.g. staff001"
-                    disabled={loading || isSaving}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="author-name" className="text-xs font-medium uppercase text-muted-foreground">
-                    Author Name
-                  </label>
-                  <Input
-                    id="author-name"
-                    value={authorName}
-                    onChange={(event) => setAuthorName(event.target.value)}
-                    placeholder="Display name (optional)"
-                    disabled={loading || isSaving}
-                  />
-                </div>
-              </div>
             </div>
 
-            <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-foreground sm:text-lg">{activeDefinition.title}</h2>
-                  {activeDefinition.description ? (
-                    <p className="text-sm text-muted-foreground">{activeDefinition.description}</p>
-                  ) : null}
-                </div>
-                <div className="text-xs text-muted-foreground">{activeDefinition.shortLabel}</div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label htmlFor="author-id" className="text-xs font-medium uppercase text-muted-foreground">
+                  Author ID
+                </label>
+                <Input
+                  id="author-id"
+                  value={authorId}
+                  onChange={(event) => setAuthorId(event.target.value)}
+                  placeholder="e.g. staff001"
+                  disabled={loading || isSaving}
+                />
               </div>
-              <div className="grid gap-4">
-                {activeDefinition.fields.map((field) => renderField(activeDefinition.key, field))}
+              <div className="space-y-1">
+                <label htmlFor="author-name" className="text-xs font-medium uppercase text-muted-foreground">
+                  Author Name
+                </label>
+                <Input
+                  id="author-name"
+                  value={authorName}
+                  onChange={(event) => setAuthorName(event.target.value)}
+                  placeholder="Display name (optional)"
+                  disabled={loading || isSaving}
+                />
               </div>
             </div>
           </div>
+
+          {/* All sections stacked (IDs used for scroll/spy) */}
+          {SECTION_DEFINITIONS.map((section) => (
+            <div key={section.key} id={section.key} className="space-y-4">
+              <div className="mb-2">
+                <h2 className="text-xl font-bold text-gray-800 mb-1">{section.title}</h2>
+                {section.description ? (
+                  <p className="text-sm text-gray-600">{section.description}</p>
+                ) : null}
+              </div>
+              <div className="grid gap-4">
+                {section.fields.map((field) => renderField(section.key, field))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-muted-foreground">
-            Last updated: <span className="font-medium text-foreground">{lastUpdatedLabel}</span>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button
-              variant="outline"
-              disabled={!hasContent || isSaving}
-              onClick={() => handleSave("draft")}
-              className="w-full sm:w-auto"
-            >
-              {isSaving && savingStatus === "draft" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              Save draft
-            </Button>
-            <Button
-              disabled={!hasContent || isSaving}
-              onClick={() => handleSave("published")}
-              className="w-full sm:w-auto"
-            >
-              {isSaving && savingStatus === "published" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Publish
-            </Button>
-          </div>
-        </div>
+      {/* Floating actions (replaces full-width sticky footer) */}
+      <div className="fixed bottom-24 right-8 z-50 flex flex-col gap-2">
+        <Button
+          size="icon"
+          variant="outline"
+          disabled={!hasContent || isSaving}
+          onClick={() => handleSave("draft")}
+          className="shadow-lg h-10 w-10"
+          title="Save draft"
+        >
+          {isSaving && savingStatus === "draft" ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Save className="h-5 w-5" />
+          )}
+        </Button>
+        <Button
+          size="icon"
+          disabled={!hasContent || isSaving}
+          onClick={() => handleSave("published")}
+          className="shadow-lg h-10 w-10"
+          title="Publish"
+        >
+          {isSaving && savingStatus === "published" ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Check className="h-5 w-5" />
+          )}
+        </Button>
       </div>
     </div>
   );

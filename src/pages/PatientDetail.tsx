@@ -9,7 +9,7 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
-import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy, Plus } from "lucide-react";
+import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy, Plus, ClipboardList } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -582,6 +582,12 @@ export default function PatientDetail() {
             label: "Add medication",
             Icon: Pill,
             onClick: () => navigate(`/patients/${id}/add-med`),
+          },
+          {
+            key: "discharge",
+            label: "Discharge summary",
+            Icon: ClipboardList,
+            onClick: () => navigate(`/patients/${id}/discharge-summary`),
           },
         ]}
       />

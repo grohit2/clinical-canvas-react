@@ -1,4 +1,4 @@
-import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
+import type { Patient, Task, Note, Medication, Doctor, TimelineEntry, DischargeSummaryVersion } from '@/types/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -272,6 +272,82 @@ export const api = {
       request<{ message: string }>(`/doctors/${doctorId}`, {
         method: 'DELETE',
       }),
+  },
+  discharge: {
+    getLatest: async (id: string) => {
+      try {
+        return await request<{ latest: DischargeSummaryVersion | null }>(
+          `/patients/${encodeURIComponent(id)}/discharge`,
+        );
+      } catch (error) {
+        if (error instanceof Error && /not\s+found/i.test(error.message)) {
+          return { latest: null };
+        }
+        throw error;
+      }
+    },
+    listVersions: async (
+      id: string,
+      params?: { limit?: number; cursor?: string | null; includeDeleted?: boolean },
+    ) => {
+      const search = new URLSearchParams();
+      if (params?.limit) search.append('limit', String(params.limit));
+      if (params?.cursor) search.append('cursor', params.cursor);
+      if (params?.includeDeleted) search.append('includeDeleted', params.includeDeleted ? '1' : '0');
+      const query = search.size ? `?${search.toString()}` : '';
+      try {
+        return await request<{ items: DischargeSummaryVersion[]; nextCursor: string | null }>(
+          `/patients/${encodeURIComponent(id)}/discharge/versions${query}`,
+        );
+      } catch (error) {
+        if (error instanceof Error && /not\s+found/i.test(error.message)) {
+          return { items: [], nextCursor: null };
+        }
+        throw error;
+      }
+    },
+    getVersion: (id: string, versionId: string) =>
+      request<DischargeSummaryVersion>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+      ),
+    create: (
+      id: string,
+      data: {
+        status?: 'draft' | 'published' | 'archived';
+        mdx?: string;
+        sections?: Record<string, string | Record<string, string>>;
+        summary?: { diagnosis?: string; dod?: string } | null;
+        authorId?: string;
+        authorName?: string;
+        commitMessage?: string;
+      },
+    ) =>
+      request<{ message: string; latest: DischargeSummaryVersion; version: DischargeSummaryVersion }>(
+        `/patients/${encodeURIComponent(id)}/discharge`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+      ),
+    updateVersion: (
+      id: string,
+      versionId: string,
+      data: { status?: 'draft' | 'published' | 'archived'; commitMessage?: string },
+    ) =>
+      request<{ message: string; version: DischargeSummaryVersion }>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        },
+      ),
+    removeVersion: (id: string, versionId: string) =>
+      request<{ message: string }>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+        {
+          method: 'DELETE',
+        },
+      ),
   },
 };
 

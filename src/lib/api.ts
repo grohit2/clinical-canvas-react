@@ -1,4 +1,4 @@
-import type { Patient, Task, Note, Medication, Doctor, TimelineEntry } from '@/types/api';
+import type { Patient, Task, Note, Medication, Doctor, TimelineEntry, DischargeSummaryVersion } from '@/types/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -94,11 +94,17 @@ export const api = {
             comorbidities: data.comorbidities,
             assignedDoctor: data.assignedDoctor,
             assignedDoctorId: data.assignedDoctorId,
+            assigned_doctor: data.assignedDoctor,
+            assigned_doctor_id: data.assignedDoctorId,
             currentState: data.currentState,
             isUrgent: data.isUrgent,
+            is_urgent: data.isUrgent,
             urgentReason: data.urgentReason,
+            urgent_reason: data.urgentReason,
             urgentUntil: data.urgentUntil,
+            urgent_until: data.urgentUntil,
             filesUrl: data.filesUrl,
+            files_url: data.filesUrl,
             roomNumber: data.roomNumber,
             room_number: data.roomNumber,
             procedureName: data.procedureName,
@@ -131,7 +137,7 @@ export const api = {
       console.log("🔧 API Update - Original Data:", data);
       console.log("🌐 API Update - Endpoint:", `/patients/${uid}`);
       console.log("📋 API Update - Sending camelCase data to backend API");
-      
+
       // Add snake_case shadow fields for backend compatibility (selective)
       const shadow: Record<string, unknown> = { ...data };
       if ((data as any).tidStatus !== undefined) shadow['tid_status'] = (data as any).tidStatus;
@@ -140,12 +146,32 @@ export const api = {
       if ((data as any).roomNumber !== undefined) shadow['room_number'] = (data as any).roomNumber;
       if ((data as any).scheme !== undefined) shadow['scheme'] = (data as any).scheme;
       if ((data as any).procedureName !== undefined) shadow['procedure_name'] = (data as any).procedureName;
+      if ((data as any).assignedDoctor !== undefined) shadow['assigned_doctor'] = (data as any).assignedDoctor;
+      if ((data as any).assignedDoctorId !== undefined) shadow['assigned_doctor_id'] = (data as any).assignedDoctorId;
+      if ((data as any).filesUrl !== undefined) shadow['files_url'] = (data as any).filesUrl;
+      if ((data as any).isUrgent !== undefined) shadow['is_urgent'] = (data as any).isUrgent;
+      if ((data as any).urgentReason !== undefined) shadow['urgent_reason'] = (data as any).urgentReason;
+      if ((data as any).urgentUntil !== undefined) shadow['urgent_until'] = (data as any).urgentUntil;
 
       return request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'PUT',
         body: JSON.stringify(shadow),
       });
     },
+    state: (
+      uid: string,
+      data: {
+        current_state: string;
+        checklistInDone?: string[];
+        checklistOutDone?: string[];
+        actorId?: string;
+        timelineNotes?: string;
+      },
+    ) =>
+      request<{ message: string; patient: Patient }>(`/patients/${uid}/state`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
     // Switch active MRN/scheme and append to MRN history
     // Backend route: PATCH /patients/{id}/registration
     switchRegistration: (
@@ -272,6 +298,82 @@ export const api = {
       request<{ message: string }>(`/doctors/${doctorId}`, {
         method: 'DELETE',
       }),
+  },
+  discharge: {
+    getLatest: async (id: string) => {
+      try {
+        return await request<{ latest: DischargeSummaryVersion | null }>(
+          `/patients/${encodeURIComponent(id)}/discharge`,
+        );
+      } catch (error) {
+        if (error instanceof Error && /not\s+found/i.test(error.message)) {
+          return { latest: null };
+        }
+        throw error;
+      }
+    },
+    listVersions: async (
+      id: string,
+      params?: { limit?: number; cursor?: string | null; includeDeleted?: boolean },
+    ) => {
+      const search = new URLSearchParams();
+      if (params?.limit) search.append('limit', String(params.limit));
+      if (params?.cursor) search.append('cursor', params.cursor);
+      if (params?.includeDeleted) search.append('includeDeleted', params.includeDeleted ? '1' : '0');
+      const query = search.size ? `?${search.toString()}` : '';
+      try {
+        return await request<{ items: DischargeSummaryVersion[]; nextCursor: string | null }>(
+          `/patients/${encodeURIComponent(id)}/discharge/versions${query}`,
+        );
+      } catch (error) {
+        if (error instanceof Error && /not\s+found/i.test(error.message)) {
+          return { items: [], nextCursor: null };
+        }
+        throw error;
+      }
+    },
+    getVersion: (id: string, versionId: string) =>
+      request<DischargeSummaryVersion>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+      ),
+    create: (
+      id: string,
+      data: {
+        status?: 'draft' | 'published' | 'archived';
+        mdx?: string;
+        sections?: Record<string, string | Record<string, string>>;
+        summary?: { diagnosis?: string; dod?: string } | null;
+        authorId?: string;
+        authorName?: string;
+        commitMessage?: string;
+      },
+    ) =>
+      request<{ message: string; latest: DischargeSummaryVersion; version: DischargeSummaryVersion }>(
+        `/patients/${encodeURIComponent(id)}/discharge`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+      ),
+    updateVersion: (
+      id: string,
+      versionId: string,
+      data: { status?: 'draft' | 'published' | 'archived'; commitMessage?: string },
+    ) =>
+      request<{ message: string; version: DischargeSummaryVersion }>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        },
+      ),
+    removeVersion: (id: string, versionId: string) =>
+      request<{ message: string }>(
+        `/patients/${encodeURIComponent(id)}/discharge/versions/${encodeURIComponent(versionId)}`,
+        {
+          method: 'DELETE',
+        },
+      ),
   },
 };
 

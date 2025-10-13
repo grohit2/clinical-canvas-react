@@ -6,7 +6,7 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
-import { Check, Loader2, Save } from "lucide-react";
+import { Check, Loader2, Save, Maximize2, Paperclip, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -277,6 +277,11 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   // NEW: right panel scroll container ref (mirrors Patient Registration)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Track focused field for small expansion
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  // Track full-screen editor
+  const [fullScreenField, setFullScreenField] = useState<string | null>(null);
+
   const hasContent = useMemo(() => {
     return SECTION_DEFINITIONS.some((section) =>
       Object.values(sectionState[section.key] || {}).some((value) => value.trim().length > 0),
@@ -461,6 +466,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       handleFieldChange(sectionKey, field.key, event.target.value);
     const fieldId = `${sectionKey}-${field.key}`;
+    const isFocused = focusedField === fieldId;
 
     if ((field.type ?? "textarea") === "textarea") {
       return (
@@ -468,14 +474,76 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
           <label htmlFor={fieldId} className="text-sm font-medium text-foreground">
             {field.label}
           </label>
-          <Textarea
-            id={fieldId}
-            value={value}
-            onChange={handleChange}
-            placeholder={field.placeholder}
-            disabled={loading || isSaving}
-            rows={field.rows ?? 4}
-          />
+          <div
+            className={`relative rounded-lg border transition-all ${
+              isFocused ? "border-blue-400 ring-2 ring-blue-100" : "border-input"
+            }`}
+          >
+            <Textarea
+              id={fieldId}
+              value={value}
+              onChange={handleChange}
+              onFocus={() => setFocusedField(fieldId)}
+              onBlur={(e) => {
+                // Only blur if clicking outside the container
+                if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
+                  setFocusedField(null);
+                }
+              }}
+              placeholder={field.placeholder}
+              disabled={loading || isSaving}
+              rows={isFocused ? 6 : field.rows ?? 4}
+              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            {isFocused && (
+              <div className="border-t bg-gray-50 px-3 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    title="Expand to full screen"
+                    onClick={() => setFullScreenField(fieldId)}
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    title="Attach files"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      handleSave("draft");
+                      setFocusedField(null);
+                    }}
+                    disabled={!hasContent || isSaving}
+                  >
+                    <Save className="mr-1 h-3 w-3" />
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave("published");
+                      setFocusedField(null);
+                    }}
+                    disabled={!hasContent || isSaving}
+                  >
+                    <Check className="mr-1 h-3 w-3" />
+                    Publish
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       );
     }
@@ -497,6 +565,101 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       </div>
     );
   };
+
+  // Full-screen editor as a complete new page
+  if (fullScreenField) {
+    const [sectionKey, fieldKey] = fullScreenField.split("-") as [SectionKey, string];
+    const section = SECTION_DEFINITIONS.find((s) => s.key === sectionKey);
+    const field = section?.fields.find((f) => f.key === fieldKey);
+    const value = sectionState[sectionKey]?.[fieldKey] ?? "";
+
+    if (!field) {
+      setFullScreenField(null);
+      return null;
+    }
+
+    return (
+      <div className="flex h-screen flex-col bg-white">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-6 py-4 bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setFullScreenField(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-semibold">{field.label}</h1>
+              <p className="text-sm text-muted-foreground">{section?.title}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
+              {currentStatus}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Editor body */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full max-w-5xl mx-auto px-8 py-6">
+            <Textarea
+              value={value}
+              onChange={(e) => handleFieldChange(sectionKey, fieldKey, e.target.value)}
+              placeholder={field.placeholder}
+              disabled={loading || isSaving}
+              className="h-full w-full resize-none text-base leading-relaxed border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* Footer toolbar */}
+        <div className="border-t bg-gray-50 px-6 py-4 sticky bottom-0">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-9 w-9 p-0"
+                title="Attach files"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {value.length} characters
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  handleSave("draft");
+                  setFullScreenField(null);
+                }}
+                disabled={!hasContent || isSaving}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Draft
+              </Button>
+              <Button
+                onClick={() => {
+                  handleSave("published");
+                  setFullScreenField(null);
+                }}
+                disabled={!hasContent || isSaving}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Publish
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

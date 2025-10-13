@@ -255,7 +255,7 @@ export default function PatientsList() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {getFilteredPatients('all').slice(0, 8).map((patient) => (
+                {getFilteredPatients('all').map((patient) => (
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}
@@ -316,7 +316,7 @@ export default function PatientsList() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {getFilteredPatients('my').slice(0, 8).map((patient) => (
+                {getFilteredPatients('my').map((patient) => (
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}

@@ -13,6 +13,7 @@ import { mountTimelineRoutes } from "./timeline.mjs";
 import { mountChecklistRoutes } from "./checklists.mjs";
 import { mountFileRoutes } from "./files.mjs";
 import { mountDocumentRoutes } from "./documents.mjs";
+import { mountDischargeRoutes } from "./discharge.mjs";
 
 /* ---- env & clients ---- */
 const REGION = process.env.AWS_REGION || "ap-south-1";
@@ -97,6 +98,7 @@ export const handler = async (event = {}) => {
   mountChecklistRoutes(router, ctx);
   mountFileRoutes(router, ctx);
   mountDocumentRoutes(router, ctx);
+  mountDischargeRoutes(router, ctx);
 
   try {
     const out = await router.handle(event);

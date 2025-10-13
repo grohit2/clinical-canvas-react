@@ -26,6 +26,7 @@ import DocumentsRoot from "@/features/documents/pages/DocumentsRoot";
 import DocumentsFolder from "@/features/documents/pages/DocumentsFolder";
 import NoteDetail from "./pages/NoteDetail";
 import AddPatientPage from "./pages/AddPatientPage";
+import DischargeSummaryPage from "./pages/DischargeSummary";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/patients/:id/docs/:category" element={<DocumentsPage />} />
           {/* Legacy Documents route retained for compatibility */}
           <Route path="/patients/:id/documents" element={<DocumentsPage />} />
+          <Route path="/patients/:id/discharge-summary" element={<DischargeSummaryPage />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />
           <Route path="/patients/:id/add-note" element={<AddNote />} />
           <Route path="/patients/:id/notes/:noteId" element={<NoteDetail />} />

@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { listFiles } from "@/lib/filesApi";
-import { MoreVertical, Image as ImageIcon, FileText } from "lucide-react";
+import { MoreVertical, Image as ImageIcon, FileText, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PatientNotesProps {
   patientId: string;
@@ -31,6 +32,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
   const [previews, setPreviews] = useState<Record<string, { urls: string[]; total: number }>>({});
   const [filter, setFilter] = useState<"all" | Note["category"]>("all");
   const [loading, setLoading] = useState(true);
+  const [dischargeExpanded, setDischargeExpanded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -84,10 +86,16 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
     };
   }, [notes, patientId]);
 
-  const filtered = useMemo(
-    () => (filter === "all" ? notes : notes.filter((n) => n.category === filter)),
-    [filter, notes]
+  const dischargeNote = useMemo(
+    () => notes.find((n) => n.category === "discharge") ?? null,
+    [notes]
   );
+
+  const filtered = useMemo(() => {
+    const base = filter === "all" ? notes : notes.filter((n) => n.category === filter);
+    if (!dischargeNote) return base;
+    return base.filter((n) => n.noteId !== dischargeNote.noteId);
+  }, [filter, notes, dischargeNote]);
 
   if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
 
@@ -109,9 +117,72 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
         </DropdownMenu>
       </div>
 
+      {dischargeNote && (
+        <Collapsible open={dischargeExpanded} onOpenChange={setDischargeExpanded}>
+          <Card className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <CollapsibleTrigger asChild>
+                <button className="flex flex-1 items-start justify-between gap-3 text-left">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeTone(dischargeNote.category)}`}
+                      >
+                        Discharge Summary
+                      </Badge>
+                      {dischargeNote.createdAt && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(dischargeNote.createdAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`text-sm text-gray-800 ${dischargeExpanded ? "" : "line-clamp-2"}`}
+                    >
+                      {dischargeNote.content?.trim() || "No discharge summary recorded."}
+                    </p>
+                    {dischargeNote.authorId && (
+                      <p className="text-xs text-gray-500">Author: {dischargeNote.authorId}</p>
+                    )}
+                  </div>
+                  <ChevronDown
+                    className={`h-5 w-5 flex-shrink-0 text-gray-500 transition-transform duration-200 ${
+                      dischargeExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  navigate(`/patients/${patientId}/notes/${dischargeNote.noteId}/edit`);
+                }}
+              >
+                Edit
+              </Button>
+            </div>
+            <CollapsibleContent className="pt-3">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {dischargeNote.content?.trim() || "No discharge summary recorded."}
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
+      {filter === "discharge" && dischargeNote && (
+        <p className="text-xs text-muted-foreground">The discharge summary is displayed above.</p>
+      )}
+
       {filtered.length === 0 ? (
         <div className="text-center py-6 text-muted-foreground text-sm bg-muted/30 rounded-lg border border-dashed">
-          No clinical notes for this patient
+          {dischargeNote ? "No additional clinical notes for this patient" : "No clinical notes for this patient"}
         </div>
       ) : (
         filtered.map((note) => {

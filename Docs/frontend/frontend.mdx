@@ -1,0 +1,308 @@
+Clinical Canvas React Frontend Architecture
+Overview
+
+Clinical Canvas is a single-page healthcare management application built with modern web technologies. It uses React 18 (TypeScript) as the core framework, with Vite as the build tool. Styling is handled via Tailwind CSS along with the shadcn-ui component library (built on Radix UI). For routing it uses React Router v6, and data fetching is managed through a custom API layer (with plans to leverage React Query for caching)
+GitHub
+GitHub
+. Form handling is supported by React Hook Form (with Zod for schema validation), though many forms currently use local component state. Overall, the frontend adheres to typical React best practices: functional components, React hooks for state management (no Redux), and a clear separation of concerns among UI components, pages, and utilities
+GitHub
+.
+
+Project Structure
+
+The project’s source code is organized into clear directories, each with a specific purpose. Below is an overview of the src/ folder structure:
+
+src/
+├── components/          # Reusable UI components (shared across pages)
+│   ├── layout/          # Layout components (e.g. Header, BottomBar)
+│   ├── patient/         # Patient-specific UI components (cards, forms, etc.)
+│   └── ui/              # Base UI components (shadcn/Radix UI elements)
+├── pages/               # Route-level page components (each corresponds to a route)
+├── types/               # TypeScript type definitions (data models, API types)
+├── lib/                 # Utility modules (API client, helpers, config)
+├── hooks/               # Custom React hooks (e.g. useToast for notifications)
+└── document.md          # Project documentation file (architecture notes)
+
+
+GitHub
+
+Note: In addition to the above, the codebase includes a src/features/ directory used to group some domain-specific functionality. For example, features/documents contains new Documents feature pages, and features/patient-details-input contains the patient registration form logic. This indicates an ongoing transition to a more feature-based modular structure for certain parts of the app, even though most code is organized by type (pages/components). The sections below describe the purpose of each major folder and important files in more detail.
+
+Key Folders and Their Purpose
+
+src/components/ – UI Components: This folder holds reusable components that are used across multiple pages. It is further subdivided into categories:
+
+components/layout/ – Layout and navigation components, such as the Header and BottomBar. These provide common page chrome (top navigation bar with title, back button, notifications; and a bottom status bar or menu) used on most pages.
+
+components/patient/ – Patient-specific UI components, encapsulating pieces of the patient management UI. For instance:
+
+Patient cards and lists: PatientCard and PatientGridCard display patient info in list or grid view.
+
+Patient details widgets: PatientNotes, PatientMeds, etc., for sections within a patient detail view.
+
+Forms: PatientRegistrationForm (in subfolder patinet_form/) for adding/editing a patient, and related components like MrnOverview (which displays a patient’s MRN history)
+GitHub
+. These components handle complex UI logic for patient data input and display.
+
+Popups & controls: e.g. FilterPopup for filtering patient lists, ViewToggle (list/grid toggle switch), etc.
+
+components/notifications/ – Notification components, e.g. NotificationsPopup (a popup panel for notifications or alerts).
+
+components/task/ – Task-specific components, such as AddTaskForm (a form to create a new task) used in task-related pages.
+
+components/ui/ – Low-level UI elements and utilities, many of which come from the shadcn-ui library. This includes things like Button, Tabs, Form controls, Modal dialogs, Toast notifications, etc. These are essentially styled primitive components (often wrapping Radix UI primitives) and form the design system for the app. For example, the ui/form.tsx provides form context helpers integrated with React Hook Form, and ui/toast.tsx & ui/toaster.tsx implement the notification toast system.
+
+src/pages/ – Page Components: Each file in this directory corresponds to a distinct route/page in the application. Page components represent the screens of the app and usually compose layout components with domain-specific components to form a full page. For example:
+
+Dashboard.tsx – The dashboard overview page (path “/”), showing high-level stats and navigation tiles for patients, tasks, etc.
+
+PatientsList.tsx – The patient list page (path “/patients”), displaying a list of patients with filtering and search controls
+GitHub
+GitHub
+.
+
+PatientDetail.tsx – A page showing detailed information for a single patient (path “/patients/:id”), including notes, medications, tasks, etc., often by rendering multiple components/patient/* sub-components.
+
+AddPatientPage.tsx – A page for adding a new patient (path “/patients/add”), which wraps the PatientRegistrationForm component inside a page layout (with Header and BottomBar)
+GitHub
+GitHub
+. After successful creation, it navigates back to the patient list
+GitHub
+.
+
+EditPatient.tsx – A page for editing existing patient information (path “/patients/:id/edit”). It loads the patient’s current data and re-uses the registration form logic to allow updates, then saves via the API.
+
+Tasks.tsx / TasksDue.tsx / CompletedToday.tsx – Pages for task management, listing all tasks, tasks due, or tasks completed today, respectively.
+
+AddTask.tsx / EditTask.tsx – Pages to add a new task or edit an existing task.
+
+NoteDetail.tsx, AddNote.tsx, EditNote.tsx – Pages for viewing a note detail and adding/editing clinical notes.
+
+Profile.tsx – User profile page.
+
+NotFound.tsx – A catch-all “404” page displayed for any undefined route (registered under path “*”).
+
+Each page typically imports the layout components (Header, BottomBar) and the necessary domain components. The pages are responsible for page-level state (e.g. managing form submission or data loading via effects) and for invoking API calls through the lib/api module. By separating pages from lower-level components, the project ensures that UI logic (in components) is decoupled from routing logic (in pages), improving maintainability.
+
+src/lib/ – Utilities and API Layer: This folder contains utility code and modules that are not React components but support the application’s functionality:
+
+lib/api.ts – The API client module that abstracts HTTP calls to the backend. It defines methods for each entity (patients, tasks, notes, etc.) and uses a helper request() function to call the server. For example, api.patients.list() will perform a GET request to the /patients endpoint and return a list of patients
+GitHub
+. The API_BASE URL is defined here, pulling from environment config (defaulting to “/api”)
+GitHub
+. The request helper handles common things like prepending the base URL, setting JSON headers, error handling, and parsing JSON responses
+GitHub
+. This centralizes all data-fetching logic. Other API methods include create, update for patients, etc., which transform data as needed (e.g. converting camelCase to snake_case for compatibility) before sending
+GitHub
+.
+
+lib/utils.ts – General utility functions (e.g. for formatting, or a cn className combiner for Tailwind, etc.).
+
+lib/pinnedPatients.ts – Likely handles storing/retrieving “pinned” patients (favorites) via localStorage (the patient list page uses getPinnedPatients() to filter the "My Patients" tab
+GitHub
+).
+
+lib/flags.ts – A feature flags module (if present) to toggle experimental features (mentioned in docs as existing for controlling new document pages, etc).
+
+src/hooks/ – Custom Hooks: Reusable hooks encapsulating stateful logic. For example, use-toast.ts provides a hook for the toast/notification system. The app’s toaster is set up via context (ToastProvider), and useToast() hook gives access to the current toasts and a function to add new toasts
+GitHub
+. Other hooks might include useUploader (for file upload logic), etc. These hooks abstract complex behaviors outside of components, making the components cleaner.
+
+src/types/ – Type Definitions: This directory contains TypeScript interfaces and type aliases for data structures used in the app, especially corresponding to API data models. Notably, types/api.ts defines interfaces for entities like Patient, Task, Note, Medication, etc., aligning with the backend API schema. For instance, it will define the shape of a Patient object (fields such as id, name, age, sex, diagnosis, mrnHistory, etc.) as well as related types like MrnHistoryEntry
+GitHub
+GitHub
+. Keeping these in a separate folder makes it easy for developers to import and use strong types throughout the app, ensuring consistency with the backend. An experienced React developer can refer to these definitions to understand what data each component expects.
+
+Other Notable Files:
+
+src/main.tsx – The application entry point. This file mounts the React app onto the DOM. It creates the React root and renders the <App /> component into the HTML element with id “root”
+GitHub
+. Before mounting, it also registers a service worker (sw-share.js) if supported, and sets up a listener for messages (used to handle shared images from the OS – an indication that the app is configured as a Progressive Web App for receiving shared data)
+GitHub
+GitHub
+. This service worker integration allows the app to accept images/files via the device’s share intent, which is a specialized feature for mobile workflows.
+
+src/App.tsx – The core application component that defines the overall app layout and routing. This is wrapped in context providers such as:
+
+QueryClientProvider (from React Query) at the top, which in the future will provide caching for server data throughout the app
+GitHub
+.
+
+TooltipProvider for UI tooltips, and the global <Toaster /> (toast notifications) and <Sonner /> (another toast/notification provider).
+
+<BrowserRouter> from React Router, which enables client-side routing. Inside it, the app defines a set of <Routes> mapping URLs to page components
+GitHub
+.
+
+The route definitions in App.tsx list out all the main pages of the application. For example:
+
+<Routes>
+  <Route path="/" element={<Dashboard />} />
+  <Route path="/patients" element={<PatientsList />} />
+  <Route path="/patients/add" element={<AddPatientPage />} />
+  <Route path="/patients/:id" element={<PatientDetail />} />
+  <Route path="/patients/:id/edit" element={<EditPatient />} />
+  <Route path="/patients/:id/docs" element={<DocumentsPage />} />
+  {/* ...other routes... */}
+  <Route path="/tasks" element={<Tasks />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+
+
+As shown above, each URL path is associated with a component from src/pages (or in some cases src/features). For instance, the patients section has routes for list, add, detail, edit, and documents. There is also a wildcard route "*" at the end that renders NotFound for any unmatched URL
+GitHub
+GitHub
+. This explicit routing setup means navigation within the app is handled by React Router linking to these paths, and it allows users to bookmark or deep-link to specific screens.
+
+Component Organization and Relationships
+
+The components in Clinical Canvas are organized in a hierarchical, yet modular way. Here’s how they relate and connect to form the UI:
+
+Pages as Composers: Page components assemble the overall view by combining layout and content components. Typically, a page will render a <Header> at the top (providing the page title, search bar or add button, etc.) and a <BottomBar> at the bottom for navigation/status, ensuring a consistent frame around content. The main content area of the page then loads the relevant components for that feature. For example, PatientsList renders a Header with title "Patients" and an add button (which triggers navigation to Add Patient)
+GitHub
+, then shows filter controls (a FilterPopup and ViewToggle) and either a list of PatientCard items or a grid of PatientGridCard items depending on the selected view mode
+GitHub
+GitHub
+. The page manages state like the current filter settings and search query, and passes those into child components as props.
+
+Reusability and Encapsulation: Many UI pieces that appear in multiple places are extracted as components. For instance, a PatientCard component displays summary info about a patient; it’s used in the patient list, but a similar card might also appear in other contexts (like a search result or a related patients list). By encapsulating that in components/patient/PatientCard.tsx, the styling and structure is consistent everywhere. Similarly, the MrnOverview component is used within the patient detail page to show MRN history in a collapsible card
+GitHub
+GitHub
+. This separation means that each component is responsible for its own piece of UI and can be developed/tested in isolation.
+
+Parent-Child Communication: Data flows down via props, and events flow up via callback props. For example, the PatientRegistrationForm component (child) accepts an onAddPatient callback prop from its parent page (AddPatientPage). When the user submits the form and a new patient is created successfully, the form calls onAddPatient(newPatient) to notify the parent to handle the success (e.g. navigate to the patients list or show a toast)
+GitHub
+. The AddPatientPage passes its handleAddPatient function to accomplish navigation after creation
+GitHub
+. This pattern is common: pages pass event handlers to components for actions like form submission, and the components invoke them when appropriate. Another example is the Header’s onAdd prop in PatientsList, which triggers when the user clicks the "+" button in the header to add a patient, causing navigation to the Add Patient page
+GitHub
+.
+
+Global Context where needed: For cross-cutting concerns, the app uses React context providers. The toaster/notification system is a good example – a context is provided at the App level (<ToastProvider> inside Toaster component), and any component can use the useToast() hook to publish messages
+GitHub
+. This avoids prop-drilling and allows, say, a form deep in the tree to trigger a notification on success (e.g., “Patient added successfully”) by simply calling toast({...}). Aside from the toast and tooltip providers, most state is kept local to pages or lifted only as far as necessary (the app does not use a centralized state container like Redux; instead, it leans on React Query for server state sharing and keeps UI state within components).
+
+shadcn/UI components: The UI components in src/components/ui often wrap Radix UI primitives and are styled with Tailwind. They provide accessible, pre-styled building blocks (buttons, inputs, dialogs, etc.). These are used extensively throughout the app’s JSX. For example, the Tabs and TabsList components used in the PatientsList page come from this library
+GitHub
+. An experienced developer reading the code might note that these UI components have consistent APIs as documented by shadcn. Typically, one doesn’t need to delve into each UI component’s internals to understand page logic; it’s enough to know that they behave as typical UI controls. This separation means that the design system (styles, ARIA behavior) is managed in one place, while pages and business components focus on data and interactions.
+
+Feature Modules: As noted, newer code is organized under src/features for self-contained features. For example, a Documents feature might have its own pages (list of documents, document detail) and components grouped together. In App routing, the documents routes temporarily still point to older components (DocumentsPage) while the feature is being built
+GitHub
+. Eventually, those routes will use the new DocumentsRoot and DocumentsFolder components from features/documents/pages/…. This approach indicates an architectural direction where each feature’s pages and components live together, making it easier to navigate code related to that feature. Until fully integrated, the legacy components ensure continuity.
+
+Overall, components are organized in a way that fosters reusability (common UI elements are abstracted), clarity (files named after their purpose and grouped logically), and modularity (each component handles a focused piece of UI or logic, making the system easier to understand).
+
+Application Flow (Routing, State Management, and Data Flow)
+
+This section explains how data and control flow through the application, from user interactions to state updates and API communication:
+
+Routing and Navigation: The application is a client-side rendered SPA. The initial load starts at index.html which mounts src/main.tsx and then <App />. Once React is running, navigation is handled by React Router. When a user navigates to a URL or clicks a Link, the Router matches a route in App.tsx and renders the corresponding page component. For example, hitting the URL /patients/123 will cause the <PatientDetail> component to mount (via the route configuration) without a full page reload. The Header often contains navigation triggers (like back buttons or icons that call useNavigate() to go to another route). Other navigation happens programmatically, e.g., after form submission, the code calls navigate('/patients') to return to the list
+GitHub
+. This setup provides a smooth, app-like experience where the URL reflects the current view but all transitions happen within React.
+
+State Management: The app primarily uses React hooks (useState, useEffect, etc.) to manage component state locally
+GitHub
+. There is no global Redux store; instead, each page or component maintains the state it needs. For instance, PatientsList maintains state for filter criteria and the list of patients in that component
+GitHub
+GitHub
+. When filters or search queries change, those state variables update and the component re-renders the filtered list. Some state is lifted to context or higher components if it needs to be shared:
+
+The QueryClientProvider at the top suggests an intention to share server state (data fetched from API) across components using React Query’s cache. However, currently many components directly fetch data on mount (see Data Fetching below). As the app evolves, frequently accessed data (like patient list or current patient details) could be managed by React Query so that, for example, the patient list does not refetch from the server every time you navigate away and back (instead, it could serve cached data and only refresh it periodically)
+GitHub
+GitHub
+.
+
+UI state that should persist across components is sometimes stored in browser storage. For example, the chosen view mode (list or grid) for patient list is saved to localStorage so that it can be remembered on next visit
+GitHub
+GitHub
+. Similarly, pinned patients are stored in localStorage (via lib/pinnedPatients) to persist the user’s favorite patients beyond the current session.
+
+A few global-like states are handled via context as mentioned (toasts, tooltips). There is also a use of the browser’s Service Worker to handle external events (the “shared-image” event). When a file is shared to the app, the service worker sends a message and main.tsx dispatches a custom event. Components could listen for 'shared-image' events on window to handle incoming shared data. This is a specialized flow for PWA functionality and is isolated from the typical React state flow, but it's part of the overall app behavior.
+
+Data Fetching and API Communication: Almost all dynamic data displayed in the UI comes from the backend via the lib/api.ts module. The data flow generally works as follows:
+
+On Component Mount: When a page component mounts, it triggers an API call (usually inside a useEffect). For example, when PatientsList loads, it calls api.patients.list() to fetch the list of patients from the server
+GitHub
+. Similarly, PatientDetail would call api.patients.get(id) to fetch a single patient’s details, and possibly api.patients.timeline(id) to get the timeline entries for that patient.
+
+Using React Query (planned): The presence of the QueryClient suggests that these calls could be done via useQuery hooks for automatic caching and background refreshing. In the current implementation, many are done with direct promise handling and useState. For instance, in PatientsList the data is fetched and then stored in a local state variable via setPatients
+GitHub
+. An improvement noted in the project documentation is to refactor these to use React Query for caching and to avoid redundant network requests
+GitHub
+GitHub
+, but as of now each mount does fetch fresh data.
+
+Populating UI State: After a successful fetch, the returned data (usually JSON converted to objects matching the TypeScript types) is put into state. The component then renders UI based on this state. For example, after PatientsList retrieves the array of patients, it stores it and then maps over it to render a list of PatientCard components
+GitHub
+. If the fetch fails or returns an error, the code typically logs the error or shows a toast/error message, and possibly falls back (e.g., navigating away if a detail fetch fails).
+
+User Actions and Mutations: When the user performs an action that modifies data (e.g. adding a patient, editing details, completing a task), the app will call a method from lib/api that sends a POST/PUT/PATCH request. For instance, submitting the Add Patient form triggers api.patients.create(...) with the form data
+GitHub
+. The PatientRegistrationForm prepares this data by using an adapter (patient-create.adapter) to shape the form state into the expected API payload (for example, converting sex from "M/F" to "male/female", combining fields, etc.)
+GitHub
+GitHub
+. The api.create method in turn calls the backend and returns the created patient or an ID. Upon success, the form/page can then update the UI: the AddPatientPage, for example, will navigate the user back to the patient list and possibly trigger a refresh or rely on the list to fetch the new data when mounted again
+GitHub
+. If React Query were used, one might instead invalidate the cache for the patient list query so that it refetches. As of now, the pattern is often to simply navigate and allow the normal effect to fetch fresh data.
+
+Real-time updates: The application does not appear to use webSockets or similar for real-time updates; it relies on refetching. For example, the Dashboard page explicitly sets up a setInterval to refetch patient and task data every 60 seconds
+GitHub
+GitHub
+, keeping the KPI stats up to date. This is a simple approach to ensure data stays fresh. Other pages likely refresh when navigated to (mounting triggers fetch). There isn’t a global pub-sub for data changes; instead, components that perform an update might manually update some state or trigger a refetch when the user returns to a list (e.g., after adding a patient, the patient list page will re-fetch or the new patient will be included because the app navigated to a fresh instance of the list page).
+
+Overall, the data flow can be summarized: React components call the API module -> API module wraps fetch calls -> responses update component state -> UI re-renders. The design is straightforward and easy to follow. As the project grows, integrating React Query’s caching and mutation patterns would make this even smoother (with cache invalidation, prefetching on navigation, etc., some of which has been suggested in the project’s improvement notes
+GitHub
+GitHub
+). For now, the explicit useEffect + setState approach, while repetitive, makes the flow of data very clear in each component.
+
+Best Practices for Navigating and Understanding the Codebase
+
+For an experienced React/TypeScript developer approaching this codebase, here are some tips and best practices to efficiently read and understand the structure and design:
+
+Start with the Entry Point and Routes: Begin at src/App.tsx to see the application’s high-level structure. This file shows you all the main routes and which component each route renders
+GitHub
+. It gives a quick map of the app’s pages (e.g., you’ll immediately know there’s a Dashboard, PatientsList, PatientDetail, etc.). From there, you can jump into the specific page component of interest in the src/pages directory. Understanding the routing is key to knowing how the app is organized functionally.
+
+Follow the Data Flow in Pages: When reading a page component (e.g., PatientsList.tsx), identify the use of state and effects at the top. Notice how the page fetches data in a useEffect (or will use a useQuery) – this tells you what data it depends on and which API calls are made
+GitHub
+. Check what state variables are used to render the UI (searchQuery, filters, etc.) and how they are updated (usually via event handlers). This helps you grasp the page’s interactive behavior. Also, look at what components it renders – for each custom component, you might open that component’s file to see its props and internal logic if needed.
+
+Leverage Type Definitions: The TypeScript types (in src/types/api.ts and others) are your documentation for the data models. Whenever you see a prop like patient: Patient or a function returning Promise<Patient[]>, you can refer to the types definitions to understand the structure of those objects. This is especially useful for forms and API usage. For example, knowing that Patient has fields like name, age, sex, mrnHistory, latestMrn, isUrgent, currentState, etc. will clarify what the UI is displaying or what needs to be provided when creating a patient.
+
+Understand the UI Toolkit: Recognize that many UI components (buttons, inputs, etc.) come from the components/ui library (shadcn/Radix). You typically do not need to read each of these in detail – they are standardized. Instead, focus on how they’re used. For instance, if you see <Button variant="secondary"> or <Tabs><TabsList>..., those are part of the design system. Knowing this prevents you from getting bogged down in internal implementation of basic UI and lets you concentrate on the business logic. If something about a UI component’s behavior is confusing, you can inspect its file (e.g., how the Form component wraps React Hook Form’s context in ui/form.tsx), but otherwise you can assume they work as named.
+
+Identify Reusable Patterns: Look for repeated patterns in the code – e.g., pages often have a similar structure: they set document.title (sometimes), fetch data on mount, and render a Header + content + BottomBar. Recognizing this makes it easier to predict what a new page will do. Similarly, forms follow a pattern: local state for form fields or useForm hooks, a submit handler that calls an API method, and on success calls navigate() or triggers a toast. Once you understand one such flow (say, adding a patient), you can apply that knowledge to others (adding a task, adding a note) as they likely mirror the approach.
+
+Use the Documentation and Tests: The repository includes a documentation markdown (as we’re summarizing here) and possibly other docs (e.g., a change-log or improvements notes). These can provide insight into the intended architecture and areas of focus. Additionally, check the __tests__ (for example, src/components/patient/__tests__/PatientRegistrationForm.smoke.test.tsx or features/patients/__tests__/*). Tests can reveal usage examples and expected outcomes of key functions. For instance, the patient-create.adapter.test.ts demonstrates how form inputs are transformed by toCreatePayload
+GitHub
+GitHub
+, which in turn helps you understand how the PatientRegistrationForm prepares its submission data. Reading a few tests can reinforce your understanding of tricky parts without manually running the app.
+
+Run and Experiment (if possible): If you have the environment set up (Node.js, etc.), running the application locally (npm run dev) and playing with it is extremely beneficial. As you navigate the UI and perform actions, you can correlate those actions to code: e.g., clicking "Add Patient" opens the AddPatientPage – you can then trace that in code. Observing network calls (in the browser dev tools) can also confirm which function in lib/api.ts is being invoked. This dynamic understanding complements static code reading.
+
+Focus on Core Features First: Given the breadth of the code, focus on the core features of the domain: patient management, MRN management, tasks, notes, etc. The documentation’s Key Features section (in the code) outlines these
+GitHub
+GitHub
+. For each feature, identify the main components and pages involved:
+
+Patient Management: AddPatientPage & PatientRegistrationForm, PatientsList & PatientCard, PatientDetail & subcomponents like MrnOverview.
+
+Tasks: Task pages and maybe task components.
+
+Notes & Medications: NoteDetail, AddNote, Medication tracking parts.
+By focusing on one feature module at a time, you can build a mental model of the application incrementally, rather than trying to absorb everything at once.
+
+Recognize Work in Progress: Some parts of the code (especially under src/features/) are new or undergoing changes. Be mindful if you see duplicate or similar functionality in two places. For example, if there’s a DocumentsPage in pages and also new DocumentsRoot in features/documents, it’s likely the latter is a refactor in progress. In such cases, read both to understand how the feature works currently versus the planned improvements. This will help you align your understanding with the direction the project is heading. The presence of an .claude/improvements.md file with performance suggestions
+GitHub
+ also indicates areas the team is aware of for refactoring (like implementing code-splitting, optimizing re-renders, and adopting React Query more fully). Knowing this can prevent confusion – you might notice, for instance, that all pages are imported upfront in App (no code-splitting)
+GitHub
+ and realize it’s a known issue being worked on.
+
+Refer to the Backend Contract: If needed, glance at how the frontend aligns with the backend. The lib/api.ts and types give clues to this (e.g., the patient creation payload interface in the docs
+GitHub
+GitHub
+). Understanding the API endpoints (the documentation lists the main ones like POST /patients, etc.
+GitHub
+) can help clarify why certain fields or steps exist in the frontend. For example, knowing that there’s an endpoint to switch a patient’s active MRN explains why the frontend has a switchRegistration function in the API and a UI for marking the latest MRN. This backend context can sometimes illuminate the reasoning behind the frontend structure.
+
+By following these practices, an experienced React developer should be able to navigate the Clinical Canvas codebase with confidence. The code is fairly well-structured and commented where necessary, so leveraging the structure (folder organization and naming) is usually enough to find what you need. The key is to take advantage of the separation of concerns: look at pages for flow control, components for UI details, and lib for data handling. With a methodical approach, you’ll quickly understand how the pieces fit together in this healthcare management app’s frontend.

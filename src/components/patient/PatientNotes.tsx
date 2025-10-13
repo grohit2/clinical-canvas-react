@@ -12,8 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { listFiles } from "@/lib/filesApi";
-import { MoreVertical, Image as ImageIcon, FileText, ChevronDown } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MoreVertical, Image as ImageIcon, FileText } from "lucide-react";
 import { SECTION_DEFINITIONS, adaptSections } from "@/features/discharge-summary/discharge.sections";
 
 interface PatientNotesProps {
@@ -58,7 +57,6 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
   const [dischargeSummary, setDischargeSummary] = useState<DischargeSummaryVersion | null>(null);
   const [dischargeLoading, setDischargeLoading] = useState(true);
   const [dischargeError, setDischargeError] = useState<string | null>(null);
-  const [dischargeExpanded, setDischargeExpanded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -137,10 +135,6 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
     };
   }, [notes, patientId]);
 
-  useEffect(() => {
-    if (!dischargeSummary) setDischargeExpanded(false);
-  }, [dischargeSummary]);
-
   const dischargeSections = useMemo(() => {
     if (!dischargeSummary) return null;
     return adaptSections(dischargeSummary.sections);
@@ -153,7 +147,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
       dischargeSections?.impression?.provisionalDiagnosis?.trim(),
       dischargeSections?.impression?.dischargePlan?.trim(),
       dischargeSections?.presentingComplaint?.chiefComplaints?.trim(),
-    ].filter((value): value is string => Boolean(value));
+    ].filter((value) => Boolean(value)) as string[];
     return candidates[0] || "No discharge summary recorded.";
   }, [dischargeSummary, dischargeSections]);
 
@@ -187,8 +181,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
       : "No clinical notes for this patient.";
   })();
 
-  return (
-    <div className="space-y-3">
+  return <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-lg font-semibold text-gray-800 m-0">Clinical Notes</h4>
         <DropdownMenu>
@@ -207,99 +200,48 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
 
       {shouldRenderDischargeSection && (
         dischargeSummary ? (
-          <Collapsible open={dischargeExpanded} onOpenChange={setDischargeExpanded}>
-            <Card className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <CollapsibleTrigger asChild>
-                  <button className="flex flex-1 items-start justify-between gap-3 text-left">
-                    <div className="flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeTone("discharge")}`}
-                        >
-                          Discharge Summary
-                        </Badge>
-                        {dischargeSummary.status && (
-                          <Badge variant="outline" className="text-xs font-medium capitalize">
-                            {dischargeSummary.status}
-                          </Badge>
-                        )}
-                        {dischargeSummary.updatedAt && (
-                          <span className="text-xs text-gray-500">
-                            Updated {formatDateTime(dischargeSummary.updatedAt)}
-                          </span>
-                        )}
-                        {dischargeSummary.summary?.dod && (
-                          <span className="text-xs text-gray-500">
-                            DOD: {formatDate(dischargeSummary.summary.dod)}
-                          </span>
-                        )}
-                      </div>
-                      <p className={`text-sm text-gray-800 ${dischargeExpanded ? "" : "line-clamp-2"}`}>
-                        {dischargePreview}
-                      </p>
-                      {(dischargeSummary.authorName || dischargeSummary.authorId) && (
-                        <p className="text-xs text-gray-500">
-                          Author: {dischargeSummary.authorName || dischargeSummary.authorId}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronDown
-                      className={`h-5 w-5 flex-shrink-0 text-gray-500 transition-transform duration-200 ${
-                        dischargeExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    navigate(`/patients/${patientId}/discharge-summary`);
-                  }}
-                >
-                  Edit
-                </Button>
-              </div>
-              <CollapsibleContent className="pt-3">
-                {hasDischargeContent ? (
-                  <div className="space-y-4">
-                    {SECTION_DEFINITIONS.map((section) => {
-                      const sectionState = dischargeSections?.[section.key];
-                      const populatedFields = section.fields.filter((field) =>
-                        Boolean(sectionState?.[field.key]?.trim())
-                      );
-                      if (!populatedFields.length) return null;
-                      return (
-                        <div key={section.key} className="space-y-2">
-                          <h5 className="text-sm font-semibold text-gray-700">{section.title}</h5>
-                          <dl className="space-y-2 rounded-md border border-muted/40 bg-muted/20 p-3">
-                            {populatedFields.map((field) => (
-                              <div key={field.key} className="space-y-0.5">
-                                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                  {field.label}
-                                </dt>
-                                <dd className="text-sm text-gray-800 whitespace-pre-wrap">
-                                  {sectionState?.[field.key]}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No structured discharge summary content captured yet.
+          <Card
+            className="bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/patients/${patientId}/discharge-summary`)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate(`/patients/${patientId}/discharge-summary`)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="secondary"
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeTone("discharge")}`}
+                  >
+                    Discharge Summary
+                  </Badge>
+                  {dischargeSummary.status && (
+                    <Badge variant="outline" className="text-xs font-medium capitalize">
+                      {dischargeSummary.status}
+                    </Badge>
+                  )}
+                  {dischargeSummary.updatedAt && (
+                    <span className="text-xs text-gray-500">
+                      Updated {formatDateTime(dischargeSummary.updatedAt)}
+                    </span>
+                  )}
+                  {dischargeSummary.summary?.dod && (
+                    <span className="text-xs text-gray-500">
+                      DOD: {formatDate(dischargeSummary.summary.dod)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-800 line-clamp-2">{dischargePreview}</p>
+                {(dischargeSummary.authorName || dischargeSummary.authorId) && (
+                  <p className="text-xs text-gray-500">
+                    Author: {dischargeSummary.authorName || dischargeSummary.authorId}
                   </p>
                 )}
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+              </div>
+              <Button variant="outline" size="sm">Open</Button>
+            </div>
+          </Card>
         ) : (
           <Card className="bg-white p-4 rounded-lg shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -455,10 +397,8 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
               </div>
             </Card>
           );
-        })
-      )}
-    </div>
-  );
+        })}
+    </div>;
 }
 
 export default PatientNotes;

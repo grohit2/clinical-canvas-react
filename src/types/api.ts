@@ -124,3 +124,21 @@ export interface TimelineEntry {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface DischargeSummaryVersion {
+  versionId?: string;
+  patientId?: string;
+  status: 'draft' | 'published' | 'archived';
+  format?: string;
+  mdx?: string;
+  sections?: Record<string, string | Record<string, string>>;
+  summary?: { diagnosis?: string; dod?: string } | null;
+  mrn?: string | null;
+  scheme?: string | null;
+  authorId?: string | null;
+  authorName?: string | null;
+  commitMessage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  deleted?: boolean;
+}

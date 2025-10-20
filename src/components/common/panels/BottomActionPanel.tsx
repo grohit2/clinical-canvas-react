@@ -123,7 +123,7 @@ export function BottomActionPanel({
     <>
       <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground>
         <DrawerContent
-          className="pb-safe pt-2 h-[85dvh] sm:h-auto sm:max-h-[80vh] overflow-y-auto overscroll-contain touch-pan-y"
+          className="pb-safe pt-2 mt-0 max-h-[85dvh] sm:max-h-[80vh] overflow-y-scroll pr-1 overscroll-contain touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" as any }}
         >
           <DrawerHeader>

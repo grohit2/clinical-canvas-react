@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { listFiles, type FilesListItem } from "@/lib/filesApi";
@@ -40,7 +41,7 @@ export default function NoteDetail() {
     if (!uid || !noteId) return;
     try {
       await api.notes.remove(uid, noteId);
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (e) {
       console.error(e);
     }
@@ -68,7 +69,7 @@ export default function NoteDetail() {
       <div className="flex items-center bg-slate-50 p-4 pb-2 justify-between">
         <button 
           className="text-gray-800 flex items-center justify-center w-12 h-12"
-          onClick={() => navigate(`/patients/${uid}`)}
+          onClick={() => uid && navigate(paths.patient(uid))}
         >
           <ArrowLeft size={24} />
         </button>
@@ -76,7 +77,7 @@ export default function NoteDetail() {
         <div className="flex w-12 items-center justify-end">
           <button
             className="flex items-center justify-center w-12 h-12 text-gray-800 hover:bg-gray-100 rounded-lg"
-            onClick={() => navigate(`/patients/${uid}/notes/${noteId}/edit`)}
+            onClick={() => uid && noteId && navigate(paths.noteEdit(uid, noteId))}
           >
             <Pencil size={24} />
           </button>

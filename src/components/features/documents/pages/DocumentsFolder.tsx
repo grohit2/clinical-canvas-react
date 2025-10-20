@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -62,7 +63,7 @@ export default function DocumentsFolder() {
       <Header
         title="Documents"
         showBack
-        onBack={() => navigate(`/patients/${uid}/docs`)}
+        onBack={() => uid && navigate(paths.docsRoot(uid))}
       />
 
       <main className="p-4">

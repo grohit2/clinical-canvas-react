@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, AlertCircle, User, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 
 // Mock task data for the current doctor
 const mockTasksDue = [
@@ -82,7 +83,7 @@ export default function TasksDue() {
       <Header 
         title="Tasks Due" 
         showBack
-        onBack={() => navigate('/')}
+        onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
       
@@ -127,7 +128,7 @@ export default function TasksDue() {
                 <div className="flex flex-col gap-2">
                   <Button 
                     size="sm"
-                    onClick={() => navigate(`/patients/${task.patientId}`)}
+                    onClick={() => navigate(paths.patient(task.patientId))}
                   >
                     View Patient
                   </Button>

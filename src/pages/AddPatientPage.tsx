@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import PatientRegistrationForm from "@/components/patient/patinet_form/PatientRegistrationForm";
 import type { Patient } from "@/types/api";
+import { paths } from "@/app/navigation";
 
 export default function AddPatientPage() {
   const navigate = useNavigate();
@@ -10,12 +11,12 @@ export default function AddPatientPage() {
   const handleAddPatient = (patient: Patient) => {
     // Navigate back to patients list after successful creation
     // The PatientsList component will re-fetch data when it mounts
-    navigate("/patients");
+    navigate(paths.patients());
   };
 
   const handleClose = () => {
     // Navigate back to patients list
-    navigate("/patients");
+    navigate(paths.patients());
   };
 
   return (

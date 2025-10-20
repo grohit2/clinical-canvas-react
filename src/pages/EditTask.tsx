@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { paths } from "@/app/navigation";
 import type { Task, Doctor } from "@/types/api";
 
 export default function EditTask() {
@@ -76,7 +77,7 @@ export default function EditTask() {
         status: form.status,
       };
       await api.tasks.update(uid, taskId, payload);
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (e) {
       console.error(e);
     } finally {

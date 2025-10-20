@@ -1,6 +1,7 @@
 // app/pages/DocumentsPage.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 // import { Card } from "@/components/ui/card"; // not used in simplified view
@@ -333,7 +334,7 @@ export default function DocumentsPage() {
         <Header 
           title={CATEGORY_CONFIG[currentCategory].title} 
           showBack 
-          onBack={() => navigate(`/patients/${uid}/docs`, { replace: true })} 
+          onBack={() => uid && navigate(paths.docsRoot(uid), { replace: true })} 
         />
       ) : (
         <Header title="Documents" showBack onBack={() => navigate(-1)} />
@@ -351,7 +352,7 @@ export default function DocumentsPage() {
               total={total}
               onOpenCategory={(k) => {
                 if (!uid) return;
-                navigate(`/patients/${uid}/docs/${k}`);
+                navigate(paths.docsCategory(uid, k));
               }}
             />
           </>
@@ -573,7 +574,7 @@ export default function DocumentsPage() {
         onSelectCategory={(category) => {
           setSelectedUploadCategory(category);
           // Navigate to the category page for upload
-          navigate(`/patients/${uid}/docs/${category}`);
+          if (uid) navigate(paths.docsCategory(uid, category));
         }}
       />
 

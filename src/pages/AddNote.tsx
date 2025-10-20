@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
+import { paths } from "@/app/navigation";
 
 export default function AddNote() {
   const { id: uid } = useParams();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<"doctorNote" | "nurseNote" | "pharmacy" | "discharge" | "">("");
+  const [category, setCategory] = useState<"doctorNote" | "nurseNote" | "pharmacy" | "">("");
   const [content, setContent] = useState("");
   const [authorId, setAuthorId] = useState("");
   const [patientName, setPatientName] = useState("");
@@ -39,7 +40,7 @@ export default function AddNote() {
     setSubmitting(true);
     try {
       await api.notes.create(uid, { patientId: uid, authorId, category, content });
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (e) {
       console.error(e);
     } finally {
@@ -56,7 +57,7 @@ export default function AddNote() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy" | "discharge")}> 
+              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy")}> 
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -64,7 +65,6 @@ export default function AddNote() {
                   <SelectItem value="doctorNote">Doctor Note</SelectItem>
                   <SelectItem value="nurseNote">Nurse Note</SelectItem>
                   <SelectItem value="pharmacy">Pharmacy</SelectItem>
-                  <SelectItem value="discharge">Discharge</SelectItem>
                 </SelectContent>
               </Select>
             </div>

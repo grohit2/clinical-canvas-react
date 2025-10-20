@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { paths } from "@/app/navigation";
 import type { Medication } from "@/types/api";
 
 export default function EditMedication() {
@@ -74,7 +75,7 @@ export default function EditMedication() {
           : [],
       };
       await api.meds.update(uid, medId, payload);
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (err) {
       console.error(err);
     } finally {

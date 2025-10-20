@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import api from "@/lib/api";
 import { MindfulnessTile } from "@/components/dashboard/MindfulnessTile";
 
@@ -139,21 +140,21 @@ export default function Dashboard() {
             value={kpiData.totalPatients}
             icon={Users}
             trend={{ value: 5, isPositive: true }}
-            onClick={() => navigate('/patients')}
+            onClick={() => navigate(paths.patients())}
           />
           <KPITile
             title="Tasks Due"
             value={kpiData.tasksDue}
             icon={Clock}
             variant="caution"
-            onClick={() => navigate('/tasks-due')}
+            onClick={() => navigate(paths.tasksDue())}
           />
           <KPITile
             title="Urgent Alerts"
             value={kpiData.urgentAlerts}
             icon={AlertTriangle}
             variant="urgent"
-            onClick={() => navigate('/urgent-alerts')}
+            onClick={() => navigate(paths.urgentAlerts())}
           />
           <MindfulnessTile />
         </div>

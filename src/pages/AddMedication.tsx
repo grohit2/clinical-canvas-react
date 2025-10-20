@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { paths } from "@/app/navigation";
 import type { Medication } from "@/types/api";
 
 export default function AddMedication() {
@@ -51,7 +52,7 @@ export default function AddMedication() {
         scheduleTimes: form.scheduleTimes ? form.scheduleTimes.split(",").map((s) => s.trim()) : [],
       };
       await api.meds.create(uid, payload);
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (e) {
       console.error(e);
     } finally {

@@ -8,6 +8,7 @@ import { Clock, User, Calendar, Flag, CheckCircle2, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import AttachBar from "@/components/AttachBar";
 import FileGrid from "@/components/FileGrid";
 
@@ -137,7 +138,7 @@ export function PatientTasks({ patientId }: PatientTasksProps) {
   };
 
   const handleEdit = (taskId: string) => {
-    navigate(`/patients/${patientId}/tasks/${taskId}/edit`);
+    navigate(paths.taskEdit(patientId, taskId));
   };
 
   const pendingTasks = tasks.filter(task => task.status !== 'done');

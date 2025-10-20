@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, User, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 
 // Mock urgent alerts data - tasks due within 10 minutes
 const mockUrgentAlerts = [
@@ -65,7 +66,7 @@ export default function UrgentAlerts() {
       <Header 
         title="Urgent Alerts" 
         showBack
-        onBack={() => navigate('/')}
+        onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
       
@@ -116,7 +117,7 @@ export default function UrgentAlerts() {
                   <Button 
                     size="sm"
                     variant="destructive"
-                    onClick={() => navigate(`/patients/${alert.patientId}`)}
+                    onClick={() => navigate(paths.patient(alert.patientId))}
                   >
                     Take Action
                   </Button>

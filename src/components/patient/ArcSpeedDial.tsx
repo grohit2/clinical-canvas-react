@@ -33,6 +33,7 @@ export function ArcSpeedDial({
   startAngle = 240,
   endAngle = 120,
   items,
+  onPrimaryClick,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useClickOutside(() => setOpen(false));
@@ -89,7 +90,7 @@ export function ArcSpeedDial({
       <div className="relative">
         <motion.button
           whileTap={{ scale: 0.94 }}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => (onPrimaryClick ? onPrimaryClick() : setOpen((v) => !v))}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-sky-500 shadow-2xl shadow-sky-900/40 ring-1 ring-white/10"
           aria-expanded={open}
           aria-label={open ? "Close actions" : "Open actions"}

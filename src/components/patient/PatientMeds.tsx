@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { Medication } from "@/types/api";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Pencil } from "lucide-react";
 import AttachBar from "@/components/AttachBar";
 import FileGrid from "@/components/FileGrid";
@@ -62,7 +63,7 @@ export function PatientMeds({ patientId }: PatientMedsProps) {
               size="sm"
               variant="outline"
               className="h-6 px-2 text-xs"
-              onClick={() => navigate(`/patients/${patientId}/meds/${med.medId}/edit`)}
+              onClick={() => navigate(paths.medEdit(patientId, med.medId))}
             >
               <Pencil className="h-3 w-3" />
             </Button>

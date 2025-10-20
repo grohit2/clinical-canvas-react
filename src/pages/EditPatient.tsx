@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Check, Plus, Trash2, Star } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
@@ -234,7 +235,7 @@ export default function EditPatient() {
           description: "Failed to load patient data. Please try again.",
           variant: "destructive",
         });
-        navigate("/patients");
+        navigate(paths.patients());
       }
     };
     
@@ -530,7 +531,7 @@ export default function EditPatient() {
         description: `${formData.name} has been updated.`,
       });
 
-      navigate(`/patients/${id}`);
+      if (id) navigate(paths.patient(id));
       } catch (error: any) {
         console.error("Failed to update patient:", error);
         toast({

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Link, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -61,7 +62,7 @@ export default function DocumentsRoot() {
               return (
                 <Link
                   key={cat}
-                  to={`/patients/${uid}/docs/${cat}`}
+                  to={uid ? paths.docsCategory(uid, cat) : "#"}
                   className="flex flex-col gap-3 rounded-lg border border-[#cedbe9] bg-white p-4 hover:shadow-sm transition-shadow"
                 >
                   <Icon className="h-6 w-6 text-[#0d141c]" />

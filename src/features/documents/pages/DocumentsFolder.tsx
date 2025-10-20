@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export default function DocumentsFolder() {
             Detail folder view goes here with sort, grid, and uploader. This route is wired; replace this placeholder with the full DocumentsFolder implementation when available.
           </p>
           <div className="flex gap-2">
-            <Button onClick={() => navigate(`/patients/${id}/documents`)}>Open legacy Documents</Button>
+            <Button onClick={() => id && navigate(paths.docsLegacyRoot(id))}>Open legacy Documents</Button>
           </div>
         </Card>
       </main>
@@ -27,4 +28,3 @@ export default function DocumentsFolder() {
     </div>
   );
 }
-

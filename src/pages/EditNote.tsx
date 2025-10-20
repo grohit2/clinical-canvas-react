@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadS3 } from "@/components/ImageUploadS3";
@@ -58,7 +59,7 @@ export default function EditNote() {
     setSubmitting(true);
     try {
       await api.notes.update(uid, noteId, { category, content });
-      navigate(`/patients/${uid}/notes/${noteId}`);
+      navigate(paths.noteDetail(uid, noteId));
     } catch (e) {
       console.error(e);
     } finally {
@@ -94,7 +95,7 @@ export default function EditNote() {
         <div className="p-4 flex items-center justify-between">
           <button
             className="text-gray-600 hover:text-gray-800"
-            onClick={() => navigate(`/patients/${uid}/notes/${noteId}`)}
+            onClick={() => uid && noteId && navigate(paths.noteDetail(uid, noteId))}
           >
             <ArrowLeft size={24} />
           </button>
@@ -124,7 +125,6 @@ export default function EditNote() {
                 <SelectItem value="doctorNote">Doctor Note</SelectItem>
                 <SelectItem value="nurseNote">Nurse Note</SelectItem>
                 <SelectItem value="pharmacy">Pharmacy Note</SelectItem>
-                <SelectItem value="discharge">Discharge Note</SelectItem>
               </SelectContent>
             </Select>
           </div>

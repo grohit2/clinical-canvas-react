@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
+import { paths } from "@/app/navigation";
 import type { Doctor, Task } from "@/types/api";
 
 export default function AddTask() {
@@ -59,7 +60,7 @@ export default function AddTask() {
         recurring: false,
       };
       await api.tasks.create(uid, payload);
-      navigate(`/patients/${uid}`);
+      navigate(paths.patient(uid));
     } catch (e) {
       console.error(e);
     } finally {

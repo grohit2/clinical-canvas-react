@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Clock, User, Activity, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 
 // Mock completed tasks data for today
 const mockCompletedTasks = [
@@ -89,7 +90,7 @@ export default function CompletedToday() {
       <Header 
         title="Completed Today" 
         showBack
-        onBack={() => navigate('/')}
+        onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
       
@@ -139,7 +140,7 @@ export default function CompletedToday() {
                   <Button 
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/patients/${task.patientId}`)}
+                    onClick={() => navigate(paths.patient(task.patientId))}
                   >
                     View Patient
                   </Button>

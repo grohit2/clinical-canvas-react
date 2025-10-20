@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { DischargeSummaryVersion, Note } from "@/types/api";
 import api from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { paths } from "@/app/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +53,7 @@ function formatDate(value?: string | null) {
 export function PatientNotes({ patientId }: PatientNotesProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [previews, setPreviews] = useState<Record<string, { urls: string[]; total: number }>>({});
-  const [filter, setFilter] = useState<"all" | Note["category"]>("all");
+  const [filter, setFilter] = useState<"all" | "doctorNote" | "nurseNote" | "pharmacy">("all");
   const [notesLoading, setNotesLoading] = useState(true);
   const [dischargeSummary, setDischargeSummary] = useState<DischargeSummaryVersion | null>(null);
   const [dischargeLoading, setDischargeLoading] = useState(true);
@@ -161,18 +162,14 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
   }, [dischargeSections]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return notes;
-    if (filter === "discharge") return [];
-    return notes.filter((n) => n.category === filter);
+    const nonDischargeNotes = notes.filter((n) => n.category !== "discharge");
+    if (filter === "all") return nonDischargeNotes;
+    return nonDischargeNotes.filter((n) => n.category === filter);
   }, [filter, notes]);
 
-  const shouldRenderDischargeSection =
-    filter === "discharge" || Boolean(dischargeSummary) || dischargeLoading || Boolean(dischargeError);
+  const shouldRenderDischargeSection = Boolean(dischargeSummary) || dischargeLoading || Boolean(dischargeError);
 
   const emptyMessage = (() => {
-    if (filter === "discharge") {
-      return "No discharge summary recorded for this patient.";
-    }
     if (filter === "doctorNote") return "No doctor notes for this patient.";
     if (filter === "nurseNote") return "No nurse notes for this patient.";
     if (filter === "pharmacy") return "No pharmacy notes for this patient.";
@@ -193,7 +190,6 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
             <DropdownMenuItem onClick={() => setFilter("doctorNote")}>Doctor Note</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter("nurseNote")}>Nurse Note</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setFilter("pharmacy")}>Pharmacy</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("discharge")}>Discharge</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -204,8 +200,8 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
             className="bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
             role="button"
             tabIndex={0}
-            onClick={() => navigate(`/patients/${patientId}/discharge-summary`)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate(`/patients/${patientId}/discharge-summary`)}
+            onClick={() => navigate(paths.dischargeSummary(patientId))}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate(paths.dischargeSummary(patientId))}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 space-y-1">
@@ -256,7 +252,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/patients/${patientId}/discharge-summary`)}
+                onClick={() => navigate(paths.dischargeSummary(patientId))}
               >
                 {dischargeLoading ? "View" : "Open"}
               </Button>
@@ -265,9 +261,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
         )
       )}
 
-      {filter === "discharge" && dischargeSummary && (
-        <p className="text-xs text-muted-foreground">The discharge summary is displayed above.</p>
-      )}
+      
 
       {filter !== "discharge" && notesLoading && (
         <div className="text-sm text-muted-foreground">Loading notes…</div>
@@ -284,7 +278,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
           const pv = previews[note.noteId] || { urls: [], total: 0 };
           const count = pv.total || pv.urls.length;
 
-          const open = () => navigate(`/patients/${patientId}/notes/${note.noteId}`);
+          const open = () => navigate(paths.noteDetail(patientId, note.noteId));
 
           return (
             <Card
@@ -369,7 +363,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => navigate(`/patients/${patientId}/notes/${note.noteId}/edit`)}>
+                        <DropdownMenuItem onClick={() => navigate(paths.noteEdit(patientId, note.noteId))}>
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem

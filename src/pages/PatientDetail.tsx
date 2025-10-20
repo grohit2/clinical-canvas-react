@@ -9,7 +9,7 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
-import { ListTodo, FileText, Pill, MoreVertical, ChevronDown, FolderOpen, Copy, Plus, ClipboardList } from "lucide-react";
+import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -23,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
+import { paths } from "@/app/navigation";
+import { BottomActionPanel } from "@/components/common/panels/BottomActionPanel";
 import api from "@/lib/api";
 import type { Patient, TimelineEntry, MrnHistoryEntry } from "@/types/api";
 import {
@@ -110,6 +112,7 @@ export default function PatientDetail() {
   const [deleteText, setDeleteText] = useState("");
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [selectedStage, setSelectedStage] = useState("");
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const fetchPatientData = useCallback(async () => {
     if (!id) return;
@@ -119,7 +122,7 @@ export default function PatientDetail() {
       const timeline = await api.patients.timeline(id);
       setTimeline(timeline);
     } catch {
-      navigate("/patients");
+      navigate(paths.patients());
     }
   }, [id, navigate]);
 
@@ -195,7 +198,7 @@ export default function PatientDetail() {
     if (deleteText.toLowerCase() !== "delete" || !id) return;
     try {
       await api.patients.remove(id);
-      navigate("/patients");
+      navigate(paths.patients());
     } catch (err) {
       console.error(err);
     }
@@ -274,7 +277,7 @@ export default function PatientDetail() {
                     Copy MRN
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => navigate(`/patients/${id}/edit`)}
+                onClick={() => id && navigate(paths.patientEdit(id))}
                   >
                     Edit
                   </DropdownMenuItem>
@@ -424,7 +427,7 @@ export default function PatientDetail() {
                 <button
                   type="button"
                   className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
-                  onClick={() => navigate(`/patients/${id}/mrn-add`)}
+                  onClick={() => id && navigate(paths.mrnAdd(id))}
                 >
                   <Plus className="h-4 w-4" />
                   Add MRN
@@ -516,7 +519,7 @@ export default function PatientDetail() {
             <div>
               <div 
                 className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => navigate(`/patients/${id}/docs`)}
+                onClick={() => id && navigate(paths.docsRoot(id))}
               >
                 <div className="flex-shrink-0">
                   <FolderOpen className="h-6 w-6 text-blue-600" />
@@ -563,34 +566,10 @@ export default function PatientDetail() {
       </Tabs>
 
       {/* FAB */}
-      <ArcSpeedDial
-        items={[
-          {
-            key: "note",
-            label: "Add note",
-            Icon: FileText,
-            onClick: () => navigate(`/patients/${id}/add-note`),
-          },
-          {
-            key: "task",
-            label: "Add task",
-            Icon: ListTodo,
-            onClick: () => navigate(`/patients/${id}/add-task`),
-          },
-          {
-            key: "med",
-            label: "Add medication",
-            Icon: Pill,
-            onClick: () => navigate(`/patients/${id}/add-med`),
-          },
-          {
-            key: "discharge",
-            label: "Discharge summary",
-            Icon: ClipboardList,
-            onClick: () => navigate(`/patients/${id}/discharge-summary`),
-          },
-        ]}
-      />
+      <ArcSpeedDial items={[]} onPrimaryClick={() => setActionsOpen(true)} />
+
+      {/* Bottom Action Sheet (grid) */}
+      <BottomActionPanel patientId={patient.id} open={actionsOpen} onOpenChange={setActionsOpen} />
 
       <BottomBar />
 

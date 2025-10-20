@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import type { Patient, MrnHistoryEntry } from "@/types/api";
+import { paths } from "@/app/navigation";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPinnedPatients } from "@/lib/pinnedPatients";
 
@@ -209,7 +210,7 @@ export default function PatientsList() {
         showAdd
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => navigate('/patients/add')}
+        onAdd={() => navigate(paths.patientsAdd())}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -249,7 +250,7 @@ export default function PatientsList() {
                   <PatientCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(`/patients/${patient.id}`)}
+                    onClick={() => navigate(paths.patient(patient.id))}
                   />
                 ))}
               </div>
@@ -259,7 +260,7 @@ export default function PatientsList() {
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(`/patients/${patient.id}`)}
+                    onClick={() => navigate(paths.patient(patient.id))}
                   />
                 ))}
               </div>
@@ -310,7 +311,7 @@ export default function PatientsList() {
                   <PatientCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(`/patients/${patient.id}`)}
+                    onClick={() => navigate(paths.patient(patient.id))}
                   />
                 ))}
               </div>
@@ -320,7 +321,7 @@ export default function PatientsList() {
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(`/patients/${patient.id}`)}
+                    onClick={() => navigate(paths.patient(patient.id))}
                   />
                 ))}
               </div>

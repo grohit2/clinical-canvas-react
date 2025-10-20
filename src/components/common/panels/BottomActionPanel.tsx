@@ -123,14 +123,19 @@ export function BottomActionPanel({
     <>
       <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground>
         <DrawerContent
-          className="pb-safe pt-2 mt-0 max-h-[85dvh] sm:max-h-[80vh] overflow-y-scroll pr-1 overscroll-contain touch-pan-y"
-          style={{ WebkitOverflowScrolling: "touch" as any }}
+          className="h-[85dvh] sm:h-[80vh] max-h-[85dvh] sm:max-h-[80vh]"
         >
-          <DrawerHeader>
+          <DrawerHeader className="flex-shrink-0">
             <DrawerTitle className="text-base">Patient Actions</DrawerTitle>
           </DrawerHeader>
 
-          <div className="px-3 pb-3 space-y-3">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 space-y-3"
+            style={{
+              WebkitOverflowScrolling: "touch" as any,
+              touchAction: "pan-y"
+            }}
+          >
             {GROUPS.map(({ key, title, hue }) => {
               const items = byGroup.get(key) || [];
               if (items.length === 0) return null;

@@ -878,11 +878,9 @@ export default function EditPatient() {
                   options={[
                     { value: "onboarding", label: "Onboarding" },
                     { value: "pre-op", label: "Pre-Op" },
-                    { value: "surgery", label: "Surgery" },
+                    { value: "surgery", label: "Intra-Op" },
                     { value: "post-op", label: "Post-Op" },
                     { value: "ICU", label: "ICU" },
-                    { value: "recovery", label: "Recovery" },
-                    { value: "stable", label: "Stable" },
                     { value: "discharge", label: "Discharge" },
                   ]}
                   value={formData.currentState}

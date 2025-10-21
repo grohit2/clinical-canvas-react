@@ -164,7 +164,6 @@ export default function PatientDetail() {
     "onboarding",
     "assessment", 
     "treatment",
-    "recovery",
     "discharge",
     "follow-up"
   ];

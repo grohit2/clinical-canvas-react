@@ -139,11 +139,11 @@ export default function PatientsList() {
     if (stageParam) {
       // Map dashboard stage names to patient states
       const stageMapping: { [key: string]: string } = {
-        'preop': 'pre-op',
-        'surgery': 'surgery',
-        'postop': 'post-op',
-        'recovery': 'recovery',
-        'discharge': 'discharge'
+        preop: 'pre-op',
+        surgery: 'intra-op', // alias to intra-op
+        postop: 'post-op',
+        recovery: 'post-op', // map recovery to post-op as filter
+        discharge: 'discharge'
       };
       
       const mappedStage = stageMapping[stageParam] || stageParam;
@@ -174,7 +174,15 @@ export default function PatientsList() {
         (patient.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (patient.diagnosis ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
-      const matchesStage = selectedStage === 'all' || patient.currentState === selectedStage;
+      // Stage alias matching (e.g., intra-op matches surgery; post-op includes recovery/stable)
+      const stageAliases: Record<string, string[]> = {
+        'intra-op': ['intra-op', 'surgery'],
+        'post-op': ['post-op', 'recovery', 'stable'],
+      };
+      const matchesStage =
+        selectedStage === 'all' ||
+        patient.currentState === selectedStage ||
+        (stageAliases[selectedStage]?.includes(patient.currentState) ?? false);
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
       // Filter logic based on tab

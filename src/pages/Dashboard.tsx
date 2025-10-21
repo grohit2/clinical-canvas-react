@@ -115,7 +115,7 @@ export default function Dashboard() {
       />
       
       <div className="p-4 space-y-6">
-        {/* Date and Shift Selector */}
+        {/* Date */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Today's Overview</h2>
@@ -128,9 +128,6 @@ export default function Dashboard() {
               })}
             </p>
           </div>
-          <Badge variant="outline" className="px-3 py-1">
-            Day Shift
-          </Badge>
         </div>
 
         {/* KPI Tiles */}

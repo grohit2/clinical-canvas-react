@@ -54,6 +54,7 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
       case 'critical':
         return 'ring-2 ring-urgent';
       case 'post-op':
+      case 'postop':
       case 'recovery':
         return 'ring-2 ring-caution';
       case 'discharge':

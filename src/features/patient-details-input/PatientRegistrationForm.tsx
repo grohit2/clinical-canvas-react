@@ -821,7 +821,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                 <div className="relative">
                   <input
                     ref={surgeryDateRef}
-                    type="datetime-local"
+                    type="date"
                     className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     value={formData.surgeryDate}
                     onChange={(e) => handleInputChange("surgeryDate", e.target.value)}

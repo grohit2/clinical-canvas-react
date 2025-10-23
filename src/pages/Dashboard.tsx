@@ -64,21 +64,22 @@ export default function Dashboard() {
           stageCounts[stage] = (stageCounts[stage] || 0) + 1;
         });
 
-        const stages: StageEntry[] = Object.entries(stageCounts).map(
-          ([stage, count]) => {
-            const key = stage.toLowerCase();
-            const variant =
-              key === "surgery"
-                ? "urgent"
-                : key === "pre-op"
-                ? "caution"
-                : key === "post-op" || key === "discharge"
-                ? "stable"
-                : "default";
-            const label = stage.replace(/\b\w/g, (c) => c.toUpperCase());
-            return { stage: label, count, variant };
-          }
-        );
+        const stages: StageEntry[] = Object.entries(stageCounts).map(([stage, count]) => {
+          const key = (stage || '').toLowerCase();
+          const compact =
+            key === 'pre-op' ? 'preop' :
+            key === 'intra-op' || key === 'surgery' ? 'intraop' :
+            key === 'post-op' ? 'postop' : key;
+          const variant =
+            compact === 'intraop' ? 'urgent' :
+            compact === 'preop' ? 'caution' :
+            compact === 'postop' || compact === 'discharge' ? 'stable' : 'default';
+          const labelMap: Record<string,string> = {
+            onboarding: 'Onboarding', preop: 'Pre-Op', intraop: 'Intra-Op', postop: 'Post-Op', 'discharge-init': 'Discharge Init', discharge: 'Discharge'
+          };
+          const label = labelMap[compact] || (stage || 'Unknown');
+          return { stage: label, count, variant };
+        });
 
         setStageHeatMap(stages);
 
@@ -239,9 +240,8 @@ export default function Dashboard() {
                 <div className="text-right flex-shrink-0">
                   <div className="flex items-center gap-1 text-sm font-medium">
                     <Calendar className="h-3 w-3" />
-                    {new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour:'2-digit', minute:'2-digit' }).format(it.when)}
+                    {new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', year:'numeric', month:'short', day:'2-digit' }).format(it.when)}
                   </div>
-                  <div className="text-xs text-muted-foreground">IST</div>
                 </div>
               </button>
             ))}

@@ -162,10 +162,11 @@ export default function PatientDetail() {
 
   const stageOptions = [
     "onboarding",
-    "assessment", 
-    "treatment",
+    "preop",
+    "intraop",
+    "postop",
+    "discharge-init",
     "discharge",
-    "follow-up"
   ];
 
   const deriveScheme = (p?: Patient | null): string | undefined => {
@@ -383,7 +384,7 @@ export default function PatientDetail() {
                     <span className="text-muted-foreground">Surgery Date:</span>
                     <span className="font-medium truncate">
                       { (patient as any).surgeryDate
-                        ? new Date((patient as any).surgeryDate).toLocaleString()
+                        ? new Date((patient as any).surgeryDate).toLocaleDateString()
                         : '—' }
                     </span>
                   </div>
@@ -411,7 +412,7 @@ export default function PatientDetail() {
                         const proc = (patient as any).procedureName || '';
                         const parts = [`TID: ${tid}`];
                         if (surg) parts.push(`Surgery Code: ${surg}`);
-                        if (sDate) parts.push(`Surgery Date: ${new Date(sDate).toLocaleString()}`);
+                        if (sDate) parts.push(`Surgery Date: ${new Date(sDate).toLocaleDateString()}`);
                         if (proc) parts.push(`Procedure: ${proc}`);
                         const text = parts.join(' | ');
                         navigator.clipboard.writeText(text).then(() => {

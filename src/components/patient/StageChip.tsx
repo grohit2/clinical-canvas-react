@@ -28,14 +28,20 @@ export function StageChip({
     const s = (stage || '').toLowerCase();
     switch (s) {
       case 'pre-op':
+      case 'preop':
         return 'Pre-Op';
       case 'surgery':
       case 'intra-op':
+      case 'intraop':
         return 'Intra-Op';
       case 'post-op':
+      case 'postop':
       case 'recovery':
       case 'stable':
         return 'Post-Op';
+      case 'discharge-init':
+      case 'discharge init':
+        return 'Discharge Init';
       case 'icu':
         return 'ICU';
       default: {

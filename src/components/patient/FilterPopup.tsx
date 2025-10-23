@@ -19,7 +19,8 @@ interface FilterPopupProps {
 
 const pathwayFilters = ['all', 'surgical', 'emergency', 'consultation'];
 // Updated stages: remove 'recovery' and 'stable', rename 'surgery' -> 'intra-op'
-const stageFilters = ['all', 'pre-op', 'intra-op', 'post-op', 'ICU', 'discharge'];
+// New stage filters (compact names)
+const stageFilters = ['all', 'onboarding', 'preop', 'intraop', 'postop', 'discharge-init', 'discharge'];
 
 export function FilterPopup({
   selectedPathway,

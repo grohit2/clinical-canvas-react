@@ -101,6 +101,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
       case "critical":
         return "urgent";
       case "post-op":
+      case "postop":
       case "recovery":
         return "caution";
       case "discharge":
@@ -116,6 +117,7 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
       case "critical":
         return "border-l-4 border-l-urgent";
       case "post-op":
+      case "postop":
       case "recovery":
         return "border-l-4 border-l-caution";
       case "discharge":

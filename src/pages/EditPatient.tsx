@@ -39,7 +39,7 @@ export default function EditPatient() {
           comorbidities: p.comorbidities || [],
           procedureName: p.procedureName || "",
           surgeryCode: (p as any).surgeryCode || "",
-          surgeryDate: (p as any).surgeryDate ? new Date((p as any).surgeryDate).toISOString().slice(0,16) : "",
+          surgeryDate: (p as any).surgeryDate ? new Date((p as any).surgeryDate).toISOString().slice(0,10) : "",
           assignedDoctor: p.assignedDoctor || "",
           assignedDoctorId: p.assignedDoctorId || "",
           filesUrl: p.filesUrl || "",

@@ -133,20 +133,12 @@ export default function PatientsList() {
     localStorage.setItem('patientViewMode', viewMode);
   }, [viewMode]);
 
-  // Handle URL parameters for stage filtering
+  // Handle URL parameters for stage filtering (new compact stage names)
   useEffect(() => {
     const stageParam = searchParams.get('stage');
     if (stageParam) {
-      // Map dashboard stage names to patient states
-      const stageMapping: { [key: string]: string } = {
-        preop: 'pre-op',
-        surgery: 'intra-op', // alias to intra-op
-        postop: 'post-op',
-        recovery: 'post-op', // map recovery to post-op as filter
-        discharge: 'discharge'
-      };
-      
-      const mappedStage = stageMapping[stageParam] || stageParam;
+      // Accept compact tokens directly
+      const mappedStage = stageParam;
       setSelectedStage(mappedStage);
     }
   }, [searchParams]);
@@ -174,15 +166,19 @@ export default function PatientsList() {
         (patient.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (patient.diagnosis ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPathway = selectedPathway === 'all' || patient.pathway === selectedPathway;
-      // Stage alias matching (e.g., intra-op matches surgery; post-op includes recovery/stable)
+      // Stage alias matching from compact tokens to legacy/current values
       const stageAliases: Record<string, string[]> = {
-        'intra-op': ['intra-op', 'surgery'],
-        'post-op': ['post-op', 'recovery', 'stable'],
+        onboarding: ['onboarding'],
+        preop: ['preop', 'pre-op'],
+        intraop: ['intraop', 'intra-op', 'surgery'],
+        postop: ['postop', 'post-op', 'recovery', 'stable'],
+        'discharge-init': ['discharge-init', 'discharge init'],
+        discharge: ['discharge'],
       };
       const matchesStage =
         selectedStage === 'all' ||
-        patient.currentState === selectedStage ||
-        (stageAliases[selectedStage]?.includes(patient.currentState) ?? false);
+        stageAliases[selectedStage]?.includes((patient.currentState || '').toLowerCase()) ||
+        (patient.currentState || '').toLowerCase() === selectedStage;
       const matchesUrgent = !showUrgentOnly || patient.updateCounter > 5;
       
       // Filter logic based on tab

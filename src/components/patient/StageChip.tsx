@@ -39,11 +39,12 @@ export function StageChip({
       case 'icu':
         return 'ICU';
       default: {
-        // Title-case and preserve hyphenated words
-        return (stage || '')
+        // Title-case words; preserve hyphens within words
+        const raw = String(stage || '');
+        return raw
           .split(/\s+/)
           .map((w) => w.replace(/(^[a-z])|(-[a-z])/g, (m) => m.toUpperCase()))
-          .replace(/-/g, '-');
+          .join(' ');
       }
     }
   })();

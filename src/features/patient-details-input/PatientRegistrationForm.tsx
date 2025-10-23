@@ -98,6 +98,8 @@ type FormState = {
   includeOtherComorbidity: boolean;
   otherComorbidity: string;
   procedureName: string;
+  surgeryCode: string;
+  surgeryDate: string;
   assignedDoctor: string;
   assignedDoctorId: string;
   filesUrl: string;
@@ -163,6 +165,8 @@ const defaultFormState: FormState = {
   includeOtherComorbidity: false,
   otherComorbidity: "",
   procedureName: "",
+  surgeryCode: "",
+  surgeryDate: "",
   assignedDoctor: "",
   assignedDoctorId: "",
 
@@ -206,17 +210,28 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
   useEffect(() => {
     if (initial) {
       const parsed = parseComorbiditiesFromList((initial as any).comorbidities);
-      setFormData((prev) => ({
-        ...prev,
-        ...initial,
-        scheme: (initial as any).scheme ? normalizeScheme((initial as any).scheme) : prev.scheme,
-        roomNumber: (initial as any).roomNumber ?? prev.roomNumber,
-        comorbidities: parsed.selections,
-        includeOtherComorbidity: parsed.includeOther,
-        otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
-        procedureName: (initial as any).procedureName ?? prev.procedureName,
-        emergencyContact: { ...prev.emergencyContact, ...(initial as any).emergencyContact },
-      }));
+      setFormData((prev) => {
+        const ecInit = (initial as any).emergencyContact || {};
+        const ecAddrInit = (ecInit as any).address || {};
+        return {
+          ...prev,
+          ...initial,
+          scheme: (initial as any).scheme ? normalizeScheme((initial as any).scheme) : prev.scheme,
+          roomNumber: (initial as any).roomNumber ?? prev.roomNumber,
+          comorbidities: parsed.selections,
+          includeOtherComorbidity: parsed.includeOther,
+          otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
+          procedureName: (initial as any).procedureName ?? prev.procedureName,
+          emergencyContact: {
+            ...prev.emergencyContact,
+            ...ecInit,
+            address: {
+              ...prev.emergencyContact.address,
+              ...ecAddrInit,
+            },
+          },
+        };
+      });
     }
   }, [initial]);
 
@@ -541,6 +556,13 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         else payload.comorbidities = [];
         payload.roomNumber = formData.roomNumber.trim();
         payload.procedureName = formData.procedureName.trim() || undefined;
+        // Optional surgery fields for edit
+        if (typeof formData.surgeryCode !== 'undefined') {
+          (payload as any).surgeryCode = formData.surgeryCode.trim() || undefined;
+        }
+        if (typeof formData.surgeryDate !== 'undefined') {
+          (payload as any).surgeryDate = formData.surgeryDate ? new Date(formData.surgeryDate).toISOString() : null;
+        }
         await api.patients.update(patientId, payload);
 
         toast({ title: 'Patient updated', description: `${formData.name} updated successfully.` });
@@ -578,6 +600,8 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
           roomNumber: norm.roomNumber,
           latestMrn: norm.latestMrn,
           mrnHistory: norm.mrnHistory,
+          surgeryCode: formData.surgeryCode || undefined,
+          surgeryDate: formData.surgeryDate ? new Date(formData.surgeryDate).toISOString() : null,
         });
         onAddPatient?.(res.patient);
 
@@ -748,6 +772,28 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                 onChange={(e) => handleInputChange("procedureName", e.target.value)}
                 placeholder="Optional"
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Surgery Code</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  value={formData.surgeryCode}
+                  onChange={(e) => handleInputChange("surgeryCode", e.target.value)}
+                  placeholder="e.g., KNEE-ARTHRO"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Surgery Date</label>
+                <input
+                  type="datetime-local"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  value={formData.surgeryDate}
+                  onChange={(e) => handleInputChange("surgeryDate", e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1019,14 +1065,14 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               <input
                 type="text"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                value={formData.emergencyContact.address.line1}
+                value={formData.emergencyContact.address?.line1 ?? ''}
                 onChange={e => handleInputChange("emergencyContact.address.line1", e.target.value)}
                 placeholder="Address Line 1"
               />
               <input
                 type="text"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                value={formData.emergencyContact.address.line2}
+                value={formData.emergencyContact.address?.line2 ?? ''}
                 onChange={e => handleInputChange("emergencyContact.address.line2", e.target.value)}
                 placeholder="Address Line 2 (Optional)"
               />
@@ -1034,21 +1080,21 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
                 <input
                   type="text"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.emergencyContact.address.city}
+                  value={formData.emergencyContact.address?.city ?? ''}
                   onChange={e => handleInputChange("emergencyContact.address.city", e.target.value)}
                   placeholder="City"
                 />
                 <input
                   type="text"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.emergencyContact.address.state}
+                  value={formData.emergencyContact.address?.state ?? ''}
                   onChange={e => handleInputChange("emergencyContact.address.state", e.target.value)}
                   placeholder="State"
                 />
                 <input
                   type="text"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.emergencyContact.address.postalCode}
+                  value={formData.emergencyContact.address?.postalCode ?? ''}
                   onChange={e => handleInputChange("emergencyContact.address.postalCode", e.target.value)}
                   placeholder="Postal Code"
                 />
@@ -1056,7 +1102,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               <input
                 type="text"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                value={formData.emergencyContact.address.country}
+                value={formData.emergencyContact.address?.country ?? ''}
                 onChange={e => handleInputChange("emergencyContact.address.country", e.target.value)}
                 placeholder="Country"
               />

@@ -68,6 +68,7 @@ export const api = {
         tidNumber?: string;
         tidStatus?: string;
         surgeryCode?: string;
+        surgeryDate?: string | null;
       },
     ) => {
       const { registrationNumber, department } = data;
@@ -107,6 +108,7 @@ export const api = {
             tid_number: data.tidNumber,
             tid_status: data.tidStatus,
             surgery_code: data.surgeryCode,
+            surgery_date: data.surgeryDate,
           },
           emergencyContact: data.emergencyContact,
           roomNumber: data.roomNumber,
@@ -137,6 +139,7 @@ export const api = {
       if ((data as any).tidStatus !== undefined) shadow['tid_status'] = (data as any).tidStatus;
       if ((data as any).tidNumber !== undefined) shadow['tid_number'] = (data as any).tidNumber;
       if ((data as any).surgeryCode !== undefined) shadow['surgery_code'] = (data as any).surgeryCode;
+      if ((data as any).surgeryDate !== undefined) shadow['surgery_date'] = (data as any).surgeryDate;
       if ((data as any).roomNumber !== undefined) shadow['room_number'] = (data as any).roomNumber;
       if ((data as any).scheme !== undefined) shadow['scheme'] = (data as any).scheme;
       if ((data as any).procedureName !== undefined) shadow['procedure_name'] = (data as any).procedureName;

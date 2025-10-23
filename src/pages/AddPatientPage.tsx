@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
-import PatientRegistrationForm from "@/components/patient/patinet_form/PatientRegistrationForm";
+import PatientRegistrationForm from "@/features/patient-details-input/PatientRegistrationForm";
 import type { Patient } from "@/types/api";
 import { paths } from "@/app/navigation";
 

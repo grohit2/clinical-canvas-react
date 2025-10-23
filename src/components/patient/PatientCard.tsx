@@ -128,6 +128,19 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
     }
   };
 
+  // Days since surgery (date-only diff)
+  const daysSinceSurgery = (() => {
+    const sd = (patient as any).surgeryDate as string | undefined;
+    if (!sd) return 0;
+    const d = new Date(sd);
+    if (isNaN(d.getTime())) return 0;
+    const now = new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  })();
+
   const comorbidities = (patient.comorbidities ?? [])
     .flatMap((item) =>
       String(item)
@@ -185,7 +198,12 @@ export function PatientCard({ patient, onClick }: PatientCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
+            {daysSinceSurgery > 0 && (
+              <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold">
+                D+{daysSinceSurgery}
+              </span>
+            )}
             <StageChip
               stage={patient.currentState}
               variant={getStageVariant(patient.currentState)}

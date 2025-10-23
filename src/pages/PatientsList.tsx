@@ -125,6 +125,10 @@ export default function PatientsList() {
         });
         setPatients(withUi);
         mockPatients = withUi;
+        // Cache for Dashboard reuse
+        try {
+          localStorage.setItem('patientsCache', JSON.stringify({ ts: Date.now(), items: withUi }));
+        } catch {}
       })
       .catch((err) => console.error(err));
   }, []);

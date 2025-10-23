@@ -43,7 +43,20 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const patients = await api.patients.list();
+        // Try to reuse cache from Patients page
+        let patients: any[] | null = null;
+        try {
+          const raw = localStorage.getItem('patientsCache');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.items)) {
+              patients = parsed.items;
+            }
+          }
+        } catch {}
+        if (!patients) {
+          patients = await api.patients.list();
+        }
         const tasksArrays = await Promise.all(
           patients.map((p) => api.tasks.list(p.id).catch(() => []))
         );
@@ -59,7 +72,7 @@ export default function Dashboard() {
         });
 
         const stageCounts: Record<string, number> = {};
-        patients.forEach((p) => {
+        patients.forEach((p: any) => {
           const stage = p.currentState || "Unknown";
           stageCounts[stage] = (stageCounts[stage] || 0) + 1;
         });
@@ -100,7 +113,7 @@ export default function Dashboard() {
             minute: "2-digit",
           }).format(d);
 
-        const upcomingItems: UpcomingItem[] = patients
+        const upcomingItems: UpcomingItem[] = (patients as any[])
           .map((p) => ({ p, sd: (p as any).surgeryDate as string | undefined }))
           .filter((x) => x.sd)
           .map(({ p, sd }) => ({ p, when: new Date(sd!) }))
@@ -108,9 +121,9 @@ export default function Dashboard() {
           .sort((a, b) => a.when.getTime() - b.when.getTime())
           .slice(0, 10)
           .map(({ p, when }) => ({
-            id: p.id,
-            name: p.name,
-            procedure: p.procedureName,
+            id: (p as any).id,
+            name: (p as any).name,
+            procedure: (p as any).procedureName,
             when,
           }));
 

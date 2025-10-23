@@ -130,6 +130,8 @@ export default function PatientDetail() {
     fetchPatientData();
   }, [fetchPatientData]);
 
+  // Removed auto-update automation for now (state changes gated by checklist)
+
   // Refetch data when the page becomes visible (e.g., returning from edit)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -183,7 +185,7 @@ export default function PatientDetail() {
   const handleStageChange = async () => {
     if (!selectedStage || !id) return;
     try {
-      await api.patients.update(id, { currentState: selectedStage });
+      await api.patients.changeState(id, { current_state: selectedStage });
       if (patient) {
         setPatient({ ...patient, currentState: selectedStage });
       }
@@ -382,10 +384,24 @@ export default function PatientDetail() {
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
                     <span className="text-muted-foreground">Surgery Date:</span>
-                    <span className="font-medium truncate">
+                    <span className="font-medium truncate flex items-center gap-2">
                       { (patient as any).surgeryDate
                         ? new Date((patient as any).surgeryDate).toLocaleDateString()
                         : '—' }
+                      {(() => {
+                        const sd = (patient as any).surgeryDate as string | undefined;
+                        if (!sd) return null;
+                        const d = new Date(sd);
+                        const now = new Date();
+                        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                        return diffDays > 0 ? (
+                          <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-semibold">
+                            D+{diffDays}
+                          </span>
+                        ) : null;
+                      })()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">

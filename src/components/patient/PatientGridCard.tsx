@@ -138,6 +138,21 @@ export function PatientGridCard({ patient, onClick }: PatientGridCardProps) {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm truncate">{patient.name}</span>
+            {(() => {
+              const sd = (patient as any).surgeryDate as string | undefined;
+              if (!sd) return null;
+              const d = new Date(sd);
+              if (isNaN(d.getTime())) return null;
+              const now = new Date();
+              const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const diff = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+              return diff > 0 ? (
+                <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold">
+                  D+{diff}
+                </span>
+              ) : null;
+            })()}
             {pinned && (
               <Pin className="h-3 w-3 text-blue-500 fill-current" />
             )}

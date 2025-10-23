@@ -172,6 +172,15 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ mrnHistory, actorId }),
       }),
+    // Change current state (creates timeline entry and validates checklist)
+    changeState: (
+      uid: string,
+      data: { current_state: string; checklistInDone?: string[]; checklistOutDone?: string[]; actorId?: string; timelineNotes?: string }
+    ) =>
+      request<{ message: string; patient: Patient }>(`/patients/${uid}/state`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
     remove: (uid: string) =>
       request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',

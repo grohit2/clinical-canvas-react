@@ -365,7 +365,7 @@ export default function PatientDetail() {
                 </Button>
               </div>
             </div>
-            {/* TID / Surgery summary (compact) */}
+            {/* TID / Intra-Op summary (compact) */}
             <div className="bg-white rounded-lg border border-gray-200 p-2">
               <div className="flex items-start gap-3 text-sm">
                 <div className="min-w-0 flex-1">
@@ -376,7 +376,7 @@ export default function PatientDetail() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
-                    <span className="text-muted-foreground">Surgery:</span>
+                    <span className="text-muted-foreground">Intra-Op:</span>
                     <span className="font-medium truncate">{(patient as any).surgeryCode || '—'}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
@@ -394,14 +394,14 @@ export default function PatientDetail() {
                   </span>
                   {(patient as any).tidNumber && (
                     <button
-                      aria-label="Copy TID and Surgery"
+                    aria-label="Copy TID and Intra-Op"
                       className="px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-[11px] text-gray-700 flex items-center gap-1"
                       onClick={() => {
                         const tid = (patient as any).tidNumber || '';
                         const surg = (patient as any).surgeryCode || '';
                         const proc = (patient as any).procedureName || '';
                         const parts = [`TID: ${tid}`];
-                        if (surg) parts.push(`Surgery: ${surg}`);
+                        if (surg) parts.push(`Intra-Op: ${surg}`);
                         if (proc) parts.push(`Procedure: ${proc}`);
                         const text = parts.join(' | ');
                         navigator.clipboard.writeText(text).then(() => {

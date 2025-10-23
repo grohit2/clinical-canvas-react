@@ -24,13 +24,36 @@ export function StageChip({
   variant = 'default',
   size = 'md' 
 }: StageChipProps) {
+  const label = (() => {
+    const s = (stage || '').toLowerCase();
+    switch (s) {
+      case 'pre-op':
+        return 'Pre-Op';
+      case 'surgery':
+      case 'intra-op':
+        return 'Intra-Op';
+      case 'post-op':
+      case 'recovery':
+      case 'stable':
+        return 'Post-Op';
+      case 'icu':
+        return 'ICU';
+      default: {
+        // Title-case and preserve hyphenated words
+        return (stage || '')
+          .split(/\s+/)
+          .map((w) => w.replace(/(^[a-z])|(-[a-z])/g, (m) => m.toUpperCase()))
+          .replace(/-/g, '-');
+      }
+    }
+  })();
   return (
     <div className={cn(
       "inline-flex items-center justify-center rounded-full font-medium whitespace-nowrap",
       stageVariants[variant],
       sizeVariants[size]
     )}>
-      {stage}
+      {label}
     </div>
   );
 }

@@ -44,7 +44,7 @@ const EPISODE_UPDATABLE = new Set([
   "assigned_doctor", "assigned_doctor_id", "files_url",
   "is_urgent", "urgent_reason", "urgent_until",
   // New optional fields
-  "tid_number", "tid_status", "surgery_code", "procedure_name",
+  "tid_number", "tid_status", "surgery_code", "surgery_date", "procedure_name",
   "room_number",
 ]); // current_state is handled in /state
 
@@ -81,6 +81,7 @@ const toUiPatient = (it = {}) => ({
   tidNumber: it.tid_number ?? null,
   tidStatus: it.tid_status ?? null,
   surgeryCode: it.surgery_code ?? null,
+  surgeryDate: it.surgery_date ?? null,
 
   lastUpdated: it.last_updated || it.updated_at || null,
 });
@@ -111,6 +112,7 @@ export function mountPatientRoutes(router, ctx) {
     const firstState = reg.current_state || "onboarding";
     const roomNumber = reg.room_number ?? reg.roomNumber ?? null;
     const procedureName = reg.procedure_name ?? reg.procedureName ?? null;
+    const surgeryDate   = reg.surgery_date ?? reg.surgeryDate ?? null;
 
     // Seed timeline (no MRN in SK; MRN kept as attribute)
     const tl = buildInitialTimelineItem({ patient_uid: uid, mrn: reg.mrn, scheme: reg.scheme, firstState, now, actorId: body.createdBy || null });
@@ -142,6 +144,7 @@ export function mountPatientRoutes(router, ctx) {
       tid_number: reg.tid_number ?? null,
       tid_status: reg.tid_status ?? null,
       surgery_code: reg.surgery_code ?? null,
+      surgery_date: surgeryDate ?? null,
       procedure_name: procedureName,
       room_number: roomNumber,
       state_dates: { [String(firstState)]: now },
@@ -259,6 +262,13 @@ export function mountPatientRoutes(router, ctx) {
     }
     if (body?.procedureName && !body.procedure_name) {
       body.procedure_name = body.procedureName;
+    }
+    // accept camelCase from FE for surgery fields
+    if (body?.surgeryDate && !body.surgery_date) {
+      body.surgery_date = body.surgeryDate;
+    }
+    if (body?.surgeryCode && !body.surgery_code) {
+      body.surgery_code = body.surgeryCode;
     }
 
     const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
@@ -479,11 +489,15 @@ export function mountPatientRoutes(router, ctx) {
     names["#fs"] = String(firstState); values[":fs"] = firstState; values[":tlsk"] = tl.sk;
 
     // optional episode fields
+    // accept camelCase equivalents for registration updates
+    if (body?.surgeryDate && body.surgery_date === undefined) body.surgery_date = body.surgeryDate;
+    if (body?.surgeryCode && body.surgery_code === undefined) body.surgery_code = body.surgeryCode;
+
     const epMap = {
       department: "department", status: "status", pathway: "pathway", diagnosis: "diagnosis",
       comorbidities: "comorbidities", assigned_doctor: "assigned_doctor", assigned_doctor_id: "assigned_doctor_id",
       files_url: "files_url", is_urgent: "is_urgent", urgent_reason: "urgent_reason", urgent_until: "urgent_until",
-      tid_number: "tid_number", tid_status: "tid_status", surgery_code: "surgery_code",
+      tid_number: "tid_number", tid_status: "tid_status", surgery_code: "surgery_code", surgery_date: "surgery_date",
     };
     for (const [jsKey, dbKey] of Object.entries(epMap)) {
       if (body[jsKey] !== undefined) {

@@ -32,25 +32,94 @@ type UpcomingItem = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
+  // Helpers to compute from a patients array
+  const computeStageHeatMap = (patients: any[]): StageEntry[] => {
+    const stageCounts: Record<string, number> = {};
+    patients.forEach((p: any) => {
+      const stage = p.currentState || "Unknown";
+      stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+    });
+    const stages: StageEntry[] = Object.entries(stageCounts).map(([stage, count]) => {
+      const key = (stage || '').toLowerCase();
+      const compact =
+        key === 'pre-op' ? 'preop' :
+        key === 'intra-op' || key === 'surgery' ? 'intraop' :
+        key === 'post-op' ? 'postop' : key;
+      const variant =
+        compact === 'intraop' ? 'urgent' :
+        compact === 'preop' ? 'caution' :
+        compact === 'postop' || compact === 'discharge' ? 'stable' : 'default';
+      const labelMap: Record<string,string> = {
+        onboarding: 'Onboarding', preop: 'Pre-Op', intraop: 'Intra-Op', postop: 'Post-Op', 'discharge-init': 'Discharge Init', discharge: 'Discharge'
+      };
+      const label = labelMap[compact] || (stage || 'Unknown');
+      return { stage: label, count, variant };
+    });
+    return stages;
+  };
+
+  const computeUpcoming = (patients: any[]): UpcomingItem[] => {
+    // Upcoming procedures based on surgeryDate (from today, IST)
+    const offsetMs = 330 * 60 * 1000; // IST +5:30
+    const nowMs = Date.now();
+    const ist = new Date(nowMs + offsetMs);
+    const istMidnightUtcMs = Date.UTC(
+      ist.getUTCFullYear(),
+      ist.getUTCMonth(),
+      ist.getUTCDate()
+    ) - offsetMs;
+    return (patients as any[])
+      .map((p) => ({ p, sd: (p as any).surgeryDate as string | undefined }))
+      .filter((x) => x.sd)
+      .map(({ p, sd }) => ({ p, when: new Date(sd!) }))
+      .filter(({ when }) => when.getTime() >= istMidnightUtcMs)
+      .sort((a, b) => a.when.getTime() - b.when.getTime())
+      .slice(0, 10)
+      .map(({ p, when }) => ({
+        id: (p as any).id,
+        name: (p as any).name,
+        procedure: (p as any).procedureName,
+        when,
+      }));
+  };
+
+  // Seed initial state from cache synchronously for instant render
+  let cachedPatients: any[] | null = null;
+  let cachedTasksDue = 0;
+  try {
+    const raw = localStorage.getItem('patientsCache');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.items)) {
+        cachedPatients = parsed.items;
+      }
+    }
+    const t = localStorage.getItem('tasksDueCache');
+    if (t) cachedTasksDue = Number(t) || 0;
+  } catch {}
+
   const [kpiData, setKpiData] = useState({
-    totalPatients: 0,
-    tasksDue: 0,
-    urgentAlerts: 0,
+    totalPatients: cachedPatients?.length || 0,
+    tasksDue: cachedTasksDue || 0,
+    urgentAlerts: cachedPatients ? cachedPatients.filter((p: any) => p.isUrgent).length : 0,
   });
-  const [stageHeatMap, setStageHeatMap] = useState<StageEntry[]>([]);
-  const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
+  const [stageHeatMap, setStageHeatMap] = useState<StageEntry[]>(cachedPatients ? computeStageHeatMap(cachedPatients) : []);
+  const [upcoming, setUpcoming] = useState<UpcomingItem[]>(cachedPatients ? computeUpcoming(cachedPatients) : []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         // Try to reuse cache from Patients page
         let patients: any[] | null = null;
+        let fromCache = false;
         try {
           const raw = localStorage.getItem('patientsCache');
           if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed && Array.isArray(parsed.items)) {
               patients = parsed.items;
+              fromCache = true;
             }
           }
         } catch {}
@@ -63,7 +132,20 @@ export default function Dashboard() {
         const allTasks = tasksArrays.flat();
 
         const totalPatients = patients.length;
-        const tasksDue = allTasks.filter((t) => t.status !== "done").length;
+        let tasksDue = 0;
+        if (!fromCache) {
+          const tasksArrays = await Promise.all(
+            (patients as any[]).map((p: any) => api.tasks.list(p.id).catch(() => []))
+          );
+          const allTasks = tasksArrays.flat();
+          tasksDue = allTasks.filter((t) => t.status !== "done").length;
+          try { localStorage.setItem('tasksDueCache', String(tasksDue)); } catch {}
+        } else {
+          try {
+            const cached = localStorage.getItem('tasksDueCache');
+            if (cached) tasksDue = Number(cached) || 0;
+          } catch { tasksDue = 0; }
+        }
         const urgentAlerts = patients.filter((p) => p.isUrgent).length;
         setKpiData({
           totalPatients,
@@ -71,28 +153,7 @@ export default function Dashboard() {
           urgentAlerts,
         });
 
-        const stageCounts: Record<string, number> = {};
-        patients.forEach((p: any) => {
-          const stage = p.currentState || "Unknown";
-          stageCounts[stage] = (stageCounts[stage] || 0) + 1;
-        });
-
-        const stages: StageEntry[] = Object.entries(stageCounts).map(([stage, count]) => {
-          const key = (stage || '').toLowerCase();
-          const compact =
-            key === 'pre-op' ? 'preop' :
-            key === 'intra-op' || key === 'surgery' ? 'intraop' :
-            key === 'post-op' ? 'postop' : key;
-          const variant =
-            compact === 'intraop' ? 'urgent' :
-            compact === 'preop' ? 'caution' :
-            compact === 'postop' || compact === 'discharge' ? 'stable' : 'default';
-          const labelMap: Record<string,string> = {
-            onboarding: 'Onboarding', preop: 'Pre-Op', intraop: 'Intra-Op', postop: 'Post-Op', 'discharge-init': 'Discharge Init', discharge: 'Discharge'
-          };
-          const label = labelMap[compact] || (stage || 'Unknown');
-          return { stage: label, count, variant };
-        });
+        const stages: StageEntry[] = computeStageHeatMap(patients);
 
         setStageHeatMap(stages);
 
@@ -113,21 +174,7 @@ export default function Dashboard() {
             minute: "2-digit",
           }).format(d);
 
-        const upcomingItems: UpcomingItem[] = (patients as any[])
-          .map((p) => ({ p, sd: (p as any).surgeryDate as string | undefined }))
-          .filter((x) => x.sd)
-          .map(({ p, sd }) => ({ p, when: new Date(sd!) }))
-          .filter(({ when }) => when.getTime() >= istMidnightUtcMs)
-          .sort((a, b) => a.when.getTime() - b.when.getTime())
-          .slice(0, 10)
-          .map(({ p, when }) => ({
-            id: (p as any).id,
-            name: (p as any).name,
-            procedure: (p as any).procedureName,
-            when,
-          }));
-
-        setUpcoming(upcomingItems);
+        setUpcoming(computeUpcoming(patients));
       } catch (err) {
         console.error(err);
       }

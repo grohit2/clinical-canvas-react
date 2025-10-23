@@ -376,8 +376,16 @@ export default function PatientDetail() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
-                    <span className="text-muted-foreground">Intra-Op:</span>
+                    <span className="text-muted-foreground">Surgery Code:</span>
                     <span className="font-medium truncate">{(patient as any).surgeryCode || '—'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 min-w-0">
+                    <span className="text-muted-foreground">Surgery Date:</span>
+                    <span className="font-medium truncate">
+                      { (patient as any).surgeryDate
+                        ? new Date((patient as any).surgeryDate).toLocaleString()
+                        : '—' }
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
                     <span className="text-muted-foreground">Procedure:</span>
@@ -394,14 +402,16 @@ export default function PatientDetail() {
                   </span>
                   {(patient as any).tidNumber && (
                     <button
-                    aria-label="Copy TID and Intra-Op"
+                    aria-label="Copy TID and Surgery details"
                       className="px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-[11px] text-gray-700 flex items-center gap-1"
                       onClick={() => {
                         const tid = (patient as any).tidNumber || '';
                         const surg = (patient as any).surgeryCode || '';
+                        const sDate = (patient as any).surgeryDate || '';
                         const proc = (patient as any).procedureName || '';
                         const parts = [`TID: ${tid}`];
-                        if (surg) parts.push(`Intra-Op: ${surg}`);
+                        if (surg) parts.push(`Surgery Code: ${surg}`);
+                        if (sDate) parts.push(`Surgery Date: ${new Date(sDate).toLocaleString()}`);
                         if (proc) parts.push(`Procedure: ${proc}`);
                         const text = parts.join(' | ');
                         navigator.clipboard.writeText(text).then(() => {

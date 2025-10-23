@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Check } from "lucide-react";
+import { Check, Calendar, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
@@ -203,6 +203,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
   const [showJsonSection, setShowJsonSection] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const jsonTextRef = useRef<HTMLTextAreaElement | null>(null);
+  const surgeryDateRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState({ ...defaultFormState });
 
@@ -213,21 +214,51 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
       setFormData((prev) => {
         const ecInit = (initial as any).emergencyContact || {};
         const ecAddrInit = (ecInit as any).address || {};
+        const sanitize = (v: any) => (v == null ? '' : String(v));
         return {
           ...prev,
-          ...initial,
+          // Core details
+          name: sanitize((initial as any).name) || prev.name,
+          age: sanitize((initial as any).age) || prev.age,
+          sex: sanitize((initial as any).sex) || prev.sex,
+          // Registration
           scheme: (initial as any).scheme ? normalizeScheme((initial as any).scheme) : prev.scheme,
-          roomNumber: (initial as any).roomNumber ?? prev.roomNumber,
+          roomNumber: sanitize((initial as any).roomNumber) || prev.roomNumber,
+          mrn: sanitize((initial as any).mrn) || prev.mrn,
+          department: sanitize((initial as any).department) || prev.department,
+          status: sanitize((initial as any).status) || prev.status,
+          // Medical details
+          pathway: sanitize((initial as any).pathway) || prev.pathway,
+          diagnosis: sanitize((initial as any).diagnosis) || prev.diagnosis,
           comorbidities: parsed.selections,
           includeOtherComorbidity: parsed.includeOther,
           otherComorbidity: parsed.includeOther ? parsed.otherValue : "",
-          procedureName: (initial as any).procedureName ?? prev.procedureName,
+          procedureName: sanitize((initial as any).procedureName) || prev.procedureName,
+          surgeryCode: sanitize((initial as any).surgeryCode) || prev.surgeryCode,
+          surgeryDate: sanitize((initial as any).surgeryDate) || prev.surgeryDate,
+          // Assignment & misc
+          assignedDoctor: sanitize((initial as any).assignedDoctor) || prev.assignedDoctor,
+          assignedDoctorId: sanitize((initial as any).assignedDoctorId) || prev.assignedDoctorId,
+          filesUrl: sanitize((initial as any).filesUrl) || prev.filesUrl,
+          isUrgent: Boolean((initial as any).isUrgent ?? prev.isUrgent),
+          urgentReason: sanitize((initial as any).urgentReason) || prev.urgentReason,
+          urgentUntil: sanitize((initial as any).urgentUntil) || prev.urgentUntil,
+          // Emergency contact (sanitized)
           emergencyContact: {
             ...prev.emergencyContact,
-            ...ecInit,
+            name: sanitize(ecInit.name) || prev.emergencyContact.name,
+            relationship: sanitize(ecInit.relationship) || prev.emergencyContact.relationship,
+            phone: sanitize(ecInit.phone) || prev.emergencyContact.phone,
+            altPhone: sanitize(ecInit.altPhone) || prev.emergencyContact.altPhone,
+            email: sanitize(ecInit.email) || prev.emergencyContact.email,
             address: {
               ...prev.emergencyContact.address,
-              ...ecAddrInit,
+              line1: sanitize(ecAddrInit.line1) || prev.emergencyContact.address.line1,
+              line2: sanitize(ecAddrInit.line2) || prev.emergencyContact.address.line2,
+              city: sanitize(ecAddrInit.city) || prev.emergencyContact.address.city,
+              state: sanitize(ecAddrInit.state) || prev.emergencyContact.address.state,
+              postalCode: sanitize(ecAddrInit.postalCode) || prev.emergencyContact.address.postalCode,
+              country: sanitize(ecAddrInit.country) || prev.emergencyContact.address.country,
             },
           },
         };
@@ -787,12 +818,35 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Surgery Date</label>
-                <input
-                  type="datetime-local"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.surgeryDate}
-                  onChange={(e) => handleInputChange("surgeryDate", e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    ref={surgeryDateRef}
+                    type="datetime-local"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    value={formData.surgeryDate}
+                    onChange={(e) => handleInputChange("surgeryDate", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 text-gray-600"
+                    onClick={() => {
+                      if (mode === 'edit' && formData.surgeryDate) {
+                        handleInputChange("surgeryDate", "");
+                      } else {
+                        const el = surgeryDateRef.current;
+                        try { (el as any)?.showPicker?.(); } catch {}
+                        el?.focus();
+                      }
+                    }}
+                    aria-label={mode === 'edit' && formData.surgeryDate ? 'Clear surgery date' : 'Pick surgery date'}
+                  >
+                    {mode === 'edit' && formData.surgeryDate ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      <Calendar className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

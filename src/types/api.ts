@@ -22,6 +22,8 @@ export interface Patient {
   scheme?: 'ASP' | 'NAM' | 'EHS' | 'PAID' | 'OTHERS' | string;
   roomNumber?: string;
   procedureName?: string;
+  surgeryCode?: string;
+  surgeryDate?: string | null;
   assignedDoctor?: string;
   assignedDoctorId?: string;
   isUrgent?: boolean;

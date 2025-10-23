@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { paths } from "@/app/navigation";
@@ -132,15 +133,9 @@ export function BottomActionPanel({
             <DrawerTitle className="text-base">Patient Actions</DrawerTitle>
           </DrawerHeader>
 
-          <div
-            className="flex-1 min-h-0 overflow-y-scroll px-3 pb-3 space-y-3"
-            style={{
-              WebkitOverflowScrolling: "touch" as any,
-              touchAction: "pan-y",
-              overscrollBehavior: "contain",
-              position: "relative",
-            }}
-          >
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="px-3 pb-3 space-y-3">
             {GROUPS.map(({ key, title, hue }) => {
               const items = byGroup.get(key) || [];
               if (items.length === 0) return null;
@@ -177,6 +172,8 @@ export function BottomActionPanel({
                 </section>
               );
             })}
+              </div>
+            </ScrollArea>
           </div>
         </DrawerContent>
       </Drawer>

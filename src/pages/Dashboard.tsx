@@ -11,7 +11,7 @@ import {
   TrendingUp,
   Calendar,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { paths } from "@/app/navigation";
 import api from "@/lib/api";
@@ -23,29 +23,12 @@ type StageEntry = {
   variant: "default" | "urgent" | "stable" | "caution";
 };
 
-const mockUpcomingProcedures = [
-  {
-    id: "1",
-    patient: "John Smith",
-    procedure: "Appendectomy",
-    time: "14:30",
-    surgeon: "Dr. Wilson",
-  },
-  {
-    id: "2",
-    patient: "Maria Garcia",
-    procedure: "Knee Replacement",
-    time: "16:00",
-    surgeon: "Dr. Chen",
-  },
-  {
-    id: "3",
-    patient: "David Johnson",
-    procedure: "Cardiac Stent",
-    time: "09:15",
-    surgeon: "Dr. Patel",
-  },
-];
+type UpcomingItem = {
+  id: string;
+  name: string;
+  procedure?: string;
+  when: Date;
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -55,6 +38,7 @@ export default function Dashboard() {
     urgentAlerts: 0,
   });
   const [stageHeatMap, setStageHeatMap] = useState<StageEntry[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -97,6 +81,39 @@ export default function Dashboard() {
         );
 
         setStageHeatMap(stages);
+
+        // Upcoming procedures based on surgeryDate (from today, IST)
+        const offsetMs = 330 * 60 * 1000; // IST +5:30
+        const nowMs = Date.now();
+        const ist = new Date(nowMs + offsetMs);
+        const istMidnightUtcMs = Date.UTC(
+          ist.getUTCFullYear(),
+          ist.getUTCMonth(),
+          ist.getUTCDate()
+        ) - offsetMs;
+
+        const toIstTime = (d: Date) =>
+          new Intl.DateTimeFormat("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(d);
+
+        const upcomingItems: UpcomingItem[] = patients
+          .map((p) => ({ p, sd: (p as any).surgeryDate as string | undefined }))
+          .filter((x) => x.sd)
+          .map(({ p, sd }) => ({ p, when: new Date(sd!) }))
+          .filter(({ when }) => when.getTime() >= istMidnightUtcMs)
+          .sort((a, b) => a.when.getTime() - b.when.getTime())
+          .slice(0, 10)
+          .map(({ p, when }) => ({
+            id: p.id,
+            name: p.name,
+            procedure: p.procedureName,
+            when,
+          }));
+
+        setUpcoming(upcomingItems);
       } catch (err) {
         console.error(err);
       }
@@ -192,7 +209,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* Upcoming Procedures */}
+        {/* Upcoming Procedures (IST) */}
         <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Upcoming Procedures</h3>
@@ -201,20 +218,32 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {mockUpcomingProcedures.map((procedure) => (
-              <div key={procedure.id} className="flex items-center justify-between p-3 rounded-lg border gap-4">
+            {upcoming.length === 0 && (
+              <div className="p-3 rounded border text-sm text-muted-foreground text-center">
+                No procedures scheduled from today
+              </div>
+            )}
+            {upcoming.map((it) => (
+              <button
+                key={it.id}
+                type="button"
+                onClick={() => navigate(paths.patient(it.id))}
+                className="w-full flex items-center justify-between p-3 rounded-lg border gap-4 hover:bg-muted/30 text-left"
+              >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{procedure.patient}</div>
-                  <div className="text-sm text-muted-foreground truncate">{procedure.procedure}</div>
+                  <div className="font-medium truncate">{it.name}</div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {it.procedure || '—'}
+                  </div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="flex items-center gap-1 text-sm font-medium">
                     <Calendar className="h-3 w-3" />
-                    {procedure.time}
+                    {new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour:'2-digit', minute:'2-digit' }).format(it.when)}
                   </div>
-                  <div className="text-xs text-muted-foreground">{procedure.surgeon}</div>
+                  <div className="text-xs text-muted-foreground">IST</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </Card>

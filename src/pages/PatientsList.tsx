@@ -137,6 +137,12 @@ export default function PatientsList() {
   );
   const currentDoctorId = 'doc-abc123';
 
+  // Scroll restoration between list and details
+  const SCROLL_KEY = 'patientsListScrollY';
+  const SCROLL_RESTORE_FLAG = 'patientsListRestore';
+  const [restorePending, setRestorePending] = useState<boolean>(() => sessionStorage.getItem(SCROLL_RESTORE_FLAG) === '1');
+  const savedScroll = Number(sessionStorage.getItem(SCROLL_KEY) || '0');
+
   useEffect(() => {
     api.patients
       .list()
@@ -157,6 +163,17 @@ export default function PatientsList() {
         try {
           localStorage.setItem('patientsCache', JSON.stringify({ ts: Date.now(), items: withUi }));
         } catch {}
+
+        // If user navigated back from a patient details page, restore scroll
+        if (restorePending && !Number.isNaN(savedScroll) && savedScroll > 0) {
+          // Use rAF to ensure DOM is painted
+          requestAnimationFrame(() => {
+            window.scrollTo(0, savedScroll);
+            sessionStorage.removeItem(SCROLL_KEY);
+            sessionStorage.removeItem(SCROLL_RESTORE_FLAG);
+            setRestorePending(false);
+          });
+        }
       })
       .catch((err) => console.error(err));
   }, []);
@@ -241,6 +258,15 @@ export default function PatientsList() {
 
   const filteredPatients = getFilteredPatients(activeTab);
 
+  // Navigate helper that saves scroll before moving to patient details
+  const openPatient = (id: string) => {
+    try {
+      sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0));
+      sessionStorage.setItem(SCROLL_RESTORE_FLAG, '1');
+    } catch {}
+    navigate(paths.patient(id));
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       <Header 
@@ -289,7 +315,7 @@ export default function PatientsList() {
                   <PatientCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(paths.patient(patient.id))}
+                    onClick={() => openPatient(patient.id)}
                   />
                 ))}
               </div>
@@ -299,7 +325,7 @@ export default function PatientsList() {
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(paths.patient(patient.id))}
+                    onClick={() => openPatient(patient.id)}
                   />
                 ))}
               </div>
@@ -350,7 +376,7 @@ export default function PatientsList() {
                   <PatientCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(paths.patient(patient.id))}
+                    onClick={() => openPatient(patient.id)}
                   />
                 ))}
               </div>
@@ -360,7 +386,7 @@ export default function PatientsList() {
                   <PatientGridCard
                     key={patient.id}
                     patient={patient}
-                    onClick={() => navigate(paths.patient(patient.id))}
+                    onClick={() => openPatient(patient.id)}
                   />
                 ))}
               </div>

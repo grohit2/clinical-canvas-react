@@ -94,6 +94,34 @@ const enrichPatient = (patient: Patient): Patient => {
   };
 };
 
+// Best-effort timestamp (ms) for when the patient was added
+// Priority: earliest MRN history date -> ULID timestamp order (via id lex order)
+const getPatientAddedTime = (p: Patient): number => {
+  // 1) Earliest MRN history date if present
+  const allDates = (p.mrnHistory || [])
+    .map((h) => Date.parse(h.date))
+    .filter((n) => !Number.isNaN(n));
+  if (allDates.length > 0) {
+    return Math.min(...allDates);
+  }
+  // 2) ULID ordering: lexicographic order correlates with time
+  // Using the string itself ensures newest first when using localeCompare later
+  // Convert to a pseudo-number by hashing first few chars to keep stable ordering
+  const id = (p.id || "").toString();
+  // Fallback: if id absent, return 0
+  if (!id) return 0;
+  // Take first 10 chars (time portion for ULID) and map to a numeric value
+  // Using base32-like mapping to keep rough chronological order
+  const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  let acc = 0;
+  for (let i = 0; i < Math.min(10, id.length); i++) {
+    const ch = id[i];
+    const idx = alphabet.indexOf(ch.toUpperCase());
+    acc = acc * 32 + (idx >= 0 ? idx : 0);
+  }
+  return acc;
+};
+
 export default function PatientsList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -195,16 +223,19 @@ export default function PatientsList() {
       return matchesSearch && matchesPathway && matchesStage && matchesUrgent && matchesTab;
     });
 
-    // Sort to show pinned patients at the top
+    // Sort: pinned first, then by added time (newest first)
     return filtered.sort((a, b) => {
       const aIsPinned = pinnedPatientIds.includes(a.id);
       const bIsPinned = pinnedPatientIds.includes(b.id);
-      
-      // If both are pinned or both are not pinned, maintain original order
-      if (aIsPinned === bIsPinned) return 0;
-      
-      // Pinned patients come first
-      return aIsPinned ? -1 : 1;
+      if (aIsPinned !== bIsPinned) return aIsPinned ? -1 : 1;
+
+      // Within same pin group, sort by added time desc (newest first)
+      const aAdded = getPatientAddedTime(a);
+      const bAdded = getPatientAddedTime(b);
+      if (aAdded !== bAdded) return bAdded - aAdded;
+
+      // Stable fallback: id desc (ULID chronological)
+      return b.id.localeCompare(a.id);
     });
   };
 

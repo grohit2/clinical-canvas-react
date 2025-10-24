@@ -651,7 +651,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex bg-gray-50">
       {/* Left Sidebar */}
       <div className="w-20 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen">
         <div className="p-2 flex-1">
@@ -699,7 +699,7 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
       </div>
 
       {/* Right: Main Content Area */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-28">
         <style>{`
           @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }

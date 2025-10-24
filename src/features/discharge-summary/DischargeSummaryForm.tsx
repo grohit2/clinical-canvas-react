@@ -389,7 +389,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     }
 
     return (
-      <div className="flex h-screen flex-col bg-white">
+      <div className="flex h-screen flex-col bg-white pb-16">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4 bg-white sticky top-0 z-10">
           <div className="flex items-center gap-4">
@@ -472,7 +472,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex bg-gray-50">
       {/* LEFT: skinny nav like PatientRegistrationForm */}
       <div className="w-20 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-2 overflow-y-auto flex-1">
@@ -505,7 +505,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       </div>
 
       {/* RIGHT: scrollable content area */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-28">
         <div className="max-w-xl space-y-10">
           {/* Header card (kept) */}
           <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">

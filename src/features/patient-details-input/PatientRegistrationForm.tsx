@@ -364,10 +364,10 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
 
   const handleScrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
-    if (element && scrollContainerRef.current) {
-      const offsetTop = element.offsetTop - 20;
-      scrollContainerRef.current.scrollTo({ top: offsetTop, behavior: "smooth" });
-    }
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
+    const y = rect.top + window.scrollY - 80; // account for header
+    window.scrollTo({ top: y, behavior: "smooth" });
   };
 
   const handlePopulateFromJson = (jsonString: string) => {
@@ -421,9 +421,7 @@ const PatientRegistrationForm: React.FC<PatientRegistrationFormProps> = ({ onAdd
       }));
 
       setShowJsonSection(false);
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
       alert("Form populated successfully from JSON data!");
     } catch {
       alert("Invalid JSON format. Please check your JSON and try again.");
@@ -510,9 +508,10 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
     if (next) {
       setTimeout(() => {
         const element = document.getElementById("json-import");
-        if (element && scrollContainerRef.current) {
-          const offsetTop = element.offsetTop - 20;
-          scrollContainerRef.current.scrollTo({ top: offsetTop, behavior: "smooth" });
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          const y = rect.top + window.scrollY - 80;
+          window.scrollTo({ top: y, behavior: "smooth" });
         }
       }, 80);
     }
@@ -522,13 +521,11 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
     setShowFloatingButton(validateMandatoryFields());
 
     const handleScroll = () => {
-      if (!scrollContainerRef.current) return;
-      const container = scrollContainerRef.current;
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-
-      if (scrollTop + clientHeight >= scrollHeight - 50) {
+      // If near bottom of page, set last section active
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      const viewport = window.innerHeight;
+      if (scrollTop + viewport >= docHeight - 50) {
         setActiveSection("emergency-contact");
         return;
       }
@@ -542,21 +539,24 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
       ];
 
       let currentSection = sections[0];
-      sections.forEach(sectionId => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          if (rect.top <= containerRect.top + 150) currentSection = sectionId;
-        }
-      });
+      for (const sectionId of sections) {
+        const el = document.getElementById(sectionId);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        // Mark active when section top is within 150px from top of viewport
+        if (rect.top <= 150) currentSection = sectionId;
+      }
       setActiveSection(currentSection);
     };
 
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.addEventListener("scroll", handleScroll);
-      return () => scrollContainerRef.current?.removeEventListener("scroll", handleScroll);
-    }
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    // Initialize once after mount
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
   }, [formData]);
 
   const handleSubmit = async () => {
@@ -699,8 +699,8 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
         </div>
       </div>
 
-      {/* Right: Main Content Area */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-28">
+      {/* Right: Main Content Area (use window scroll for coordination) */}
+      <div ref={scrollContainerRef} className="flex-1 p-6 pb-28">
         <style>{`
           @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }

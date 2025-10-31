@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -118,7 +118,6 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
       const payload = {
         mrn: newMrnData.mrn.trim(),
         scheme: normalizeScheme(newMrnData.scheme),
-        // Optionally: pass actorId or episode fields if needed
       };
       console.log("🚀 Sending Registration Switch Payload:", payload);
 

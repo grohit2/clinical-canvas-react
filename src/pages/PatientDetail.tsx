@@ -9,7 +9,7 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
-import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus } from "lucide-react";
+import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus, Pencil } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -33,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MrnEditor } from "@/components/patient/MrnEditor";
 
 const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
 type SchemeOption = typeof SCHEME_OPTIONS[number];
@@ -113,6 +114,7 @@ export default function PatientDetail() {
   const [showStageDialog, setShowStageDialog] = useState(false);
   const [selectedStage, setSelectedStage] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [showMrnEditor, setShowMrnEditor] = useState(false);
 
   const fetchPatientData = useCallback(async () => {
     if (!id) return;
@@ -450,14 +452,28 @@ export default function PatientDetail() {
               latestMrn={patient?.latestMrn ?? null}
               activeScheme={activeScheme}
               rightAction={
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
-                  onClick={() => id && navigate(paths.mrnAdd(id))}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add MRN
-                </button>
+                <div className="flex items-center gap-2">
+                  {id && (
+                    <button
+                      type="button"
+                      aria-label="Add MRN"
+                      title="Add MRN"
+                      className="p-2 rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50"
+                      onClick={() => navigate(paths.mrnAdd(id))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Edit MRNs"
+                    title="Edit MRNs"
+                    className="p-2 rounded-full border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                    onClick={() => setShowMrnEditor(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
               }
             >
               <div className="space-y-2">
@@ -538,6 +554,26 @@ export default function PatientDetail() {
                 )}
               </div>
             </LabsOverviewCard>
+
+            {/* Edit MRNs Dialog */}
+            <Dialog open={showMrnEditor} onOpenChange={setShowMrnEditor}>
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Edit MRNs</DialogTitle>
+                </DialogHeader>
+                {id && (
+                  <MrnEditor
+                    patientId={id}
+                    initialHistory={patient?.mrnHistory}
+                    initialLatestMrn={patient?.latestMrn}
+                    onApplied={(updated) => {
+                      setPatient(normalizePatientRecord(updated));
+                      setShowMrnEditor(false);
+                    }}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Debug Panel removed */}
 

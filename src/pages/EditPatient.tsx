@@ -12,6 +12,8 @@ export default function EditPatient() {
   const navigate = useNavigate();
   const [initial, setInitial] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mrnHistory, setMrnHistory] = useState<Patient["mrnHistory"] | undefined>(undefined);
+  const [latestMrn, setLatestMrn] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     document.title = "Edit Patient | Clinical Canvas";
@@ -23,6 +25,8 @@ export default function EditPatient() {
       try {
         const p: Patient = await api.patients.get(id);
         const toFormSex = (s?: string) => (s === "male" ? "M" : s === "female" ? "F" : "Other");
+        setMrnHistory(p.mrnHistory);
+        setLatestMrn(p.latestMrn);
         setInitial({
           name: p.name || "",
           age: p.age ? String(p.age) : "",

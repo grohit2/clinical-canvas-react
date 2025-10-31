@@ -22,11 +22,10 @@ import EditNote from "./pages/EditNote";
 import EditMedication from "./pages/EditMedication";
 import NotFound from "./pages/NotFound";
 import DocumentsPage from "./pages/DocumentsPage";
-import DocumentsRoot from "@/features/documents/pages/DocumentsRoot";
-import DocumentsFolder from "@/features/documents/pages/DocumentsFolder";
 import NoteDetail from "./pages/NoteDetail";
 import AddPatientPage from "./pages/AddPatientPage";
 import DischargeSummaryPage from "./pages/DischargeSummary";
+import AddMrn from "./pages/AddMrn";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +56,7 @@ const App = () => (
           <Route path="/patients/:id/add-task" element={<AddTask />} />
           <Route path="/patients/:id/tasks/:taskId/edit" element={<EditTask />} />
           <Route path="/patients/:id/meds/:medId/edit" element={<EditMedication />} />
+          <Route path="/patients/:id/mrn-add" element={<AddMrn />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/tasks-due" element={<TasksDue />} />
           <Route path="/urgent-alerts" element={<UrgentAlerts />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Check, Calendar, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MrnEditor } from "@/components/patient/MrnEditor";
 import api from "@/lib/api";
 import type { Patient } from "@/types/api";
 import { toCreatePayload } from "@/features/patient-details-input/patient-create.adapter";
@@ -850,31 +851,48 @@ Return exactly one JSON object matching the above keys. No extra keys, no commen
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  MRN <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  value={formData.mrn}
-                  onChange={e => handleInputChange("mrn", e.target.value)}
-                  placeholder="ABC-1234567"
-                />
+            {mode === 'edit' && patientId ? (
+              <div className="space-y-3">
+                <MrnEditor patientId={patientId} />
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                  <ButtonGroup
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "INACTIVE", label: "Inactive" },
+                    ]}
+                    value={formData.status}
+                    onChange={value => handleInputChange("status", value)}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                <ButtonGroup
-                  options={[
-                    { value: "ACTIVE", label: "Active" },
-                    { value: "INACTIVE", label: "Inactive" },
-                  ]}
-                  value={formData.status}
-                  onChange={value => handleInputChange("status", value)}
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    MRN <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    value={formData.mrn}
+                    onChange={e => handleInputChange("mrn", e.target.value)}
+                    placeholder="ABC-1234567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                  <ButtonGroup
+                    options={[
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "INACTIVE", label: "Inactive" },
+                    ]}
+                    value={formData.status}
+                    onChange={value => handleInputChange("status", value)}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

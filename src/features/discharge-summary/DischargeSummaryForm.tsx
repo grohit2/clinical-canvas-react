@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Check, Loader2, Save, Maximize2, Paperclip, X } from "lucide-react";
+import { Check, Loader2, Save, Maximize2, Paperclip, X, Download } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,11 @@ import {
   adaptSections,
   sectionHasAnyValue,
 } from "./discharge.sections";
+import {
+  buildStructuredDischargeDocxBlob,
+  safeFileName,
+} from "./export/structuredDischargeDocx";
+import { composeDocxSummaryFromSections } from "./export/sectionsToDocx";
 
 const deriveSummary = (state: SectionState) => {
   const diagnosis = state.impression?.provisionalDiagnosis?.trim() ?? "";
@@ -46,6 +51,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   const [latest, setLatest] = useState<DischargeSummaryVersion | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [savingStatus, setSavingStatus] = useState<"draft" | "published" | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [authorId, setAuthorId] = useState<string>(() => {
     if (typeof window === "undefined") return "anon";
     return localStorage.getItem("dischargeAuthorId") || "anon";
@@ -221,6 +227,83 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     },
     [applyVersion, authorId, authorName, hasContent, patientIdOrMrn, persistAuthor, sectionState, toast],
   );
+
+  const handleExportDocx = useCallback(async () => {
+    try {
+      setExporting(true);
+
+      // Fetch patient + timeline
+      const patient = await api.patients.get(patientIdOrMrn);
+      const timeline = await api.patients.timeline(patientIdOrMrn);
+
+      // Use current section state (no need to refetch latest)
+      const sectionsPayload = SECTION_DEFINITIONS.reduce<Record<string, Record<string, string>>>(
+        (acc, section) => {
+          acc[section.key] = { ...sectionState[section.key] };
+          return acc;
+        },
+        {},
+      );
+
+      const { summary: docxSummary, overrideDates } =
+        composeDocxSummaryFromSections(sectionsPayload);
+
+      // Allow doctor override from author name
+      if (!docxSummary.doctorName && authorName?.trim()) {
+        docxSummary.doctorName = authorName.trim();
+      }
+
+      // Build and download
+      const blob = await buildStructuredDischargeDocxBlob({
+        title: "DISCHARGE SUMMARY",
+        letterhead: {
+          hospitalName: "Narayana General Hospital",
+          addressLines: ["Chintareddypalem, Nellore – ph. 0861-2317963 A.P India."],
+          department: "Department of General Surgery",
+        },
+        patient: {
+          id: patient.id,
+          patientId: patient.patientId ?? patient.id,
+          name: patient.name,
+          age: patient.age,
+          sex: patient.sex,
+          latestMrn: patient.latestMrn,
+          department: patient.department,
+          roomNumber: patient.roomNumber ?? undefined,
+          assignedDoctor: patient.assignedDoctor ?? undefined,
+          surgeryDate: (patient as any).surgeryDate ?? undefined,
+          procedureName: (patient as any).procedureName ?? undefined,
+        },
+        timeline,
+        summary: docxSummary,
+        overrideDates,
+        bulletInvestigations: true,
+      });
+
+      const filename = safeFileName(
+        `Discharge_${patient.latestMrn ?? patient.id ?? patient.name ?? "Patient"}`
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Discharge summary has been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [authorName, patientIdOrMrn, sectionState, toast]);
 
   // NEW: scroll-to-section like Patient Registration
   const handleScrollToSection = useCallback((sectionId: SectionKey) => {
@@ -523,6 +606,20 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                 <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
                   {currentStatus}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportDocx}
+                  disabled={exporting || loading || !hasContent}
+                  className="gap-2"
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Export .docx
+                </Button>
               </div>
             </div>
 

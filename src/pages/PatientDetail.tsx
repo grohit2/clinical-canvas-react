@@ -28,6 +28,10 @@ import { BottomActionPanel } from "@/components/common/panels/BottomActionPanel"
 import api from "@/lib/api";
 import type { Patient, TimelineEntry, MrnHistoryEntry } from "@/types/api";
 import {
+  buildStructuredDischargeDocxBlob,
+  safeFileName,
+} from "@/features/discharge-summary/export/structuredDischargeDocx";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -208,6 +212,58 @@ export default function PatientDetail() {
     }
   };
 
+  // Compose or fetch the discharge summary payload for export.
+  // Replace this stub with your actual summary state/provider.
+  async function getDischargeSummaryForExport(_patientId: string) {
+    // TODO: integrate with your Discharge Summary editor / API.
+    // Minimal fallback to avoid breaking the menu action:
+    return {
+      diagnosis: patient?.diagnosis || undefined,
+      // Add any other fields you store (management, advice, meds, etc.)
+    } as any; // Typed as DischargeSummaryData at call-site
+  }
+
+  const handleExportDischarge = async () => {
+    if (!patient) return;
+
+    // Map your timeline shape into the lite shape expected by the builder
+    const tlLite = (timeline || []).map((t: TimelineEntry) => ({
+      state: t.state,
+      date_in: t.dateIn,
+      date_out: t.dateOut ?? undefined,
+    }));
+
+    const summary = (await getDischargeSummaryForExport(patient.id)) as any; // DischargeSummaryData
+
+    const blob = await buildStructuredDischargeDocxBlob({
+      patient: {
+        id: patient.id,
+        name: patient.name,
+        age: patient.age,
+        sex: patient.sex,
+        latestMrn: patient.latestMrn,
+        department: patient.department,
+        roomNumber: patient.roomNumber || undefined,
+        assignedDoctor: patient.assignedDoctor || undefined,
+        surgeryDate: (patient as any).surgeryDate || undefined,
+        procedureName: (patient as any).procedureName || undefined,
+      },
+      timeline: tlLite,
+      summary,
+      // Optional: bulletInvestigations: true,
+    });
+
+    const filename = safeFileName(
+      `Discharge_${patient.latestMrn ?? patient.id ?? patient.name ?? "Patient"}`
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const comorbidityTokens = useMemo(
     () =>
       (patient?.comorbidities ?? [])
@@ -279,6 +335,9 @@ export default function PatientDetail() {
                     onClick={() => navigator.clipboard.writeText(patient.latestMrn ?? '')}
                   >
                     Copy MRN
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportDischarge}>
+                    Export Discharge (.docx)
                   </DropdownMenuItem>
                   <DropdownMenuItem
                 onClick={() => id && navigate(paths.patientEdit(id))}

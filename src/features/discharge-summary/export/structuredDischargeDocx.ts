@@ -11,6 +11,7 @@ import {
   Table,
   TableCell,
   TableRow,
+  TableLayoutType,
   TextRun,
   WidthType,
 } from "docx";
@@ -87,6 +88,14 @@ export type BuildOpts = {
   letterhead?: Letterhead;
   overrideDates?: { doa?: string | null; dos?: string | null; dod?: string | null };
 };
+
+/* -------------------------- Page Geometry (iOS fix) ---------------------- */
+// Page + content geometry (inches) - fixes iOS Quick Look table rendering
+const PAGE_WIDTH_IN = 8.27;        // A4 width; use 8.5 for Letter
+const MARGIN_IN = { top: 0.75, right: 0.7, bottom: 0.75, left: 0.7 };
+const CONTENT_WIDTH_TWIP = convertInchesToTwip(
+  PAGE_WIDTH_IN - (MARGIN_IN.left + MARGIN_IN.right)
+);
 
 /* ------------------------------ Public API -------------------------------- */
 export async function buildStructuredDischargeDocxBlob({
@@ -247,10 +256,10 @@ export async function buildStructuredDischargeDocxBlob({
         properties: {
           page: {
             margin: {
-              top: convertInchesToTwip(0.75),
-              right: convertInchesToTwip(0.7),
-              bottom: convertInchesToTwip(0.75),
-              left: convertInchesToTwip(0.7),
+              top: convertInchesToTwip(MARGIN_IN.top),
+              right: convertInchesToTwip(MARGIN_IN.right),
+              bottom: convertInchesToTwip(MARGIN_IN.bottom),
+              left: convertInchesToTwip(MARGIN_IN.left),
             },
           },
         },
@@ -387,28 +396,6 @@ function sectionRule(): Paragraph {
   });
 }
 
-function kvRow(label: string, value?: string | null): TableRow {
-  return new TableRow({
-    children: [
-      new TableCell({
-        margins: { top: 80, bottom: 80, left: 80, right: 80 },
-        width: { size: 32, type: WidthType.PERCENTAGE },
-        children: [
-          new Paragraph({
-            style: "cc-kv-label",
-            children: [new TextRun({ text: label })],
-          }),
-        ],
-      }),
-      new TableCell({
-        margins: { top: 80, bottom: 80, left: 80, right: 80 },
-        width: { size: 68, type: WidthType.PERCENTAGE },
-        children: [new Paragraph({ text: value || "—" })],
-      }),
-    ],
-  });
-}
-
 function makePatientDetailsTable({
   patient,
   doa,
@@ -426,18 +413,50 @@ function makePatientDetailsTable({
   );
   const ward = compactJoin([patient.department, patient.roomNumber], " ");
 
+  // Fixed layout + absolute widths to satisfy iOS Quick Look
+  // 30% label / 70% value split (in twips)
+  const leftColTwip  = Math.floor(CONTENT_WIDTH_TWIP * 0.30);
+  const rightColTwip = CONTENT_WIDTH_TWIP - leftColTwip;
+
+  const cellMargin = { top: 80, bottom: 80, left: 140, right: 140 };
+
+  const labelCell = (label: string) =>
+    new TableCell({
+      width: { size: leftColTwip, type: WidthType.DXA },
+      children: [
+        new Paragraph({
+          style: "cc-kv-label",
+          children: [new TextRun({ text: label })],
+        }),
+      ],
+      margins: cellMargin,
+    });
+
+  const valueCell = (value?: string | null) =>
+    new TableCell({
+      width: { size: rightColTwip, type: WidthType.DXA },
+      children: [new Paragraph({ text: value || "—" })],
+      margins: cellMargin,
+    });
+
+  const row = (label: string, value?: string | null) =>
+    new TableRow({ children: [labelCell(label), valueCell(value)] });
+
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    // absolute table width + fixed layout + matching grid
+    width: { size: CONTENT_WIDTH_TWIP, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: [leftColTwip, rightColTwip],
     rows: [
-      kvRow("Name", patient.name || ""),
-      kvRow("Age / Sex", ageSex || ""),
-      kvRow("Ward", ward || ""),
-      kvRow("RegNo", patient.latestMrn || ""),
-      kvRow("IP NO", patient.id || patient.patientId || ""),
-      kvRow("Doctor Name", patient.assignedDoctor || ""),
-      kvRow("DOA", fmtDate(doa)),
-      kvRow("DOS", fmtDate(dos)),
-      kvRow("DOD", fmtDate(dod)),
+      row("Name", patient.name || ""),
+      row("Age / Sex", ageSex || ""),
+      row("Ward", ward || ""),
+      row("RegNo", patient.latestMrn || ""),
+      row("IP NO", patient.id || patient.patientId || ""),
+      row("Doctor Name", patient.assignedDoctor || ""),
+      row("DOA", fmtDate(doa)),
+      row("DOS", fmtDate(dos)),
+      row("DOD", fmtDate(dod)),
     ],
   });
 }

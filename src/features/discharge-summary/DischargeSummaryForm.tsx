@@ -606,20 +606,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                 <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
                   {currentStatus}
                 </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleExportDocx}
-                  disabled={exporting || loading || !hasContent}
-                  className="gap-2"
-                >
-                  {exporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Export .docx
-                </Button>
               </div>
             </div>
 
@@ -673,15 +659,15 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
         <Button
           size="icon"
           variant="outline"
-          disabled={!hasContent || isSaving}
-          onClick={() => handleSave("draft")}
+          disabled={exporting || loading || !hasContent}
+          onClick={handleExportDocx}
           className="shadow-lg h-10 w-10"
-          title="Save draft"
+          title="Export .docx"
         >
-          {isSaving && savingStatus === "draft" ? (
+          {exporting ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <Save className="h-5 w-5" />
+            <Download className="h-5 w-5" />
           )}
         </Button>
         <Button

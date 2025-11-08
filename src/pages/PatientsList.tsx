@@ -14,6 +14,7 @@ import type { Patient, MrnHistoryEntry } from "@/types/api";
 import { paths } from "@/app/navigation";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPinnedPatients } from "@/lib/pinnedPatients";
+import { Plus } from "lucide-react";
 
 // Initial empty list; will be populated from API
 let mockPatients: Patient[] = [];
@@ -269,13 +270,11 @@ export default function PatientsList() {
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header 
-        title="Patients" 
+      <Header
+        title="Patients"
         showSearch
-        showAdd
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onAdd={() => navigate(paths.patientsAdd())}
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
       />
@@ -421,10 +420,19 @@ export default function PatientsList() {
       </div>
 
 
-      <NotificationsPopup 
+      <NotificationsPopup
         open={showNotifications}
         onOpenChange={setShowNotifications}
       />
+
+      {/* Floating Action Button */}
+      <Button
+        onClick={() => navigate(paths.patientsAdd())}
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
 
       <BottomBar />
     </div>

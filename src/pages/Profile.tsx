@@ -13,11 +13,11 @@ import { useState } from "react";
 
 const mockUser = {
   id: 'user123',
-  name: 'Dr. Sarah Wilson',
+  name: 'Dr. Kamalika',
   role: 'doctor',
   department: 'Cardiothoracic Surgery',
   email: 'sarah.wilson@hospital.com',
-  phone: '+1-555-0789',
+  phone: '',
   shift: 'Day Shift (7AM - 7PM)',
   permissions: ['prescribe', 'approve', 'admin', 'surgery'],
   stats: {
@@ -79,7 +79,7 @@ const mockUser = {
   ],
   // Extended profile data
   personalInfo: {
-    fullName: 'Dr. Sarah Wilson',
+    fullName: 'Dr. Kamalika',
     gender: 'Female',
     dateOfBirth: new Date('1985-03-15'),
     profilePicture: null,
@@ -332,14 +332,6 @@ export default function Profile() {
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3 min-h-[48px]">
-                <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Phone Number</span>
-                <div className="flex items-center gap-3 flex-1 justify-end">
-                  <span className="font-medium text-right">{doctor.phone}</span>
-                  <Edit2 className="h-4 w-4 text-muted-foreground cursor-pointer flex-shrink-0" />
-                </div>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3 min-h-[48px]">
                 <span className="text-muted-foreground flex-shrink-0 w-32 sm:w-40">Date of Birth</span>
                 <div className="flex items-center gap-3 flex-1 justify-end">
                   <span className="font-medium text-right">{doctor.personalInfo?.dateOfBirth ? new Date(doctor.personalInfo.dateOfBirth).toLocaleDateString() : '—'}</span>
@@ -539,14 +531,6 @@ export default function Profile() {
               <div>
                 <div className="font-medium">{doctor.email}</div>
                 <div className="text-sm text-muted-foreground">Primary Email</div>
-              </div>
-            </div>
-            <Separator />
-            <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{doctor.phone}</div>
-                <div className="text-sm text-muted-foreground">Contact Number</div>
               </div>
             </div>
             <Separator />

@@ -1,7 +1,8 @@
-import { ArrowLeft, Search, Plus, Bell } from "lucide-react";
+import { ArrowLeft, Search, Plus, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   title: string;
@@ -40,6 +41,8 @@ export function Header({
   showBell = true,
   className = "",
 }: HeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <header className={`h-14 border-b bg-card flex items-center justify-between px-4 ${className}`}>
       <div className="flex items-center gap-3 min-w-0">
@@ -86,6 +89,10 @@ export function Header({
             )}
           </div>
         )}
+
+        <Button variant="ghost" size="sm" onClick={() => navigate("/profile")} aria-label="Profile">
+          <User className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );

@@ -26,6 +26,7 @@ import NoteDetail from "./pages/NoteDetail";
 import AddPatientPage from "./pages/AddPatientPage";
 import DischargeSummaryPage from "./pages/DischargeSummary";
 import AddMrn from "./pages/AddMrn";
+import Referrals from "./pages/Referrals";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
           <Route path="/urgent-alerts" element={<UrgentAlerts />} />
           <Route path="/completed-today" element={<CompletedToday />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/referrals" element={<Referrals />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

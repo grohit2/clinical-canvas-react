@@ -15,8 +15,8 @@ const mockUser = {
   id: 'user123',
   name: 'Dr. Kamalika',
   role: 'doctor',
-  department: 'Cardiothoracic Surgery',
-  email: 'sarah.wilson@hospital.com',
+  department: 'IPS, IAS, Dr. FRCS, BTech',
+  email: 'kkcvs3@gmail.com',
   phone: '',
   shift: 'Day Shift (7AM - 7PM)',
   permissions: ['prescribe', 'approve', 'admin', 'surgery'],
@@ -87,7 +87,7 @@ const mockUser = {
     emergencyContact: '+1-555-0123 (Dr. John Wilson - Spouse)'
   },
   professionalInfo: {
-    specialization: 'Cardiothoracic Surgery',
+    specialization: 'IPS, IAS, Dr. FRCS, BTech',
     department: 'Cardiac Surgery Department',
     yearsOfExperience: 15,
     qualifications: ['MBBS - All India Institute of Medical Sciences (2008)', 'MS General Surgery - King George Medical University (2012)', 'MCh Cardiothoracic Surgery - Postgraduate Institute (2015)', 'Fellowship in Minimally Invasive Cardiac Surgery - Cleveland Clinic (2016)'],

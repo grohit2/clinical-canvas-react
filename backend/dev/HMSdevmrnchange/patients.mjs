@@ -52,6 +52,7 @@ const EPISODE_UPDATABLE = new Set([
 const toUiPatient = (it = {}) => ({
   id: it.patient_uid,
   patientId: it.patient_uid,
+  govShare: !!it.gov_share,
   mrn: it.active_reg_mrn || null,
   scheme: it.active_scheme || null,
   latestMrn: it.active_reg_mrn || null,

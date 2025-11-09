@@ -10,6 +10,7 @@ export interface Patient {
   id: string; // uid (ULID)
   latestMrn?: string;
   mrnHistory?: MrnHistoryEntry[];
+  govShare?: boolean;
   name: string;
   department: string;
   status: 'ACTIVE' | 'INACTIVE';

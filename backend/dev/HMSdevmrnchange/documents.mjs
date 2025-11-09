@@ -229,4 +229,46 @@ export function mountDocumentRoutes(router, ctx) {
       throw e;
     }
   });
+
+  // PATCH /patients/:id/documents/gov-share   body: { share: boolean }
+  router.add("PATCH", /^\/?patients\/([^/]+)\/documents\/gov-share\/?$/, async ({ match, event }) => {
+    const rawId = decodeURIComponent(match[1]);
+    const body = parseBody(event) || {};
+    const share = !!body.share;
+
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
+    const now = nowISO();
+
+    // Ensure DOCS row exists, then set gov_share there
+    let docs = await getDocsItem(ddb, TABLE, uid);
+    if (!docs) {
+      docs = emptyDocsItem(uid, now);
+      await ddb.send(new PutCommand({
+        TableName: TABLE,
+        Item: docs,
+        ConditionExpression: "attribute_not_exists(PK)",
+      }));
+    }
+
+    // Update DOCS#PROFILE.gov_share
+    await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { PK: `PATIENT#${uid}`, SK: "DOCS#PROFILE" },
+      UpdateExpression: "SET gov_share = :b, updated_at = :now",
+      ExpressionAttributeValues: { ":b": share, ":now": now },
+    }));
+
+    // Mirror to META so dept list can return it
+    await ddb.send(new UpdateCommand({
+      TableName: TABLE,
+      Key: { PK: `PATIENT#${uid}`, SK: "META_LATEST" },
+      UpdateExpression: "SET gov_share = :b, last_updated = :now, updated_at = :now",
+      ExpressionAttributeValues: { ":b": share, ":now": now },
+    }));
+
+    return resp(200, { message: "gov-share-updated", shared: share });
+  });
 }

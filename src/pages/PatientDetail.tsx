@@ -9,7 +9,7 @@ import { PatientNotes } from "@/components/patient/PatientNotes";
 import { PatientMeds } from "@/components/patient/PatientMeds";
 import { Timeline } from "@/components/patient/Timeline";
 import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
-import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus, Pencil } from "lucide-react";
+import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus, Pencil, Share2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MrnEditor } from "@/components/patient/MrnEditor";
+import { Switch } from "@/components/ui/switch";
 
 const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;
 type SchemeOption = typeof SCHEME_OPTIONS[number];
@@ -119,6 +120,7 @@ export default function PatientDetail() {
   const [selectedStage, setSelectedStage] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
   const [showMrnEditor, setShowMrnEditor] = useState(false);
+  const [isTogglingGovShare, setIsTogglingGovShare] = useState(false);
 
   const fetchPatientData = useCallback(async () => {
     if (!id) return;
@@ -638,6 +640,38 @@ export default function PatientDetail() {
 
             {/* Documents Section */}
             <div>
+              {/* Govt Share toggle */}
+              <div className="mb-2 p-3 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">Govt Share</div>
+                  <div className="text-xs text-muted-foreground">Allow read-only access for government</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground select-none">
+                    {patient.govShare ? "On" : "Off"}
+                  </span>
+                  <Switch
+                    checked={!!patient.govShare}
+                    disabled={isTogglingGovShare || !id}
+                    onCheckedChange={async (checked) => {
+                      if (!id) return;
+                      try {
+                        setIsTogglingGovShare(true);
+                        await api.patients.setGovShare(id, checked);
+                        setPatient({ ...patient, govShare: checked });
+                        toast(checked ? "Govt share enabled" : "Govt share disabled");
+                      } catch (e) {
+                        console.error("Failed to toggle gov share", e);
+                        toast("Failed to update Govt Share");
+                      } finally {
+                        setIsTogglingGovShare(false);
+                      }
+                    }}
+                    aria-label="Toggle government share"
+                  />
+                </div>
+              </div>
+
               <div 
                 className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => id && navigate(paths.docsRoot(id))}

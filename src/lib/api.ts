@@ -185,6 +185,11 @@ export const api = {
       request<{ patient: Patient }>(`/patients/${uid}`, {
         method: 'DELETE',
       }),
+    setGovShare: (uid: string, share: boolean) =>
+      request<{ message: string; shared: boolean }>(`/patients/${uid}/documents/gov-share`, {
+        method: 'PATCH',
+        body: JSON.stringify({ share }),
+      }),
   },
   tasks: {
     list: (uid: string, status?: string, limit?: number) => {

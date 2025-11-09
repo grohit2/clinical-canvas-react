@@ -13,6 +13,18 @@ import {
 import DocumentGrid from "../components/DocumentGrid";
 import PhotoUploader from "../components/PhotoUploader";
 import CategorySelector from "../components/CategorySelector";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Camera,
   FileText,
@@ -144,6 +156,10 @@ export default function DocumentsPage() {
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [selectedUploadCategory, setSelectedUploadCategory] = useState<DocumentsCategory | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // No filters/sorting/upload controls in the simplified view
 
   async function refresh() {
@@ -201,6 +217,65 @@ export default function DocumentsPage() {
   const isInCategoryView = uid && isValidCategory(categoryParam) && docs;
   const currentCategory = categoryParam as DocumentsCategory;
   const categoryDocuments = isInCategoryView ? getCategoryDocuments(docs, currentCategory) : [];
+
+  function toggleSelect(key: string) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedKeys(new Set(categoryDocuments.map((d, i) => `${d.key}|${i}`)));
+  }
+
+  function clearSelection() {
+    setSelectedKeys(new Set());
+  }
+
+  async function deleteSelected() {
+    if (!uid || !currentCategory || selectedKeys.size === 0) return;
+    setDeleting(true);
+    try {
+      const { detachDocument } = await import("../lib/filesApi");
+      const keys = Array.from(new Set(Array.from(selectedKeys).map((id) => id.split('|')[0])));
+      let failed = 0;
+      for (const k of keys) {
+        let ok = false;
+        for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+          try {
+            await detachDocument(uid, { category: currentCategory, key: k });
+            ok = true;
+          } catch (err: any) {
+            const status = err?.status || 0;
+            const msg = err?.body?.error || err?.message || "";
+            const is409 = status === 409 || String(msg).includes("retry detach");
+            if (!is409 || attempt === 2) {
+              failed++;
+              break;
+            }
+            // quick retry on 409 with a micro-wait
+            await new Promise((r) => setTimeout(r, 100));
+          }
+        }
+      }
+      const { toast } = await import("@/components/ui/sonner");
+      if (failed === 0) toast(`${keys.length} ${keys.length === 1 ? "image" : "images"} deleted`);
+      else if (failed === keys.length) toast("Failed to delete selected images");
+      else toast(`Deleted ${keys.length - failed}, failed ${failed}`);
+      clearSelection();
+      setSelectionMode(false);
+      await refresh();
+    } catch (e) {
+      console.error("bulk delete failed", e);
+      const { toast } = await import("@/components/ui/sonner");
+      toast("Failed to delete selected images");
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteOpen(false);
+    }
+  }
 
   // Keyboard navigation for lightbox
   React.useEffect(() => {
@@ -374,11 +449,48 @@ export default function DocumentsPage() {
                   {categoryDocuments.length} {categoryDocuments.length === 1 ? 'document' : 'documents'}
                 </p>
               </div>
-              <PhotoUploader
-                patientId={uid}
-                category={currentCategory}
-                onUploadComplete={() => refresh()}
-              />
+              <div className="flex items-center gap-2">
+                {selectionMode ? (
+                  <>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={selectedKeys.size === 0}
+                      onClick={() => setConfirmDeleteOpen(true)}
+                    >
+                      Delete ({selectedKeys.size})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedKeys.size === categoryDocuments.length) clearSelection();
+                        else selectAll();
+                      }}
+                    >
+                      {selectedKeys.size === categoryDocuments.length ? "Clear" : "Select All"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setSelectionMode(false); clearSelection(); }}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>
+                      Select
+                    </Button>
+                    <PhotoUploader
+                      patientId={uid}
+                      category={currentCategory}
+                      onUploadComplete={() => refresh()}
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Gallery Grid */}
@@ -386,9 +498,12 @@ export default function DocumentsPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {categoryDocuments.map((doc, index) => (
                   <div 
-                    key={doc.key} 
-                    className="relative group aspect-square bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200"
-                    onClick={() => doc.cdnUrl && setLightboxIndex(index)}
+                    key={`${doc.key}|${index}`}
+                    className={`relative group aspect-square bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all duration-200 ${selectedKeys.has(`${doc.key}|${index}`) ? 'ring-2 ring-blue-500' : ''}`}
+                    onClick={(e) => {
+                      if (selectionMode) { e.stopPropagation(); toggleSelect(`${doc.key}|${index}`); }
+                      else { doc.cdnUrl && setLightboxIndex(index); }
+                    }}
                   >
                     {doc.cdnUrl ? (
                       <>
@@ -417,6 +532,19 @@ export default function DocumentsPage() {
                             }
                           }}
                         />
+                        {selectionMode && (
+                          <div
+                            className="absolute top-2 left-2 z-20 bg-white/90 rounded-md p-1 shadow"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={selectedKeys.has(`${doc.key}|${index}`)}
+                              onCheckedChange={() => toggleSelect(`${doc.key}|${index}`)}
+                              aria-label="Select image"
+                            />
+                          </div>
+                        )}
                         
                         {/* Overlay with image info */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-end">
@@ -430,34 +558,23 @@ export default function DocumentsPage() {
                           </div>
                         </div>
 
-                        {/* Delete button */}
-                        <button
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                          title="Remove image"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Use the detach function from DocumentGrid
-                            const detachFunction = async () => {
-                              try {
-                                const { detachDocument } = await import("../lib/filesApi");
-                                const patientId = doc.key.split('/')[1];
-                                await detachDocument(patientId, { category: currentCategory, key: doc.key });
-                                refresh();
-                                const { toast } = await import("@/components/ui/sonner");
-                                toast("Image removed");
-                              } catch (error) {
-                                console.error("Remove failed", error);
-                                const { toast } = await import("@/components/ui/sonner");
-                                toast("Failed to remove image");
-                              }
-                            };
-                            detachFunction();
-                          }}
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
+                        {/* Delete button (single) */}
+                        {!selectionMode && (
+                          <button
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                            title="Remove image"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedKeys(new Set([`${doc.key}|${index}`]));
+                              setSelectionMode(true);
+                              setConfirmDeleteOpen(true);
+                            }}
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        )}
                       </>
                     ) : (
                       <div className="flex items-center justify-center h-full bg-gray-100 text-sm text-gray-500">
@@ -494,6 +611,24 @@ export default function DocumentsPage() {
       </main>
 
       <BottomBar />
+
+      {/* Confirm delete dialog */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected {selectedKeys.size === 1 ? 'image' : 'images'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. {selectedKeys.size} {selectedKeys.size === 1 ? 'item' : 'items'} will be permanently removed from this folder.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteSelected} disabled={deleting || selectedKeys.size === 0}>
+              {deleting ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Lightbox overlay */}
       {isInCategoryView && lightboxIndex !== null && categoryDocuments[lightboxIndex] && (

@@ -41,7 +41,13 @@
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws s3api head-object --bucket hms-patient-files-hyd-dev-058264275581 --key \"patients/01K41Z5WVY5JB61WZGNBSB5CBH/optimized/docs/preop/1756848652821-adff2d89-0914-4785-a2e4-950c03396f6e-q80-1600w.webp\")",
       "Bash(docker:*)",
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws cloudformation describe-stacks --stack-name hms-hyd-dev --query 'Stacks[0].{StackName:StackName,Environment:Parameters}' --output table)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws cloudformation describe-stacks:*)",
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws lambda:*)",
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws dynamodb query:*)",
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws dynamodb:*)",
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws cloudfront:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

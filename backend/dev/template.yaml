@@ -231,8 +231,8 @@ Resources:
     Condition: EnableS3Events
     Properties:
       FunctionName: !Sub "HMS-s3-events-${StackEnvironment}"
-      CodeUri: s3_events/
-      Handler: index.handler
+      CodeUri: HMSdevmrnchange/
+      Handler: s3_events.handler
       Runtime: nodejs22.x
       MemorySize: 128
       Timeout: 60
@@ -274,21 +274,6 @@ Resources:
       SourceAccount: !Ref AWS::AccountId
       SourceArn: !Sub "arn:aws:s3:::${PatientFilesBucket}"
 
-  # # S3 Bucket notification configuration (separate resource to avoid circular dependencies)
-  # S3BucketNotification:
-  #   Type: AWS::S3::BucketNotification
-  #   Condition: EnableS3Events
-  #   DependsOn: S3EventsPermission
-  #   Properties:
-  #     Bucket: !Ref PatientFilesBucket
-  #     LambdaConfigurations:
-  #       - Event: s3:ObjectCreated:*
-  #         Function: !GetAtt S3EventsFunction.Arn
-  #         Filter:
-  #           S3Key:
-  #             Rules:
-  #               - Name: prefix
-  #                 Value: patients/
 
 Conditions:
   EnableS3Events: !Equals [!Ref EnableS3EventIngest, "true"]

@@ -4,7 +4,6 @@ import { processImageFile } from "../lib/image";
 import { putToS3Presigned } from "../lib/s3upload";
 import {
   presignUpload,
-  attachDocument,
   attachNoteFile,
   attachMedFile,
   attachTaskFile,
@@ -13,6 +12,7 @@ import {
   DocumentsCategory,
   HttpError,
 } from "../lib/filesApi";
+import { waitForS3EventMaterialization } from "../lib/docsWaitForEvent";
 import { toast } from "@/components/ui/sonner";
 
 type ContextDoc = { kind: "doc"; docType: DocType; category: DocumentsCategory; label?: string };
@@ -67,31 +67,11 @@ export function useUploader(patientId: string, currentUserId?: string) {
         }
 
         if (ctx.kind === "doc") {
-          try {
-            await attachDocument(patientId, {
-              category: ctx.category,
-              key: pre.key,
-              uploadedBy: currentUserId,
-              mimeType: processed.type,
-              size: processed.size,
-            });
-          } catch (e: unknown) {
-            const he = e as HttpError;
-            const msg = String(he?.message || "");
-            if (he?.status === 409 || msg.includes("409") || msg.toLowerCase().includes("conflict")) {
-              // simple backoff then retry once
-              toast("Attach conflict — retrying");
-              await new Promise((r) => setTimeout(r, 250));
-              await attachDocument(patientId, {
-                category: ctx.category,
-                key: pre.key,
-                uploadedBy: currentUserId,
-                mimeType: processed.type,
-                size: processed.size,
-              });
-            } else {
-              throw e;
-            }
+          // S3 event will auto-attach via Lambda - poll until materialized
+          const ok = await waitForS3EventMaterialization(patientId, ctx.category, pre.key);
+          if (!ok) {
+            // Not an error; the event can be slightly delayed. Caller will refresh.
+            console.warn("S3 event not materialized within timeout, proceeding anyway");
           }
         } else if (ctx.kind === "note") {
           await attachNoteFile(patientId, ctx.refId, pre.key);

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
 import { Camera, Upload, X } from "lucide-react";
-import { 
-  presignUpload, 
-  attachDocument, 
-  DocumentsCategory, 
+import {
+  presignUpload,
+  DocumentsCategory,
   PresignUploadRequest,
 } from "../lib/filesApi";
+import { waitForS3EventMaterialization } from "../lib/docsWaitForEvent";
 import { toast } from "@/components/ui/sonner";
 
 type Props = {
@@ -104,20 +104,15 @@ export const PhotoUploader: React.FC<Props> = ({
       }
 
       console.log('✅ File uploaded to S3');
-      setUploadProgress(75);
+      setUploadProgress(90);
 
-      // Step 3: Attach document to patient record
-      console.log('🔄 Attaching document...');
-      const attachResponse = await attachDocument(patientId, {
-        category,
-        key: presignResponse.key,
-        uploadedBy: "user", // You might want to get actual user info
-        caption: uploadRequest.label,
-        mimeType: file.type,
-        size: file.size,
-      });
+      // S3 event will auto-attach via Lambda - poll until materialized
+      console.log('⏳ Waiting for S3 event processing...');
+      const ok = await waitForS3EventMaterialization(patientId, category, presignResponse.key);
+      if (!ok) {
+        console.warn('S3 event not materialized within timeout, proceeding anyway');
+      }
 
-      console.log('✅ Document attached successfully');
       setUploadProgress(100);
 
       toast(`Successfully uploaded ${file.name}`);

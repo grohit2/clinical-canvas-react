@@ -85,9 +85,11 @@ export const handler = async (event = {}) => {
 
       // HeadObject to pull metadata
       let meta = {};
+      let contentType = null;
       try {
         const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
         meta = head?.Metadata || {};
+        contentType = head?.ContentType || null;
       } catch (e) {
         console.warn("headobject failed", key, e?.name || e);
       }
@@ -107,24 +109,38 @@ export const handler = async (event = {}) => {
         uploadedAt: now,
         uploadedBy: meta?.uploadedby || null,
         caption: meta?.label || null,
-        mimeType: meta?.["content-type"] || null,
+        mimeType: contentType,
         size: rec?.s3?.object?.size || null,
         mrn: meta?.mrn || null,
         scheme: meta?.scheme || null,
       };
 
-      const list = Array.isArray(docs[cat]) ? [...docs[cat]] : [];
-      if (!list.find((e) => e.key === entry.key)) list.push(entry);
-
-      await ddb.send(
-        new UpdateCommand({
-          TableName: TABLE,
-          Key: { PK: `PATIENT#${uid}`, SK: DOC_SK },
-          UpdateExpression: "SET #cat = :list, updated_at = :now",
-          ExpressionAttributeNames: { "#cat": cat },
-          ExpressionAttributeValues: { ":list": list, ":now": now },
-        })
-      );
+      // Race-safe, idempotent write
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt === 1) {
+          docs = await getDocsItem(uid);
+          if (!docs) {
+            docs = emptyDocsItem(uid, now);
+            await ddb.send(new PutCommand({ TableName: TABLE, Item: docs }));
+          }
+        }
+        const list = Array.isArray(docs[cat]) ? [...docs[cat]] : [];
+        if (!list.find(e => e.key === entry.key)) list.push(entry);
+        try {
+          await ddb.send(new UpdateCommand({
+            TableName: TABLE,
+            Key: { PK: `PATIENT#${uid}`, SK: DOC_SK },
+            ConditionExpression: "updated_at = :prev OR attribute_not_exists(updated_at)",
+            UpdateExpression: "SET #cat = :list, updated_at = :now",
+            ExpressionAttributeNames: { "#cat": cat },
+            ExpressionAttributeValues: { ":list": list, ":now": now, ":prev": docs.updated_at || "" },
+          }));
+          break;
+        } catch (e) {
+          if (e?.name === "ConditionalCheckFailedException") continue;
+          throw e;
+        }
+      }
     } catch (e) {
       console.error("s3_events error", e);
       // don't crash entire batch, just log

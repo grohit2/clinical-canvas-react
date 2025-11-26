@@ -20,7 +20,13 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     resolve: {
-      alias: { "@": path.resolve(__dirname, "./src") },
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+        "@app": path.resolve(__dirname, "./src/app"),
+        "@shared": path.resolve(__dirname, "./src/shared"),
+        "@entities": path.resolve(__dirname, "./src/entities"),
+        "@features": path.resolve(__dirname, "./src/features"),
+      },
     },
     test: {
       environment: "jsdom",

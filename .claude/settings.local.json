@@ -48,7 +48,8 @@
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws dynamodb:*)",
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws cloudfront:*)",
       "Bash(cat:*)",
-      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws logs tail:*)"
+      "Bash(AWS_DEFAULT_REGION=ap-south-1 aws logs tail:*)",
+      "Bash(npx vitest:*)"
     ],
     "deny": []
   }

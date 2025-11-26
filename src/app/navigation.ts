@@ -21,6 +21,8 @@ export const paths = {
   // Patient overview
   patient: (id: PatientId) => `/patients/${id}`,
   patientEdit: (id: PatientId) => `/patients/${id}/edit`,
+  patientDocs: (id: PatientId) => `/patients/${id}/docs`,
+  patientDocsCategory: (id: PatientId, category: DocumentCategory) => `/patients/${id}/docs/${category}`,
 
   // Notes
   addNote: (id: PatientId) => `/patients/${id}/add-note`,
@@ -41,6 +43,13 @@ export const paths = {
 
   // Discharge
   dischargeSummary: (id: PatientId) => `/patients/${id}/discharge-summary`,
+
+  // Workflow stages
+  patientAdmission: (id: PatientId) => `/patients/${id}/admission`,
+  patientPreOp: (id: PatientId) => `/patients/${id}/pre-op`,
+  patientOt: (id: PatientId) => `/patients/${id}/ot`,
+  patientPostOp: (id: PatientId) => `/patients/${id}/post-op`,
+  patientDischarge: (id: PatientId) => `/patients/${id}/discharge`,
 
   // MRN
   mrnAdd: (id: PatientId) => `/patients/${id}/mrn-add`,

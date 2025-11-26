@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+playwright-report
+test-results
+blob-report
 
 # AWS SAM build artifacts
 .aws-sam/
@@ -26,3 +29,6 @@ samconfig.toml
 *.njsproj
 *.sln
 *.sw?
+
+# Backup folder (legacy code)
+backup/

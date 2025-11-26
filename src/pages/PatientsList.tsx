@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
-import { PatientCard } from "@/components/patient/PatientCard";
-import { PatientGridCard } from "@/components/patient/PatientGridCard";
-import { ViewToggle } from "@/components/patient/ViewToggle";
-import { FilterPopup } from "@/components/patient/FilterPopup";
+import { PatientCard, PatientGridCard } from "@entities/patient/ui";
+import { ViewToggle, FilterPopup } from "@entities/patient/ui/patient";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

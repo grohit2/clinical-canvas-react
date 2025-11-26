@@ -4,11 +4,15 @@ import { BottomBar } from "@/components/layout/BottomBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PatientTasks } from "@/components/patient/PatientTasks";
-import { PatientNotes } from "@/components/patient/PatientNotes";
-import { PatientMeds } from "@/components/patient/PatientMeds";
-import { Timeline } from "@/components/patient/Timeline";
-import { LabsOverviewCard } from "@/components/patient/LabsOverviewCard";
+import {
+  PatientTasks,
+  PatientNotes,
+  PatientMeds,
+  Timeline,
+  LabsOverviewCard,
+  MrnEditor,
+  ArcSpeedDial,
+} from "@entities/patient/ui";
 import { MoreVertical, ChevronDown, FolderOpen, Copy, Plus, Pencil, Share2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import {
@@ -22,7 +26,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { ArcSpeedDial } from "@/components/patient/ArcSpeedDial";
 import { paths } from "@/app/navigation";
 import { BottomActionPanel } from "@/components/common/panels/BottomActionPanel";
 import api from "@/lib/api";
@@ -37,7 +40,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MrnEditor } from "@/components/patient/MrnEditor";
 import { Switch } from "@/components/ui/switch";
 
 const SCHEME_OPTIONS = ['ASP', 'NAM', 'EHS', 'PAID', 'OTHERS'] as const;

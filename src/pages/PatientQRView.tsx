@@ -3,8 +3,7 @@ import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { StageChip } from '@/components/patient/StageChip';
-import { UpdateRing } from '@/components/patient/UpdateRing';
+import { StageChip, UpdateRing } from '@entities/patient/ui';
 import { Clock, MapPin, User, Activity, ClipboardList } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 

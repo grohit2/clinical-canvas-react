@@ -33,7 +33,7 @@ import type { Patient, TimelineEntry, MrnHistoryEntry } from "@/types/api";
 import {
   buildStructuredDischargeDocxBlob,
   safeFileName,
-} from "@/features/discharge-summary/export/structuredDischargeDocx";
+} from "@features/patient-discharge-summary/export/structuredDischargeDocx";
 import {
   DropdownMenu,
   DropdownMenuContent,

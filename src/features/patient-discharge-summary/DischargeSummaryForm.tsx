@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Check, Loader2, Save, Maximize2, Paperclip, X, Download } from "lucide-react";
+import { Check, Loader2, Save, Maximize2, Paperclip, X, Download, Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
-import type { DischargeSummaryVersion } from "@/types/api";
+import type { DischargeSummaryVersion, Patient } from "@/types/api";
 import {
   SECTION_DEFINITIONS,
   type SectionFieldDefinition,
-  type SectionDefinition,
-  type FieldType,
   type SectionKey,
   type SectionState,
   buildEmptySectionState,
   adaptSections,
   sectionHasAnyValue,
+  getAutoFillMappings,
 } from "./discharge.sections";
 import {
   buildStructuredDischargeDocxBlob,
@@ -26,8 +25,8 @@ import {
 import { composeDocxSummaryFromSections } from "./export/sectionsToDocx";
 
 const deriveSummary = (state: SectionState) => {
-  const diagnosis = state.impression?.provisionalDiagnosis?.trim() ?? "";
-  const dod = state.administrative?.dod?.trim() ?? "";
+  const diagnosis = state.clinicalInfo?.finalDiagnosis?.trim() ?? "";
+  const dod = state.administrativeDates?.dod?.trim() ?? "";
   if (!diagnosis && !dod) return undefined;
   return {
     diagnosis: diagnosis || undefined,
@@ -52,6 +51,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   const [loading, setLoading] = useState<boolean>(false);
   const [savingStatus, setSavingStatus] = useState<"draft" | "published" | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [authorId, setAuthorId] = useState<string>(() => {
     if (typeof window === "undefined") return "anon";
     return localStorage.getItem("dischargeAuthorId") || "anon";
@@ -61,11 +61,11 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     return localStorage.getItem("dischargeAuthorName") || "";
   });
 
-  // NEW: right panel scroll container ref (mirrors Patient Registration)
+  // Scroll container ref
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Track focused field for small expansion
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  // Track which field is being edited
+  const [editingField, setEditingField] = useState<string | null>(null);
   // Track full-screen editor
   const [fullScreenField, setFullScreenField] = useState<string | null>(null);
 
@@ -75,7 +75,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     );
   }, [sectionState]);
 
-  // NEW: section completion check for left ticks
   const getSectionCompletionStatus = useCallback(
     (key: SectionKey) => sectionHasAnyValue(sectionState, key),
     [sectionState],
@@ -103,6 +102,24 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     }
   }, []);
 
+  // Load patient data
+  useEffect(() => {
+    let cancelled = false;
+    const loadPatient = async () => {
+      try {
+        const p = await api.patients.get(patientIdOrMrn);
+        if (!cancelled && p) {
+          setPatient(p);
+        }
+      } catch {
+        // Silent failure for patient load
+      }
+    };
+    loadPatient();
+    return () => { cancelled = true; };
+  }, [patientIdOrMrn]);
+
+  // Load discharge summary
   useEffect(() => {
     let cancelled = false;
     const loadLatest = async () => {
@@ -127,40 +144,36 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       }
     };
     loadLatest();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [applyVersion, patientIdOrMrn, toast]);
 
-  // Prefill from patient META if no prior discharge exists (or if key fields are blank)
+  // Auto-fill from patient data
   useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (latest) return; // a version already hydrated
-      try {
-        const patient = await api.patients.get(patientIdOrMrn); // accepts UID or MRN
-        if (cancelled || !patient) return;
-        setSectionState((prev) => {
-          const next = { ...prev };
-          // Administrative → IP number
-          if (!next.administrative.ipNumber?.trim()) {
-            next.administrative.ipNumber = patient.mrn || patient.latestMrn || "";
+    if (!patient) return;
+
+    const mappings = getAutoFillMappings();
+    setSectionState((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const { section, field, patientKey } of mappings) {
+        // Only auto-fill if the field is empty
+        if (!next[section][field]?.trim()) {
+          const value = (patient as Record<string, unknown>)[patientKey];
+          if (value !== undefined && value !== null) {
+            const stringValue = typeof value === "number" ? String(value) :
+                               typeof value === "string" ? value : "";
+            if (stringValue) {
+              next[section] = { ...next[section], [field]: stringValue };
+              changed = true;
+            }
           }
-          // Impression → provisional diagnosis
-          if (!next.impression.provisionalDiagnosis?.trim() && patient.diagnosis) {
-            next.impression.provisionalDiagnosis = patient.diagnosis;
-          }
-          return next;
-        });
-      } catch {
-        /* silent prefill failure */
+        }
       }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [latest, patientIdOrMrn]);
+
+      return changed ? next : prev;
+    });
+  }, [patient]);
 
   const handleFieldChange = useCallback(
     (sectionKey: SectionKey, fieldKey: string, value: string) => {
@@ -211,6 +224,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
         });
 
         applyVersion(response.latest);
+        setEditingField(null);
         toast({
           title: nextStatus === "published" ? "Discharge summary published" : "Draft saved",
           description: "A new discharge version has been recorded.",
@@ -232,11 +246,9 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     try {
       setExporting(true);
 
-      // Fetch patient + timeline
-      const patient = await api.patients.get(patientIdOrMrn);
+      const patientData = patient || await api.patients.get(patientIdOrMrn);
       const timeline = await api.patients.timeline(patientIdOrMrn);
 
-      // Use current section state (no need to refetch latest)
       const sectionsPayload = SECTION_DEFINITIONS.reduce<Record<string, Record<string, string>>>(
         (acc, section) => {
           acc[section.key] = { ...sectionState[section.key] };
@@ -248,12 +260,10 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       const { summary: docxSummary, overrideDates } =
         composeDocxSummaryFromSections(sectionsPayload);
 
-      // Allow doctor override from author name
       if (!docxSummary.doctorName && authorName?.trim()) {
         docxSummary.doctorName = authorName.trim();
       }
 
-      // Build and download
       const blob = await buildStructuredDischargeDocxBlob({
         title: "DISCHARGE SUMMARY",
         letterhead: {
@@ -262,17 +272,17 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
           department: "Department of General Surgery",
         },
         patient: {
-          id: patient.id,
-          patientId: patient.patientId ?? patient.id,
-          name: patient.name,
-          age: patient.age,
-          sex: patient.sex,
-          latestMrn: patient.latestMrn,
-          department: patient.department,
-          roomNumber: patient.roomNumber ?? undefined,
-          assignedDoctor: patient.assignedDoctor ?? undefined,
-          surgeryDate: (patient as any).surgeryDate ?? undefined,
-          procedureName: (patient as any).procedureName ?? undefined,
+          id: patientData.id,
+          patientId: patientData.patientId ?? patientData.id,
+          name: patientData.name,
+          age: patientData.age,
+          sex: patientData.sex,
+          latestMrn: patientData.latestMrn,
+          department: patientData.department,
+          roomNumber: patientData.roomNumber ?? undefined,
+          assignedDoctor: patientData.assignedDoctor ?? undefined,
+          surgeryDate: (patientData as Record<string, unknown>).surgeryDate as string | undefined,
+          procedureName: (patientData as Record<string, unknown>).procedureName as string | undefined,
         },
         timeline,
         summary: docxSummary,
@@ -281,7 +291,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       });
 
       const filename = safeFileName(
-        `Discharge_${patient.latestMrn ?? patient.id ?? patient.name ?? "Patient"}`
+        `Discharge_${patientData.latestMrn ?? patientData.id ?? patientData.name ?? "Patient"}`
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -303,9 +313,9 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     } finally {
       setExporting(false);
     }
-  }, [authorName, patientIdOrMrn, sectionState, toast]);
+  }, [authorName, patient, patientIdOrMrn, sectionState, toast]);
 
-  // NEW: scroll-to-section like Patient Registration
+  // Scroll to section
   const handleScrollToSection = useCallback((sectionId: SectionKey) => {
     const el = document.getElementById(sectionId);
     if (el && scrollContainerRef.current) {
@@ -314,7 +324,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     }
   }, []);
 
-  // NEW: track active section while scrolling (mirrors your registration scroll listener)
+  // Track active section while scrolling
   useEffect(() => {
     const handler = () => {
       if (!scrollContainerRef.current) return;
@@ -323,7 +333,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
       const scrollHeight = container.scrollHeight;
       const clientHeight = container.clientHeight;
 
-      // If scrolled to bottom, highlight the last section
       if (scrollTop + clientHeight >= scrollHeight - 50) {
         setActiveSection(SECTION_DEFINITIONS[SECTION_DEFINITIONS.length - 1].key);
         return;
@@ -335,7 +344,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
         if (!el) continue;
         const rect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        // section whose top is closest to the top inside container
         if (rect.top <= containerRect.top + 150) {
           current = section.key;
         }
@@ -348,48 +356,43 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
 
     container.addEventListener("scroll", handler);
     return () => container.removeEventListener("scroll", handler);
-  }, [sectionState]); // reattach if layout changes
+  }, [sectionState]);
 
   const isSaving = savingStatus !== null;
   const lastUpdatedLabel = formatDateTime(latest?.updatedAt);
   const currentStatus = latest?.status ?? "draft";
 
+  // Render a field - either in edit mode or readonly view
   const renderField = (sectionKey: SectionKey, field: SectionFieldDefinition) => {
     const value = sectionState[sectionKey]?.[field.key] ?? "";
+    const fieldId = `${sectionKey}-${field.key}`;
+    const isEditing = editingField === fieldId;
+    const isReadOnly = field.readOnly === true;
+    const hasValue = value.trim().length > 0;
+
     const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       handleFieldChange(sectionKey, field.key, event.target.value);
-    const fieldId = `${sectionKey}-${field.key}`;
-    const isFocused = focusedField === fieldId;
 
-    if ((field.type ?? "textarea") === "textarea") {
-      return (
-        <div key={field.key} className="space-y-1">
-          <label htmlFor={fieldId} className="text-sm font-medium text-foreground">
-            {field.label}
-          </label>
-          <div
-            className={`relative rounded-lg border transition-all ${
-              isFocused ? "border-blue-400 ring-2 ring-blue-100" : "border-input"
-            }`}
-          >
-            <Textarea
-              id={fieldId}
-              value={value}
-              onChange={handleChange}
-              onFocus={() => setFocusedField(fieldId)}
-              onBlur={(e) => {
-                // Only blur if clicking outside the container
-                if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
-                  setFocusedField(null);
-                }
-              }}
-              placeholder={field.placeholder}
-              disabled={loading || isSaving}
-              rows={isFocused ? 6 : field.rows ?? 4}
-              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            {isFocused && (
-              <div className="border-t bg-gray-50 px-3 py-2 flex items-center justify-between">
+    // Edit mode
+    if (isEditing && !isReadOnly) {
+      if ((field.type ?? "textarea") === "textarea") {
+        return (
+          <div key={field.key} className="space-y-2">
+            <label htmlFor={fieldId} className="text-sm font-medium text-foreground">
+              {field.label}
+            </label>
+            <div className="rounded-lg border border-blue-400 ring-2 ring-blue-100 bg-white">
+              <Textarea
+                id={fieldId}
+                value={value}
+                onChange={handleChange}
+                placeholder={field.placeholder}
+                disabled={loading || isSaving}
+                rows={field.rows ?? 4}
+                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[100px]"
+                autoFocus
+              />
+              <div className="border-t bg-gray-50 px-3 py-2 flex items-center justify-between rounded-b-lg">
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
@@ -413,53 +416,117 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => setEditingField(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={() => {
                       handleSave("draft");
-                      setFocusedField(null);
                     }}
                     disabled={!hasContent || isSaving}
                   >
                     <Save className="mr-1 h-3 w-3" />
                     Save
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      handleSave("published");
-                      setFocusedField(null);
-                    }}
-                    disabled={!hasContent || isSaving}
-                  >
-                    <Check className="mr-1 h-3 w-3" />
-                    Publish
-                  </Button>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        );
+      }
+
+      // Text/date input edit mode
+      const inputType = field.type === "date" ? "date" : "text";
+      return (
+        <div key={field.key} className="space-y-2">
+          <label htmlFor={fieldId} className="text-sm font-medium text-foreground">
+            {field.label}
+          </label>
+          <div className="flex gap-2">
+            <Input
+              id={fieldId}
+              value={value}
+              onChange={handleChange}
+              placeholder={field.placeholder}
+              disabled={loading || isSaving}
+              type={inputType}
+              className="flex-1"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditingField(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                handleSave("draft");
+              }}
+              disabled={!hasContent || isSaving}
+            >
+              <Save className="mr-1 h-3 w-3" />
+              Save
+            </Button>
           </div>
         </div>
       );
     }
 
-    const inputType = field.type === "date" ? "date" : "text";
+    // Readonly view (grey background with full content visible)
+    const displayValue = hasValue ? value : field.placeholder || "Not specified";
+    const isTextArea = (field.type ?? "textarea") === "textarea";
+
     return (
       <div key={field.key} className="space-y-1">
-        <label htmlFor={fieldId} className="text-sm font-medium text-foreground">
-          {field.label}
-        </label>
-        <Input
-          id={fieldId}
-          value={value}
-          onChange={handleChange}
-          placeholder={field.placeholder}
-          disabled={loading || isSaving}
-          type={inputType}
-        />
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-gray-600">
+            {field.label}
+          </label>
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setEditingField(fieldId)}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              Edit
+            </Button>
+          )}
+        </div>
+        <div
+          className={`rounded-lg px-3 py-2.5 ${
+            hasValue
+              ? "bg-gray-100 text-gray-900"
+              : "bg-gray-50 text-gray-400 italic"
+          } ${isReadOnly ? "bg-gray-200" : ""}`}
+          onClick={() => !isReadOnly && setEditingField(fieldId)}
+          role={isReadOnly ? undefined : "button"}
+          tabIndex={isReadOnly ? undefined : 0}
+          onKeyDown={(e) => !isReadOnly && (e.key === "Enter" || e.key === " ") && setEditingField(fieldId)}
+        >
+          {isTextArea ? (
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {displayValue}
+            </div>
+          ) : (
+            <div className="text-sm">
+              {field.type === "date" && hasValue
+                ? new Date(value).toLocaleDateString()
+                : displayValue}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
-  // Full-screen editor as a complete new page
+  // Full-screen editor
   if (fullScreenField) {
     const [sectionKey, fieldKey] = fullScreenField.split("-") as [SectionKey, string];
     const section = SECTION_DEFINITIONS.find((s) => s.key === sectionKey);
@@ -473,7 +540,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
 
     return (
       <div className="flex h-screen flex-col bg-white pb-16">
-        {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4 bg-white sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <Button
@@ -488,14 +554,11 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
               <p className="text-sm text-muted-foreground">{section?.title}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
-              {currentStatus}
-            </Badge>
-          </div>
+          <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
+            {currentStatus}
+          </Badge>
         </div>
 
-        {/* Editor body */}
         <div className="flex-1 overflow-hidden">
           <div className="h-full max-w-5xl mx-auto px-8 py-6">
             <Textarea
@@ -509,22 +572,11 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
           </div>
         </div>
 
-        {/* Footer toolbar */}
         <div className="border-t bg-gray-50 px-6 py-4 sticky bottom-0">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-9 w-9 p-0"
-                title="Attach files"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {value.length} characters
-              </span>
-            </div>
+            <span className="text-sm text-muted-foreground">
+              {value.length} characters
+            </span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -555,9 +607,9 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   }
 
   return (
-    <div className="flex bg-gray-50">
-      {/* LEFT: skinny nav like PatientRegistrationForm */}
-      <div className="w-20 bg-white border-r border-gray-200 flex flex-col">
+    <div className="flex bg-gray-50 h-full">
+      {/* LEFT: Navigation */}
+      <div className="w-20 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
         <div className="p-2 overflow-y-auto flex-1">
           {SECTION_DEFINITIONS.map((section) => {
             const isActive = activeSection === section.key;
@@ -573,12 +625,11 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                     : "hover:bg-gray-50 border-2 border-transparent text-gray-700"
                 }`}
                 title={section.title}
-                aria-label={section.shortLabel}
               >
-                <div className="flex items-center justify-center mb-1">
+                <div className="flex items-center justify-center mb-1 h-4">
                   {isDone && <Check size={12} className="text-green-500" />}
                 </div>
-                <span className="font-medium text-xs leading-tight text-center truncate w-12">
+                <span className="font-medium text-xs leading-tight text-center truncate w-14">
                   {section.shortLabel}
                 </span>
               </button>
@@ -587,29 +638,29 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
         </div>
       </div>
 
-      {/* RIGHT: scrollable content area */}
+      {/* RIGHT: Content */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-28">
-        <div className="max-w-xl space-y-10">
-          {/* Header card (kept) */}
-          <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="space-y-4 rounded-lg border bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-lg font-semibold text-foreground sm:text-xl">Discharge Summary</h1>
-                <p className="text-sm text-muted-foreground">
-                  Complete each clinical section to capture the patient&apos;s discharge narrative.
+                <h1 className="text-xl font-semibold text-foreground">Discharge Summary</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Complete each section to create the patient&apos;s discharge narrative.
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-sm text-muted-foreground">
-                  Last updated: <span className="font-medium text-foreground">{lastUpdatedLabel}</span>
+                <div className="text-xs text-muted-foreground">
+                  Updated: <span className="font-medium text-foreground">{lastUpdatedLabel}</span>
                 </div>
-                <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase">
+                <Badge variant={currentStatus === "published" ? "default" : "outline"} className="uppercase text-xs">
                   {currentStatus}
                 </Badge>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label htmlFor="author-id" className="text-xs font-medium uppercase text-muted-foreground">
                   Author ID
@@ -617,9 +668,10 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                 <Input
                   id="author-id"
                   value={authorId}
-                  onChange={(event) => setAuthorId(event.target.value)}
+                  onChange={(e) => setAuthorId(e.target.value)}
                   placeholder="e.g. staff001"
                   disabled={loading || isSaving}
+                  className="h-9"
                 />
               </div>
               <div className="space-y-1">
@@ -629,24 +681,25 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                 <Input
                   id="author-name"
                   value={authorName}
-                  onChange={(event) => setAuthorName(event.target.value)}
+                  onChange={(e) => setAuthorName(e.target.value)}
                   placeholder="Display name (optional)"
                   disabled={loading || isSaving}
+                  className="h-9"
                 />
               </div>
             </div>
           </div>
 
-          {/* All sections stacked (IDs used for scroll/spy) */}
+          {/* Sections */}
           {SECTION_DEFINITIONS.map((section) => (
             <div key={section.key} id={section.key} className="space-y-4">
-              <div className="mb-2">
-                <h2 className="text-xl font-bold text-gray-800 mb-1">{section.title}</h2>
-                {section.description ? (
-                  <p className="text-sm text-gray-600">{section.description}</p>
-                ) : null}
+              <div className="border-b pb-2">
+                <h2 className="text-lg font-bold text-gray-800">{section.title}</h2>
+                {section.description && (
+                  <p className="text-sm text-gray-500 mt-0.5">{section.description}</p>
+                )}
               </div>
-              <div className="grid gap-4">
+              <div className="space-y-4">
                 {section.fields.map((field) => renderField(section.key, field))}
               </div>
             </div>
@@ -654,14 +707,14 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
         </div>
       </div>
 
-      {/* Floating actions (replaces full-width sticky footer) */}
+      {/* Floating actions */}
       <div className="fixed bottom-24 right-8 z-50 flex flex-col gap-2">
         <Button
           size="icon"
           variant="outline"
           disabled={exporting || loading || !hasContent}
           onClick={handleExportDocx}
-          className="shadow-lg h-10 w-10"
+          className="shadow-lg h-11 w-11 bg-white"
           title="Export .docx"
         >
           {exporting ? (
@@ -674,7 +727,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
           size="icon"
           disabled={!hasContent || isSaving}
           onClick={() => handleSave("published")}
-          className="shadow-lg h-10 w-10"
+          className="shadow-lg h-11 w-11"
           title="Publish"
         >
           {isSaving && savingStatus === "published" ? (

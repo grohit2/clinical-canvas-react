@@ -1,21 +1,21 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@shared/components/ui/toaster";
+import { Toaster as Sonner } from "@shared/components/ui/sonner";
+import { TooltipProvider } from "@shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { DashboardPage } from "@features/dashboard";
-import PatientsList from "./pages/PatientsList";
-import PatientDetail from "./pages/PatientDetail";
-import Tasks from "./pages/Tasks";
-import TasksDue from "./pages/TasksDue";
-import UrgentAlerts from "./pages/UrgentAlerts";
-import CompletedToday from "./pages/CompletedToday";
-import Profile from "./pages/Profile";
-import PatientQRView from "./pages/PatientQRView";
-import AddNote from "./pages/AddNote";
-import AddMedication from "./pages/AddMedication";
-import AddTask from "./pages/AddTask";
+import { PatientsListPage } from "@features/patient-list";
+import PatientDetail from "@/pages/PatientDetail";
+import Tasks from "@/pages/Tasks";
+import TasksDue from "@/pages/TasksDue";
+import UrgentAlerts from "@/pages/UrgentAlerts";
+import CompletedToday from "@/pages/CompletedToday";
+import Profile from "@/pages/Profile";
+import PatientQRView from "@/pages/PatientQRView";
+import AddNote from "@/pages/AddNote";
+import AddMedication from "@/pages/AddMedication";
+import AddTask from "@/pages/AddTask";
 import { PatientRegistrationPage } from "@features/patient-registration";
 import {
   AdmissionPage,
@@ -28,15 +28,15 @@ import {
   DocumentsRootPage,
   DocumentsFolderPage,
 } from "@features/patient-documents";
-import { UnsavedChangesGuard } from "@/app/guards";
-import { MinimalShell } from "@/app/layout";
-import EditTask from "./pages/EditTask";
-import EditNote from "./pages/EditNote";
-import EditMedication from "./pages/EditMedication";
-import NotFound from "./pages/NotFound";
-import NoteDetail from "./pages/NoteDetail";
-import DischargeSummaryPage from "./pages/DischargeSummary";
-import AddMrn from "./pages/AddMrn";
+import { UnsavedChangesGuard } from "@app/guards";
+import { MinimalShell } from "@app/layout";
+import EditTask from "@/pages/EditTask";
+import EditNote from "@/pages/EditNote";
+import EditMedication from "@/pages/EditMedication";
+import NotFound from "@/pages/NotFound";
+import NoteDetail from "@/pages/NoteDetail";
+import DischargeSummaryPage from "@/pages/DischargeSummary";
+import AddMrn from "@/pages/AddMrn";
 import { ReferralsPage } from "@features/referrals";
 
 // Wrapper for PatientRegistrationPage with unsaved changes guard
@@ -69,7 +69,7 @@ const App = () => (
           {/* Main app routes with MinimalShell (pages manage their own headers) */}
           <Route element={<MinimalShell />}>
             <Route path="/" element={<DashboardPage />} />
-            <Route path="/patients" element={<PatientsList />} />
+            <Route path="/patients" element={<PatientsListPage />} />
             <Route path="/patients/:id" element={<PatientDetail />} />
             {/* Documents routes */}
             <Route path="/patients/:id/docs" element={<DocumentsRootPage />} />

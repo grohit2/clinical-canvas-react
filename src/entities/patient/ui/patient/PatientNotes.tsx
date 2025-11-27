@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { listFiles } from "@/lib/filesApi";
 import { MoreVertical, Image as ImageIcon, FileText } from "lucide-react";
-import { SECTION_DEFINITIONS, adaptSections } from "@/features/discharge-summary/discharge.sections";
+import { SECTION_DEFINITIONS, adaptSections } from "@features/patient-discharge-summary/discharge.sections";
 
 interface PatientNotesProps {
   patientId: string;
@@ -145,9 +145,11 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
     if (!dischargeSummary) return "No discharge summary recorded.";
     const candidates = [
       dischargeSummary.summary?.diagnosis?.trim(),
-      dischargeSections?.impression?.provisionalDiagnosis?.trim(),
-      dischargeSections?.impression?.dischargePlan?.trim(),
+      // New section keys
+      dischargeSections?.clinicalInfo?.finalDiagnosis?.trim(),
       dischargeSections?.presentingComplaint?.chiefComplaints?.trim(),
+      // Old section keys (fallback for backward compat)
+      (dischargeSections as Record<string, Record<string, string>>)?.impression?.provisionalDiagnosis?.trim(),
     ].filter((value) => Boolean(value)) as string[];
     return candidates[0] || "No discharge summary recorded.";
   }, [dischargeSummary, dischargeSections]);

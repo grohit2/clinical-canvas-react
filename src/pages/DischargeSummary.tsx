@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
-import DischargeSummaryForm from "@/features/discharge-summary/DischargeSummaryForm";
+import DischargeSummaryForm from "@features/patient-discharge-summary/DischargeSummaryForm";
 
 export default function DischargeSummaryPage() {
   const navigate = useNavigate();

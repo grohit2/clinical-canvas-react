@@ -74,7 +74,6 @@ const App = () => (
             <Route path="/patients/:id/docs/:category" element={<DocumentsFolderPage />} />
             {/* Redirect old /documents path to new /docs */}
             <Route path="/patients/:id/documents" element={<DocumentsRootPage />} />
-            <Route path="/patients/:id/discharge-summary" element={<DischargeSummaryPage />} />
             <Route path="/patients/:id/add-note" element={<AddNotePage />} />
             <Route path="/patients/:id/notes/:noteId" element={<NoteDetailPage />} />
             <Route path="/patients/:id/notes/:noteId/edit" element={<EditNotePage />} />
@@ -100,6 +99,9 @@ const App = () => (
           {/* Patient registration routes with unsaved changes guard */}
           <Route path="/patients/add" element={<ProtectedPatientRegistration />} />
           <Route path="/patients/:id/edit" element={<ProtectedPatientRegistration />} />
+
+          {/* Discharge summary - outside shell for sticky sidebar */}
+          <Route path="/patients/:id/discharge-summary" element={<DischargeSummaryPage />} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

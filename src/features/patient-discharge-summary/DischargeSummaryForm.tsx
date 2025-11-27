@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Check, Loader2, Save, Maximize2, Paperclip, X, Download, Pencil } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { Check, Loader2, Save, Maximize2, Paperclip, X, Download, Pencil, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ const formatDateTime = (value?: string | null) => {
 };
 
 export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMrn: string }) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState<SectionKey>(SECTION_DEFINITIONS[0].key);
   const [sectionState, setSectionState] = useState<SectionState>(() => buildEmptySectionState());
@@ -60,9 +62,6 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
     if (typeof window === "undefined") return "";
     return localStorage.getItem("dischargeAuthorName") || "";
   });
-
-  // Scroll container ref
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Track which field is being edited
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -318,45 +317,49 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   // Scroll to section
   const handleScrollToSection = useCallback((sectionId: SectionKey) => {
     const el = document.getElementById(sectionId);
-    if (el && scrollContainerRef.current) {
-      const offsetTop = el.offsetTop - 20;
-      scrollContainerRef.current.scrollTo({ top: offsetTop, behavior: "smooth" });
-    }
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const y = rect.top + window.scrollY - 80;
+    window.scrollTo({ top: y, behavior: "smooth" });
   }, []);
 
-  // Track active section while scrolling
+  // Track active section while scrolling (using window scroll like patient registration)
   useEffect(() => {
-    const handler = () => {
-      if (!scrollContainerRef.current) return;
-      const container = scrollContainerRef.current;
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
+      const viewport = window.innerHeight;
 
-      if (scrollTop + clientHeight >= scrollHeight - 50) {
+      // If at bottom, select last section
+      if (scrollTop + viewport >= docHeight - 50) {
         setActiveSection(SECTION_DEFINITIONS[SECTION_DEFINITIONS.length - 1].key);
         return;
       }
 
+      // Find current section based on scroll position
       let current: SectionKey = SECTION_DEFINITIONS[0].key;
       for (const section of SECTION_DEFINITIONS) {
         const el = document.getElementById(section.key);
         if (!el) continue;
         const rect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        if (rect.top <= containerRect.top + 150) {
+        if (rect.top <= 150) {
           current = section.key;
         }
       }
       setActiveSection(current);
     };
 
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener("scroll", handler);
-    return () => container.removeEventListener("scroll", handler);
-  }, [sectionState]);
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   const isSaving = savingStatus !== null;
   const lastUpdatedLabel = formatDateTime(latest?.updatedAt);
@@ -607,10 +610,10 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
   }
 
   return (
-    <div className="flex bg-gray-50 h-full">
-      {/* LEFT: Navigation */}
-      <div className="w-20 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-        <div className="p-2 overflow-y-auto flex-1">
+    <div className="flex bg-gray-50">
+      {/* LEFT: Sticky Navigation Sidebar */}
+      <aside className="w-20 bg-white border-r border-gray-200 sticky top-0 h-screen flex flex-col">
+        <nav className="flex-1 overflow-y-auto p-2">
           {SECTION_DEFINITIONS.map((section) => {
             const isActive = activeSection === section.key;
             const isDone = getSectionCompletionStatus(section.key);
@@ -619,7 +622,7 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
                 key={section.key}
                 type="button"
                 onClick={() => handleScrollToSection(section.key)}
-                className={`w-full flex flex-col items-center p-3 mb-2 rounded-lg transition-all ${
+                className={`w-full flex flex-col items-center p-3 rounded-lg transition-all ${
                   isActive
                     ? "bg-blue-50 border-2 border-blue-200 text-blue-700"
                     : "hover:bg-gray-50 border-2 border-transparent text-gray-700"
@@ -635,21 +638,31 @@ export default function DischargeSummaryForm({ patientIdOrMrn }: { patientIdOrMr
               </button>
             );
           })}
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      {/* RIGHT: Content */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 pb-28">
+      {/* RIGHT: Main Content */}
+      <div className="flex-1 p-6 pb-28">
+        {/* Back button header */}
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-800">Discharge Summary</h1>
+        </div>
+
         <div className="max-w-2xl mx-auto space-y-8">
-          {/* Header */}
+          {/* Author & Status Card */}
           <div className="space-y-4 rounded-lg border bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">Discharge Summary</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Complete each section to create the patient&apos;s discharge narrative.
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Complete each section to create the patient&apos;s discharge narrative.
+              </p>
               <div className="flex items-center gap-3">
                 <div className="text-xs text-muted-foreground">
                   Updated: <span className="font-medium text-foreground">{lastUpdatedLabel}</span>

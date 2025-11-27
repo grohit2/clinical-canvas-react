@@ -1,11 +1,11 @@
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Badge } from "@shared/components/ui/badge";
+import { Button } from "@shared/components/ui/button";
 import { AlertTriangle, Clock, User, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { paths } from "@/app/navigation";
+import { paths } from "@app/navigation";
 
 // Mock urgent alerts data - tasks due within 10 minutes
 const mockUrgentAlerts = [
@@ -44,7 +44,7 @@ const mockUrgentAlerts = [
   }
 ];
 
-export default function UrgentAlerts() {
+export function UrgentAlertsPage() {
   const navigate = useNavigate();
 
   const getMinutesColor = (minutes: number) => {
@@ -63,13 +63,13 @@ export default function UrgentAlerts() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header 
-        title="Urgent Alerts" 
+      <Header
+        title="Urgent Alerts"
         showBack
         onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
-      
+
       <div className="p-4 space-y-4">
         {/* Alert Summary */}
         <Card className="p-4 border-l-4 border-urgent bg-urgent/5">
@@ -114,15 +114,15 @@ export default function UrgentAlerts() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
+                  <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => navigate(paths.patient(alert.patientId))}
                   >
                     Take Action
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                   >
                     Acknowledge
@@ -146,3 +146,5 @@ export default function UrgentAlerts() {
     </div>
   );
 }
+
+export default UrgentAlertsPage;

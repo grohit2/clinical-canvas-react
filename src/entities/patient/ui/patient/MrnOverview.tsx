@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Star, Calendar, TestTube, FileBarChart, Activity, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Activity, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -216,66 +216,48 @@ export function MrnOverview({ patientId, mrnHistory, latestMrn, onMrnUpdate }: M
             {sortedMrnHistory.map((entry, index) => {
               const isCurrent = entry.mrn === latestMrn;
               return (
-                <div 
-                  key={entry.mrn + index} 
-                  className={`group cursor-pointer rounded-lg border p-3 transition-all duration-200 hover:shadow-md ${
-                    isCurrent 
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-emerald-300 shadow-lg' 
+                <div
+                  key={entry.mrn + index}
+                  className={`group cursor-pointer rounded-xl border px-3 py-2.5 transition-all duration-200 hover:shadow-md ${
+                    isCurrent
+                      ? 'bg-emerald-50 border-emerald-200'
                       : 'bg-white border-gray-200 hover:border-blue-300'
                   }`}
                   onClick={() => handleLabClick(entry)}
                 >
+                  {/* Row 1: MRN + Badge */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        isCurrent 
-                          ? 'bg-white/20' 
-                          : 'bg-gray-100 group-hover:bg-blue-50'
-                      }`}>
-                        {isCurrent ? (
-                          <Star className="h-5 w-5 text-white fill-white" />
-                        ) : (
-                          <TestTube className="h-5 w-5 text-gray-500 group-hover:text-blue-500" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge 
-                            variant={isCurrent ? "secondary" : "outline"} 
-                            className={`text-xs ${
-                              isCurrent 
-                                ? 'bg-white/20 text-white border-white/30' 
-                                : 'border-gray-300 group-hover:border-blue-300'
-                            }`}
-                          >
-                            {entry.scheme}
-                          </Badge>
-                          {isCurrent && (
-                            <Badge className="bg-white/20 text-white text-xs border-0">
-                              Current
-                            </Badge>
-                          )}
-                        </div>
-                        <p className={`font-mono text-sm font-medium ${
-                          isCurrent ? 'text-white' : 'text-gray-700 group-hover:text-blue-700'
-                        }`}>
-                          {entry.mrn}
-                        </p>
-                        <p className={`text-xs flex items-center gap-1 mt-1 ${
-                          isCurrent ? 'text-white/80' : 'text-gray-500'
-                        }`}>
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(entry.date)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`transition-all duration-200 ${
-                      isCurrent 
-                        ? 'text-white' 
-                        : 'text-gray-400 group-hover:text-blue-500'
+                    <span className={`font-mono text-base font-semibold ${
+                      isCurrent ? 'text-emerald-700' : 'text-gray-800'
                     }`}>
-                      <FileBarChart className="h-5 w-5" />
+                      {entry.mrn}
+                    </span>
+                    <Badge
+                      className={`text-[10px] font-semibold px-2 py-0.5 ${
+                        isCurrent
+                          ? 'bg-emerald-500 text-white border-0'
+                          : 'bg-gray-100 text-gray-600 border-0'
+                      }`}
+                    >
+                      {entry.scheme}
+                    </Badge>
+                  </div>
+
+                  {/* Row 2: Date + Current + Arrow */}
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs ${isCurrent ? 'text-emerald-600' : 'text-gray-500'}`}>
+                        {formatDate(entry.date)}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded uppercase">
+                          Current
+                        </span>
+                      )}
                     </div>
+                    <ChevronRight className={`h-4 w-4 ${
+                      isCurrent ? 'text-emerald-400' : 'text-gray-400 group-hover:text-blue-500'
+                    }`} />
                   </div>
                 </div>
               );

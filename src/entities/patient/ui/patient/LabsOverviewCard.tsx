@@ -48,23 +48,23 @@ export function LabsOverviewCard({
         />
       </button>
 
-      <div className="px-4 pb-3">
-        <div className="mt-1 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {activeScheme ? (
-              <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-medium px-2.5 py-1 rounded-full uppercase">
-                {activeScheme}
-              </span>
-            ) : null}
-            {latestMrn ? (
-              <p className="text-sm text-muted-foreground">{latestMrn}</p>
-            ) : null}
+      {(activeScheme || latestMrn || rightAction) && (
+        <div className="px-4 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {activeScheme && (
+                <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-medium px-2.5 py-0.5 rounded-full uppercase">
+                  {activeScheme}
+                </span>
+              )}
+              {latestMrn && (
+                <span className="text-sm text-muted-foreground">{latestMrn}</span>
+              )}
+            </div>
+            {rightAction}
           </div>
-          {rightAction}
         </div>
-      </div>
-
-      <div className="border-t border-gray-200 dark:border-border-dark" />
+      )}
 
       <div
         className={`transition-[grid-template-rows] duration-200 ease-in-out grid ${
@@ -72,7 +72,9 @@ export function LabsOverviewCard({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 pt-3">{children}</div>
+          <div className="px-4 pb-4 border-t border-gray-100 dark:border-border-dark pt-4">
+            {children}
+          </div>
         </div>
       </div>
     </div>

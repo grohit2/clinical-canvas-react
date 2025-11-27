@@ -2,21 +2,24 @@ import { Toaster } from "@shared/components/ui/toaster";
 import { Toaster as Sonner } from "@shared/components/ui/sonner";
 import { TooltipProvider } from "@shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SpeedInsights } from '@vercel/speed-insights/react';
+
+// App-level components
+import { UnsavedChangesGuard } from "@app/guards";
+import { MinimalShell } from "@app/layout";
+import { NotFound } from "@app/NotFound";
+
+// Feature imports
 import { DashboardPage } from "@features/dashboard";
 import { PatientsListPage } from "@features/patient-list";
-import PatientDetail from "@/pages/PatientDetail";
-import Tasks from "@/pages/Tasks";
-import TasksDue from "@/pages/TasksDue";
-import UrgentAlerts from "@/pages/UrgentAlerts";
-import CompletedToday from "@/pages/CompletedToday";
-import Profile from "@/pages/Profile";
-import PatientQRView from "@/pages/PatientQRView";
-import AddNote from "@/pages/AddNote";
-import AddMedication from "@/pages/AddMedication";
-import AddTask from "@/pages/AddTask";
-import { PatientRegistrationPage } from "@features/patient-registration";
+import { PatientRegistrationPage, AddMrnPage } from "@features/patient-registration";
+import { AddNotePage, EditNotePage, NoteDetailPage } from "@features/patient-notes";
+import { AddMedicationPage, EditMedicationPage } from "@features/patient-medications";
+import { AddTaskPage, EditTaskPage } from "@features/patient-tasks";
+import { TasksPage, TasksDuePage, UrgentAlertsPage, CompletedTodayPage } from "@features/tasks";
+import { ProfilePage } from "@features/profile";
+import { ReferralsPage } from "@features/referrals";
 import {
   AdmissionPage,
   PreOpPage,
@@ -28,16 +31,11 @@ import {
   DocumentsRootPage,
   DocumentsFolderPage,
 } from "@features/patient-documents";
-import { UnsavedChangesGuard } from "@app/guards";
-import { MinimalShell } from "@app/layout";
-import EditTask from "@/pages/EditTask";
-import EditNote from "@/pages/EditNote";
-import EditMedication from "@/pages/EditMedication";
-import NotFound from "@/pages/NotFound";
-import NoteDetail from "@/pages/NoteDetail";
+
+// Pages not yet migrated to features (will be refactored later)
+import PatientDetail from "@/pages/PatientDetail";
+import PatientQRView from "@/pages/PatientQRView";
 import DischargeSummaryPage from "@/pages/DischargeSummary";
-import AddMrn from "@/pages/AddMrn";
-import { ReferralsPage } from "@features/referrals";
 
 // Wrapper for PatientRegistrationPage with unsaved changes guard
 function ProtectedPatientRegistration() {
@@ -77,25 +75,25 @@ const App = () => (
             {/* Redirect old /documents path to new /docs */}
             <Route path="/patients/:id/documents" element={<DocumentsRootPage />} />
             <Route path="/patients/:id/discharge-summary" element={<DischargeSummaryPage />} />
-            <Route path="/patients/:id/add-note" element={<AddNote />} />
-            <Route path="/patients/:id/notes/:noteId" element={<NoteDetail />} />
-            <Route path="/patients/:id/notes/:noteId/edit" element={<EditNote />} />
-            <Route path="/patients/:id/add-med" element={<AddMedication />} />
-            <Route path="/patients/:id/add-task" element={<AddTask />} />
-            <Route path="/patients/:id/tasks/:taskId/edit" element={<EditTask />} />
-            <Route path="/patients/:id/meds/:medId/edit" element={<EditMedication />} />
-            <Route path="/patients/:id/mrn-add" element={<AddMrn />} />
+            <Route path="/patients/:id/add-note" element={<AddNotePage />} />
+            <Route path="/patients/:id/notes/:noteId" element={<NoteDetailPage />} />
+            <Route path="/patients/:id/notes/:noteId/edit" element={<EditNotePage />} />
+            <Route path="/patients/:id/add-med" element={<AddMedicationPage />} />
+            <Route path="/patients/:id/add-task" element={<AddTaskPage />} />
+            <Route path="/patients/:id/tasks/:taskId/edit" element={<EditTaskPage />} />
+            <Route path="/patients/:id/meds/:medId/edit" element={<EditMedicationPage />} />
+            <Route path="/patients/:id/mrn-add" element={<AddMrnPage />} />
             {/* Workflow routes */}
             <Route path="/patients/:id/admission" element={<AdmissionPage />} />
             <Route path="/patients/:id/pre-op" element={<PreOpPage />} />
             <Route path="/patients/:id/ot" element={<OTPage />} />
             <Route path="/patients/:id/post-op" element={<PostOpPage />} />
             <Route path="/patients/:id/discharge" element={<DischargePage />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/tasks-due" element={<TasksDue />} />
-            <Route path="/urgent-alerts" element={<UrgentAlerts />} />
-            <Route path="/completed-today" element={<CompletedToday />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/tasks-due" element={<TasksDuePage />} />
+            <Route path="/urgent-alerts" element={<UrgentAlertsPage />} />
+            <Route path="/completed-today" element={<CompletedTodayPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/referrals" element={<ReferralsPage />} />
           </Route>
 

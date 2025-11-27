@@ -1,11 +1,11 @@
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Badge } from "@shared/components/ui/badge";
+import { Button } from "@shared/components/ui/button";
 import { CheckCircle, Clock, User, Activity, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { paths } from "@/app/navigation";
+import { paths } from "@app/navigation";
 
 // Mock completed tasks data for today
 const mockCompletedTasks = [
@@ -59,7 +59,7 @@ const mockCompletedTasks = [
 // Current doctor from profile
 const currentDoctor = 'Dr. Sarah Wilson';
 
-export default function CompletedToday() {
+export function CompletedTodayPage() {
   const navigate = useNavigate();
 
   // Filter completed tasks for current doctor
@@ -87,13 +87,13 @@ export default function CompletedToday() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header 
-        title="Completed Today" 
+      <Header
+        title="Completed Today"
         showBack
         onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
-      
+
       <div className="p-4 space-y-4">
         {/* Summary */}
         <Card className="p-4 border-l-4 border-stable bg-stable/5">
@@ -102,10 +102,10 @@ export default function CompletedToday() {
             <div>
               <h2 className="text-lg font-semibold">Today's Achievements</h2>
               <p className="text-sm text-muted-foreground">
-                {doctorCompletedTasks.length} tasks completed on {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric' 
+                {doctorCompletedTasks.length} tasks completed on {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric'
                 })}
               </p>
             </div>
@@ -137,7 +137,7 @@ export default function CompletedToday() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => navigate(paths.patient(task.patientId))}
@@ -163,3 +163,5 @@ export default function CompletedToday() {
     </div>
   );
 }
+
+export default CompletedTodayPage;

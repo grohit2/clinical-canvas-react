@@ -1,11 +1,11 @@
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Badge } from "@shared/components/ui/badge";
+import { Button } from "@shared/components/ui/button";
 import { Clock, AlertCircle, User, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { paths } from "@/app/navigation";
+import { paths } from "@app/navigation";
 
 // Mock task data for the current doctor
 const mockTasksDue = [
@@ -54,7 +54,7 @@ const mockTasksDue = [
 // Current doctor from profile
 const currentDoctor = 'Dr. Sarah Wilson';
 
-export default function TasksDue() {
+export function TasksDuePage() {
   const navigate = useNavigate();
 
   // Filter tasks for current doctor
@@ -80,13 +80,13 @@ export default function TasksDue() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Header 
-        title="Tasks Due" 
+      <Header
+        title="Tasks Due"
         showBack
         onBack={() => navigate(paths.root())}
         notificationCount={3}
       />
-      
+
       <div className="p-4 space-y-4">
         {/* Summary */}
         <Card className="p-4">
@@ -126,14 +126,14 @@ export default function TasksDue() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => navigate(paths.patient(task.patientId))}
                   >
                     View Patient
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                   >
                     Mark Done
@@ -157,3 +157,5 @@ export default function TasksDue() {
     </div>
   );
 }
+
+export default TasksDuePage;

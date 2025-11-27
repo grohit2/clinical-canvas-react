@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import api from "@/lib/api";
-import { paths } from "@/app/navigation";
-import type { Medication } from "@/types/api";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Button } from "@shared/components/ui/button";
+import { Label } from "@shared/components/ui/label";
+import { Input } from "@shared/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import api from "@shared/lib/api";
+import { paths } from "@app/navigation";
+import type { Medication } from "@shared/types/api";
 
-export default function EditMedication() {
+export function EditMedicationPage() {
   const { id: uid, medId } = useParams();
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState("");
@@ -190,3 +190,5 @@ export default function EditMedication() {
     </div>
   );
 }
+
+export default EditMedicationPage;

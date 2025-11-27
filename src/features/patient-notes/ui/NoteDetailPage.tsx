@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { paths } from "@/app/navigation";
-import { Button } from "@/components/ui/button";
-import api from "@/lib/api";
-import { listFiles, type FilesListItem } from "@/lib/filesApi";
-import type { Note } from "@/types/api";
+import { paths } from "@app/navigation";
+import { listFiles, type FilesListItem } from "@shared/lib/filesApi";
+import api from "@shared/lib/api";
+import type { Note } from "@shared/types/api";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
-export default function NoteDetail() {
+export function NoteDetailPage() {
   const { id: uid, noteId } = useParams();
   const navigate = useNavigate();
   const [note, setNote] = useState<Note | null>(null);
@@ -67,7 +66,7 @@ export default function NoteDetail() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center bg-slate-50 p-4 pb-2 justify-between">
-        <button 
+        <button
           className="text-gray-800 flex items-center justify-center w-12 h-12"
           onClick={() => uid && navigate(paths.patient(uid))}
         >
@@ -88,7 +87,7 @@ export default function NoteDetail() {
       <div className="flex-1">
         <h3 className="text-gray-800 text-lg font-bold px-4 pb-2 pt-4">Note</h3>
         <p className="text-gray-800 text-base px-4 pb-3 pt-1">{note.content}</p>
-        
+
         {/* Images */}
         {images.length > 0 && images.map((image, index) => (
           <div key={image.key} className="mb-4">
@@ -133,3 +132,5 @@ export default function NoteDetail() {
     </div>
   );
 }
+
+export default NoteDetailPage;

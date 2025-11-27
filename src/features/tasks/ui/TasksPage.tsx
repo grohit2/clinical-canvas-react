@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Task } from "@/types/models";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Badge } from "@shared/components/ui/badge";
+import { Button } from "@shared/components/ui/button";
+import { Avatar, AvatarFallback } from "@shared/components/ui/avatar";
 import { Clock, User, Calendar, Flag, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@shared/lib/utils";
 import { AddTaskForm } from "@/components/task/AddTaskForm";
+import type { Task } from "@shared/types/models";
 
 // Mock data
 const mockTasks: Task[] = [
@@ -99,7 +99,7 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
     const now = new Date();
     const diffMs = due.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
+
     if (diffHours < 0) return 'Overdue';
     if (diffHours < 1) return 'Due now';
     if (diffHours < 24) return `${diffHours}h`;
@@ -119,7 +119,7 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
       </div>
 
       <h4 className="font-medium text-sm mb-2">{task.title}</h4>
-      
+
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <User className="h-3 w-3" />
@@ -137,14 +137,14 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
             {task.assigneeId.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex gap-1">
           {task.status !== 'done' && (
             <Button
               size="sm"
               variant="outline"
               className="h-6 px-2 text-xs"
-              onClick={() => onStatusChange(task.taskId, 
+              onClick={() => onStatusChange(task.taskId,
                 task.status === 'open' ? 'in-progress' : 'done'
               )}
             >
@@ -157,13 +157,13 @@ function TaskCard({ task, onStatusChange }: TaskCardProps) {
   );
 }
 
-export default function Tasks() {
+export function TasksPage() {
   const [tasks, setTasks] = useState(mockTasks);
   const [filter, setFilter] = useState<'all' | 'my-tasks'>('all');
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
 
   const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
-    setTasks(prev => prev.map(task => 
+    setTasks(prev => prev.map(task =>
       task.taskId === taskId ? { ...task, status: newStatus } : task
     ));
   };
@@ -176,17 +176,17 @@ export default function Tasks() {
     setTasks(prevTasks => [...prevTasks, taskWithId]);
   };
 
-  const filteredTasks = tasks.filter(task => 
+  const filteredTasks = tasks.filter(task =>
     filter === 'all' || task.assigneeId === 'current-user'
   );
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header 
-        title="Tasks" 
+      <Header
+        title="Tasks"
         notificationCount={4}
       />
-      
+
       <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
         {/* Header with Add Task Button */}
         <div className="flex items-center justify-between">
@@ -219,7 +219,7 @@ export default function Tasks() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-full">
           {kanbanColumns.map(column => {
             const columnTasks = filteredTasks.filter(task => task.status === column.id);
-            
+
             return (
               <div key={column.id} className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -228,7 +228,7 @@ export default function Tasks() {
                     {columnTasks.length}
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-3">
                   {columnTasks.map(task => (
                     <TaskCard
@@ -238,7 +238,7 @@ export default function Tasks() {
                     />
                   ))}
                 </div>
-                
+
                 {columnTasks.length === 0 && (
                   <div className={cn(
                     "rounded-lg border-2 border-dashed p-6 text-center text-muted-foreground",
@@ -265,3 +265,5 @@ export default function Tasks() {
     </div>
   );
 }
+
+export default TasksPage;

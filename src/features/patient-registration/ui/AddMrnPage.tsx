@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Button } from "@shared/components/ui/button";
+import { Label } from "@shared/components/ui/label";
+import { Input } from "@shared/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import api from "@/lib/api";
-import { paths } from "@/app/navigation";
-import { useToast } from "@/hooks/use-toast";
+} from "@shared/components/ui/select";
+import api from "@shared/lib/api";
+import { paths } from "@app/navigation";
+import { useToast } from "@shared/hooks/use-toast";
 
 const SCHEME_OPTIONS = ["ASP", "NAM", "EHS", "PAID", "OTHERS"] as const;
 
@@ -26,7 +26,7 @@ const normalizeScheme = (value?: string): string => {
   return raw || "OTHERS";
 };
 
-export default function AddMrn() {
+export function AddMrnPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -114,3 +114,4 @@ export default function AddMrn() {
   );
 }
 
+export default AddMrnPage;

@@ -131,6 +131,9 @@ export function BottomActionPanel({
         >
           <DrawerHeader className="flex-shrink-0">
             <DrawerTitle className="text-base">Patient Actions</DrawerTitle>
+            <DrawerDescription className="sr-only">
+              Quick actions panel for patient orders, notes, and monitoring
+            </DrawerDescription>
           </DrawerHeader>
 
           <div className="flex-1 min-h-0">

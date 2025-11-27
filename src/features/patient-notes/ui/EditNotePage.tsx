@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { paths } from "@/app/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { paths } from "@app/navigation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Textarea } from "@shared/components/ui/textarea";
 import { ImageUploadS3 } from "@/components/ImageUploadS3";
-import { listFiles, type FilesListItem } from "@/lib/filesApi";
-import api from "@/lib/api";
-import type { Note } from "@/types/api";
+import { listFiles, type FilesListItem } from "@shared/lib/filesApi";
+import api from "@shared/lib/api";
+import type { Note } from "@shared/types/api";
 import { ArrowLeft } from "lucide-react";
 
-export default function EditNote() {
+export function EditNotePage() {
   const { id: uid, noteId } = useParams();
   const navigate = useNavigate();
   const [category, setCategory] = useState<Note['category'] | "">("");
@@ -100,7 +100,7 @@ export default function EditNote() {
             <ArrowLeft size={24} />
           </button>
           <h1 className="text-lg font-semibold text-gray-800">Edit Note</h1>
-          <button 
+          <button
             className="text-blue-600 font-semibold text-sm"
             onClick={handleSave}
             disabled={submitting}
@@ -165,3 +165,5 @@ export default function EditNote() {
     </div>
   );
 }
+
+export default EditNotePage;

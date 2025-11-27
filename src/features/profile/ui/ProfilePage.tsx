@@ -1,13 +1,13 @@
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Button } from "@shared/components/ui/button";
+import { Badge } from "@shared/components/ui/badge";
+import { Switch } from "@shared/components/ui/switch";
+import { Avatar, AvatarFallback } from "@shared/components/ui/avatar";
+import { Input } from "@shared/components/ui/input";
+import { Separator } from "@shared/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@shared/components/ui/alert-dialog";
 import { Settings, Bell, Shield, Phone, Mail, Clock, QrCode, Edit2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
@@ -184,7 +184,7 @@ const mockUser = {
   }
 };
 
-export default function Profile() {
+export function ProfilePage() {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -581,3 +581,5 @@ export default function Profile() {
     </div>
   );
 }
+
+export default ProfilePage;

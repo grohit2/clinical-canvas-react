@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { BottomBar } from "@/components/layout/BottomBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import api from "@/lib/api";
-import { paths } from "@/app/navigation";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Button } from "@shared/components/ui/button";
+import { Label } from "@shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Textarea } from "@shared/components/ui/textarea";
+import api from "@shared/lib/api";
+import { paths } from "@app/navigation";
 
-export default function AddNote() {
+export function AddNotePage() {
   const { id: uid } = useParams();
   const navigate = useNavigate();
   const [category, setCategory] = useState<"doctorNote" | "nurseNote" | "pharmacy" | "">("");
@@ -57,7 +57,7 @@ export default function AddNote() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy")}> 
+              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -102,3 +102,5 @@ export default function AddNote() {
     </div>
   );
 }
+
+export default AddNotePage;

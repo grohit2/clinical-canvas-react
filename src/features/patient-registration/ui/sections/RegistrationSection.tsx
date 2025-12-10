@@ -124,6 +124,35 @@ export function RegistrationSection({ isEditMode, patientId }: RegistrationSecti
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Theatre ID (TID)</label>
+          <input
+            type="text"
+            {...register("tidNumber")}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            placeholder="e.g., TID-12345"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">TID Status</label>
+          <Controller
+            name="tidStatus"
+            control={control}
+            render={({ field }) => (
+              <ButtonGroup
+                options={[
+                  { value: "PENDING", label: "Pending" },
+                  { value: "DONE", label: "Done" },
+                ]}
+                value={field.value || ""}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+      </div>
+
       {isEditMode && patientId ? (
         <div className="space-y-3">
           <MrnEditor patientId={patientId} />

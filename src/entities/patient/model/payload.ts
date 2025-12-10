@@ -28,6 +28,8 @@ export type CreatePatientPayload = {
   filesUrl?: string;
   surgeryCode?: string;
   surgeryDate?: string;
+  tidNumber?: string;
+  tidStatus?: string;
   emergencyContact?: Patient["emergencyContact"];
   latestMrn?: string;
   mrnHistory?: Patient["mrnHistory"];
@@ -91,6 +93,8 @@ export const toCreatePayload = (values: PatientFormValues): CreatePatientPayload
     filesUrl: trimOrUndefined(values.filesUrl),
     surgeryCode: trimOrUndefined(values.surgeryCode),
     surgeryDate: trimOrUndefined(values.surgeryDate),
+    tidNumber: trimOrUndefined(values.tidNumber),
+    tidStatus: trimOrUndefined(values.tidStatus),
     emergencyContact: values.emergencyContact,
     latestMrn: registrationNumber || undefined,
     mrnHistory: registrationNumber
@@ -131,6 +135,8 @@ export const toUpdatePayload = (values: PatientFormValues, existing: Patient): U
     filesUrl: trimOrUndefined(values.filesUrl),
     surgeryCode: trimOrUndefined(values.surgeryCode),
     surgeryDate: trimOrUndefined(values.surgeryDate),
+    tidNumber: trimOrUndefined(values.tidNumber),
+    tidStatus: trimOrUndefined(values.tidStatus),
     emergencyContact: values.emergencyContact,
     latestMrn: existing.latestMrn ?? trimOrUndefined(values.mrn),
   };

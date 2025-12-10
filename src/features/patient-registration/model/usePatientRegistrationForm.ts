@@ -44,6 +44,8 @@ const defaultFormValues: PatientFormValues = {
   procedureName: "",
   surgeryCode: "",
   surgeryDate: "",
+  tidNumber: "",
+  tidStatus: "",
   assignedDoctor: "",
   assignedDoctorId: "",
   roomNumber: "",
@@ -93,6 +95,8 @@ const mapPatientToFormValues = (patient: Patient): PatientFormValues => {
     procedureName: patient.procedureName || "",
     surgeryCode: (patient as Record<string, unknown>).surgeryCode as string || "",
     surgeryDate: (patient as Record<string, unknown>).surgeryDate as string || "",
+    tidNumber: (patient as Record<string, unknown>).tidNumber as string || "",
+    tidStatus: (patient as Record<string, unknown>).tidStatus as string || "",
     assignedDoctor: patient.assignedDoctor || "",
     assignedDoctorId: patient.assignedDoctorId || "",
     roomNumber: patient.roomNumber || "",
@@ -159,6 +163,8 @@ export function usePatientRegistrationForm(
         mrnHistory: payload.mrnHistory,
         surgeryCode: payload.surgeryCode,
         surgeryDate: payload.surgeryDate ? new Date(payload.surgeryDate).toISOString() : null,
+        tidNumber: payload.tidNumber,
+        tidStatus: payload.tidStatus,
       });
     },
     onSuccess: (res) => {

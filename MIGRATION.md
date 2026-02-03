@@ -850,7 +850,7 @@ domains/referrals/
 
 ## Cleanup Complete ✅
 
-All old folders and duplicate files have been deleted:
+### Deleted Folders
 
 | Deleted | Reason |
 |---------|--------|
@@ -861,6 +861,46 @@ All old folders and duplicate files have been deleted:
 | `src/hooks/` | Duplicate of `src/shared/hooks/` |
 | `src/lib/` | Duplicate of `src/shared/lib/` |
 | `src/types/` | Duplicate of `src/shared/types/` |
+
+### Deleted Unused UI Components (22 files)
+
+The following unused components were removed from `src/shared/components/ui/`:
+
+| # | Component | File |
+|---|-----------|------|
+| 1 | Accordion | `accordion.tsx` |
+| 2 | Alert | `alert.tsx` |
+| 3 | Aspect Ratio | `aspect-ratio.tsx` |
+| 4 | Breadcrumb | `breadcrumb.tsx` |
+| 5 | Carousel | `carousel.tsx` |
+| 6 | Chart | `chart.tsx` |
+| 7 | Collapsible | `collapsible.tsx` |
+| 8 | Command | `command.tsx` |
+| 9 | Context Menu | `context-menu.tsx` |
+| 10 | Form | `form.tsx` |
+| 11 | Hover Card | `hover-card.tsx` |
+| 12 | Input OTP | `input-otp.tsx` |
+| 13 | Menubar | `menubar.tsx` |
+| 14 | Navigation Menu | `navigation-menu.tsx` |
+| 15 | Pagination | `pagination.tsx` |
+| 16 | Progress | `progress.tsx` |
+| 17 | Resizable | `resizable.tsx` |
+| 18 | Sidebar | `sidebar.tsx` |
+| 19 | Slider | `slider.tsx` |
+| 20 | Table | `table.tsx` |
+| 21 | Toggle Group | `toggle-group.tsx` |
+| 22 | use-toast | `use-toast.ts` (duplicate re-export) |
+
+### Remaining UI Components (27 files)
+
+Components still in use in `src/shared/components/ui/`:
+
+```
+alert-dialog, avatar, badge, button, calendar, card, checkbox,
+dialog, drawer, dropdown-menu, input, label, popover, radio-group,
+scroll-area, select, separator, sheet, skeleton, sonner, switch,
+tabs, textarea, toast, toaster, toggle, tooltip
+```
 
 ---
 
@@ -886,7 +926,7 @@ src/
 │   └── tasks/
 ├── shared/                     # All shared code
 │   ├── components/             # UI, layout, notifications, qr
-│   │   ├── ui/                 # Button, Card, Dialog, etc.
+│   │   ├── ui/                 # 27 components (Button, Card, Dialog, etc.)
 │   │   ├── layout/             # Header, BottomBar
 │   │   ├── common/             # BottomActionPanel
 │   │   ├── notifications/      # NotificationsPopup

@@ -1,0 +1,104 @@
+import { Pressable, View, Text, StyleSheet } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { FileText } from 'lucide-react-native';
+import { usePatient } from '../../../../src/hooks/usePatients';
+
+export default function PatientDetailRoute() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const patientId = typeof id === 'string' ? id : '';
+  const { data: patient } = usePatient(patientId);
+
+  if (!patientId) return null;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{patient?.name || 'Patient'}</Text>
+        <Text style={styles.subtitle}>ID: {patientId}</Text>
+      </View>
+
+      <Pressable style={styles.card} onPress={() => router.push(`/patients/${patientId}/edit` as never)}>
+        <View style={styles.content}>
+          <Text style={styles.cardTitle}>Edit Patient</Text>
+          <Text style={styles.cardSubtitle}>Update demographics, registration, and clinical details</Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={styles.card}
+        onPress={() => router.push(`/patients/${patientId}/add-mrn` as never)}
+      >
+        <View style={styles.content}>
+          <Text style={styles.cardTitle}>Add MRN</Text>
+          <Text style={styles.cardSubtitle}>Append a new MRN/scheme registration entry</Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        style={styles.card}
+        onPress={() => router.push(`/patient/${patientId}/documents` as never)}
+      >
+        <View style={styles.iconWrap}>
+          <FileText size={20} color="#2563eb" />
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.cardTitle}>Documents</Text>
+          <Text style={styles.cardSubtitle}>Offline-first patient document folders and uploads</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    gap: 12,
+  },
+  header: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  card: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    padding: 14,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    flex: 1,
+    gap: 2,
+  },
+  cardTitle: {
+    fontWeight: '800',
+    color: '#0f172a',
+    fontSize: 16,
+  },
+  cardSubtitle: {
+    color: '#64748b',
+    fontSize: 12,
+  },
+});

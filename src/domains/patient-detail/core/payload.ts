@@ -95,7 +95,7 @@ export const toCreatePayload = (values: PatientFormValues): CreatePatientPayload
     surgeryDate: trimOrUndefined(values.surgeryDate),
     tidNumber: trimOrUndefined(values.tidNumber),
     tidStatus: trimOrUndefined(values.tidStatus),
-    emergencyContact: values.emergencyContact,
+    emergencyContact: values.emergencyContact as Patient["emergencyContact"],
     latestMrn: registrationNumber || undefined,
     mrnHistory: registrationNumber
       ? [
@@ -137,14 +137,14 @@ export const toUpdatePayload = (values: PatientFormValues, existing: Patient): U
     surgeryDate: trimOrUndefined(values.surgeryDate),
     tidNumber: trimOrUndefined(values.tidNumber),
     tidStatus: trimOrUndefined(values.tidStatus),
-    emergencyContact: values.emergencyContact,
+    emergencyContact: values.emergencyContact as Patient["emergencyContact"],
     latestMrn: existing.latestMrn ?? trimOrUndefined(values.mrn),
   };
 
   // Only include fields that differ from existing to play nicely with partial update semantics
   const result: UpdatePatientPayload = {};
   (Object.entries(normalized) as [keyof UpdatePatientPayload, unknown][]).forEach(([key, next]) => {
-    const prev = (existing as Record<string, unknown>)[key];
+    const prev = (existing as unknown as Record<string, unknown>)[key];
     if (next !== undefined && next !== prev) {
       result[key] = next as never;
     }

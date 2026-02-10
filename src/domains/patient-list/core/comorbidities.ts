@@ -1,7 +1,7 @@
 import { COMORBIDITY_OPTIONS } from "./validation";
 
 const BASE_VALUES = COMORBIDITY_OPTIONS.filter((opt) => opt !== "OTHER");
-const BASE_SET = new Set(BASE_VALUES);
+const BASE_SET = new Set<string>(BASE_VALUES as readonly string[]);
 
 const toUpperTrim = (value: string) => value.trim().toUpperCase();
 

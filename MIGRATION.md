@@ -985,3 +985,93 @@ grep -r "from '@/pages/Patient" src/
 # Run tests for a domain
 npm test -- --testPathPattern="domains/patient-list"
 ```
+
+---
+
+## React Native Migration (In Progress)
+
+### Monorepo Structure
+
+```
+clinical-canvas-react/
+├── apps/
+│   └── mobile/              # Expo React Native app
+├── packages/
+│   └── core/                # Shared pure TypeScript logic
+├── src/                     # Existing web app (Vite)
+└── pnpm-workspace.yaml      # Monorepo config
+```
+
+### packages/core
+
+Shared platform-agnostic code:
+
+| Module | Files | Description |
+|--------|-------|-------------|
+| `types/` | `api.ts` | API models (Patient, Task, Note, etc.) |
+| `api/` | `client.ts` | Platform-agnostic API client factory |
+| `patient/` | `types.ts`, `normalize.ts`, `stage.ts`, `filter.ts`, `comorbidities.ts` | Patient utilities |
+| `storage/` | `types.ts`, `pinnedPatients.ts` | Storage adapter pattern |
+
+### apps/mobile
+
+Expo mobile app with:
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Root Layout | ✅ | Query client, gesture handler, safe area |
+| Tab Navigator | ✅ | Dashboard, Patients, Tasks, Profile |
+| Dashboard Screen | ✅ | KPI tiles, quick actions |
+| Patients Screen | ✅ | FlatList, search, filters, PatientCard |
+| Tasks Screen | ✅ | Placeholder |
+| Profile Screen | ✅ | Placeholder |
+| PatientCard | ✅ | RN version with NativeWind |
+| StageChip | ✅ | RN version |
+| Badge | ✅ | RN version |
+| Button | ✅ | RN version |
+| Card | ✅ | RN version |
+| usePatients | ✅ | TanStack Query hook |
+| usePatientsFilters | ✅ | Uses core filter logic |
+| usePinnedPatients | ✅ | Uses MMKV storage |
+| MMKV Storage | ✅ | StorageAdapter implementation |
+
+### Tech Stack
+
+- **Expo SDK 52** + Expo Router
+- **NativeWind 4** (Tailwind for RN)
+- **TanStack Query** for data fetching
+- **react-native-mmkv** for fast local storage
+- **lucide-react-native** for icons
+
+### Key Migrations
+
+| Web | Mobile |
+|-----|--------|
+| `react-router-dom` | Expo Router |
+| `localStorage` | MMKV |
+| `lucide-react` | `lucide-react-native` |
+| Tailwind CSS | NativeWind |
+| `div`, `span`, `p` | `View`, `Text` |
+| `onClick` | `onPress` |
+| `window.open()` | `Linking.openURL()` |
+
+### Getting Started
+
+```bash
+# From project root
+pnpm install
+
+# Start mobile dev server
+cd apps/mobile
+pnpm start
+```
+
+### Remaining Work
+
+- [ ] Patient detail screen
+- [ ] Add patient screen
+- [ ] Notes, Tasks, Medications tabs
+- [ ] Document picker/camera
+- [ ] Offline file caching
+- [ ] Push notifications
+- [ ] Deep linking

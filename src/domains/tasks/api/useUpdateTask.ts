@@ -6,6 +6,7 @@ import { applyOp } from '../local-ledger/services/commandService';
 import { computePatch } from '../local-ledger/services/opService';
 import { getActiveActorId, getDeviceId } from '../local-ledger/utils/device';
 import { ulid } from '../local-ledger/utils/ids';
+import type { TaskPatch } from '../local-ledger/types';
 
 export interface UpdateTaskPayload {
   title?: string;
@@ -30,7 +31,7 @@ export function useUpdateTask(taskId: string) {
 
       const now = new Date().toISOString();
       const desiredStatus = updates.status;
-      const updatesWithDerived: Record<string, unknown> = {
+      const updatesWithDerived: TaskPatch = {
         ...updates,
       };
 
@@ -41,7 +42,7 @@ export function useUpdateTask(taskId: string) {
         updatesWithDerived.completedAt = null;
       }
 
-      const { patch, inversePatch } = computePatch(current as Record<string, unknown>, updatesWithDerived);
+      const { patch, inversePatch } = computePatch(current, updatesWithDerived);
 
       if (Object.keys(patch).length === 0) {
         return toPublicTask(current);
@@ -55,8 +56,8 @@ export function useUpdateTask(taskId: string) {
         actorId: getActiveActorId() ?? 'anon',
         deviceId: getDeviceId(),
         baseVersion: current.version,
-        patch,
-        inversePatch,
+        patch: patch as TaskPatch,
+        inversePatch: inversePatch as TaskPatch,
       });
 
       const updated = await getTaskById(taskId);

@@ -1,6 +1,6 @@
 // Folder card for displaying document category summary
 import React from "react";
-import type { DocCategory, FolderSummary } from "../model/types";
+import type { DocCategory, FolderSummary } from "../core/types";
 import { CATEGORY_CONFIG } from "./CategoryConfig";
 import { cn } from "@/lib/utils";
 

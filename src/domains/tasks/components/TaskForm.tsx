@@ -42,7 +42,7 @@ export function AddTaskForm({ open, onOpenChange, onSubmit, patients, staff }: A
       return;
     }
 
-    const dueDateTime = selectedDate;
+    const dueDateTime = new Date(selectedDate);
     if (formData.time) {
       const [hours, minutes] = formData.time.split(':');
       dueDateTime.setHours(parseInt(hours), parseInt(minutes));

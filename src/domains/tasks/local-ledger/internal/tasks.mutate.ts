@@ -91,10 +91,14 @@ export function updateTask(
     patch: TaskPatch;
     actorId?: string | null;
     updatedAt: string;
+    allowDeletedTarget?: boolean;
   },
 ): TaskEntity {
   const current = state.tasks[params.id];
-  if (!current || current.deletedAt) {
+  const canReviveDeleted =
+    params.allowDeletedTarget === true && current?.deletedAt !== null && params.patch.deletedAt === null;
+
+  if (!current || (current.deletedAt && !canReviveDeleted)) {
     throw new Error('Version conflict or task not found');
   }
 

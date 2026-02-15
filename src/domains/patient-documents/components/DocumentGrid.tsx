@@ -1,6 +1,6 @@
 // Document grid component for displaying a collection of documents
 import React, { useState } from "react";
-import type { DocumentItem } from "../model/types";
+import type { DocumentItem } from "../core/types";
 import { DocumentCard } from "./DocumentCard";
 import { DocumentLightbox } from "./DocumentLightbox";
 import { cn } from "@/lib/utils";

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { DocumentGrid } from "../DocumentGrid";
-import type { DocumentItem } from "../../model/types";
+import type { DocumentItem } from "../../core/types";
 
 const mockDocuments: DocumentItem[] = [
   {

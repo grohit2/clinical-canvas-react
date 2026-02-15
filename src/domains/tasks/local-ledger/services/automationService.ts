@@ -1,8 +1,3 @@
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 import { runInLedgerTransaction } from '../db';
 import {
   tryInsertAutomationRun,
@@ -10,34 +5,6 @@ import {
   updateAutomationRunStatus,
 } from '../internal/ops.mutate';
 import { findTaskByOriginKey, getTaskById } from '../queries/tasks.read';
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-import { readLedgerState, runInLedgerTransaction } from '../db';
-import {
-  tryInsertAutomationRun,
-  updateAutomationRunOpsCreated,
-} from '../internal/ops.mutate';
-import { findTaskByOriginKey } from '../queries/tasks.read';
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 import type { OpInput } from './commandService';
 import { ulid } from '../utils/ids';
 
@@ -53,11 +20,6 @@ export interface AutomationRule {
 }
 
 // Patient-triggered automations are intentionally deferred in this phase.
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 // Keep one disabled sample so the runtime path stays exercised/documented.
 const RULES: AutomationRule[] = [
   {
@@ -73,21 +35,6 @@ const RULES: AutomationRule[] = [
     ],
   },
 ];
-=======
-const RULES: AutomationRule[] = [];
->>>>>>> theirs
-=======
-const RULES: AutomationRule[] = [];
->>>>>>> theirs
-=======
-const RULES: AutomationRule[] = [];
->>>>>>> theirs
-=======
-const RULES: AutomationRule[] = [];
->>>>>>> theirs
-=======
-const RULES: AutomationRule[] = [];
->>>>>>> theirs
 
 export async function runAutomationForOp(op: OpInput & { resultVersion: number; createdAt: string }) {
   if (op.opType === 'automation' || op.opType === 'undo' || op.opType === 'delete') {
@@ -100,48 +47,18 @@ export async function runAutomationForOp(op: OpInput & { resultVersion: number; 
 }
 
 async function handleTaskCreated(triggerOp: OpInput & { resultVersion: number; createdAt: string }) {
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
   const triggerTask = await getTaskById(triggerOp.entityId);
   if (!triggerTask) {
     return;
   }
 
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   const matching = RULES.filter((rule) => rule.enabled && rule.trigger === 'task.created');
   if (matching.length === 0) {
     return;
   }
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
   const { applyOp } = await import('./commandService');
 
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   for (const rule of matching) {
     const runId = ulid();
     const claimed = await runInLedgerTransaction((state) =>
@@ -151,22 +68,7 @@ async function handleTaskCreated(triggerOp: OpInput & { resultVersion: number; c
         triggerOpId: triggerOp.opId,
         status: 'completed',
         opsCreated: 0,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
         errorMessage: null,
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         createdAt: new Date().toISOString(),
       }),
     );
@@ -176,11 +78,6 @@ async function handleTaskCreated(triggerOp: OpInput & { resultVersion: number; c
     }
 
     let opsCreated = 0;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 
     try {
       for (const action of rule.actions) {
@@ -242,44 +139,4 @@ async function handleTaskCreated(triggerOp: OpInput & { resultVersion: number; c
       throw error;
     }
   }
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-    for (const action of rule.actions) {
-      const originKey = `task:${triggerOp.entityId}:rule:${rule.id}:tpl:${action.templateId}`;
-      const existing = await findTaskByOriginKey(originKey);
-      if (existing) {
-        continue;
-      }
-
-      // Action execution intentionally deferred while task-only ledger stabilizes.
-      opsCreated += 0;
-    }
-
-    await runInLedgerTransaction((state) => {
-      updateAutomationRunOpsCreated(state, runId, opsCreated);
-    });
-  }
-
-  // Keep hook for future diagnostics.
-  readLedgerState();
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 }

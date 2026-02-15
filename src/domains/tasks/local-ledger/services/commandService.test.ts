@@ -1,25 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 import { readLedgerState, resetLedgerState } from '../db';
-=======
-import { resetLedgerState } from '../db';
->>>>>>> theirs
-=======
-import { resetLedgerState } from '../db';
->>>>>>> theirs
-=======
-import { resetLedgerState } from '../db';
->>>>>>> theirs
-=======
-import { resetLedgerState } from '../db';
->>>>>>> theirs
-=======
-import { resetLedgerState } from '../db';
->>>>>>> theirs
 import { getOpById, getOpsForActorDay, getOpsForEntity } from '../queries/ops.read';
 import { getTaskById } from '../queries/tasks.read';
 import { getLocalDayFromIso } from '../utils/device';
@@ -68,11 +48,6 @@ describe('applyOp', () => {
 
     const entityOps = await getOpsForEntity('task', 'task_1');
     expect(entityOps).toHaveLength(1);
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 
     const state = readLedgerState();
     expect(state.outboxOps).toHaveLength(1);
@@ -161,16 +136,6 @@ describe('applyOp', () => {
 
     const state = readLedgerState();
     expect(state.tasks.task_delete.deletedAt).toBe('2026-02-15T10:01:00.000Z');
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   });
 
   it('records activity rows in reverse-chronological order', async () => {

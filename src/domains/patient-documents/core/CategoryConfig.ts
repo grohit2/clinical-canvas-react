@@ -10,7 +10,7 @@ import {
   FolderOpen,
   type LucideIcon,
 } from "lucide-react";
-import type { DocCategory } from "../model/types";
+import type { DocCategory } from "../core/types";
 
 export interface CategoryConfigItem {
   title: string;

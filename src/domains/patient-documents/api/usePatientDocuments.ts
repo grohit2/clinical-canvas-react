@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getDocuments, detachDocument as apiDetachDocument } from "@/lib/filesApi";
-import type { DocCategory, DocumentItem, FolderSummary, SortOrder } from "../model/types";
+import type { DocCategory, DocumentItem, FolderSummary, SortOrder } from "../core/types";
 import {
   mapFolderSummariesFromApi,
   mapCategoryDocumentsFromApi,
   mapAllDocumentsFromApi,
   type ApiDocumentsProfile,
-} from "../model/mapFromApi";
+} from "../core/mapFromApi";
 
 const DOCUMENTS_QUERY_KEY = "patient-documents";
 

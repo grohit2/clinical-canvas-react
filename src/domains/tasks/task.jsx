@@ -315,35 +315,6 @@ export default function HospitalBoard() {
   const rotateSort = useCallback(() => {
     setSortMode((s) => (s === "default" ? "priority" : s === "priority" ? "time" : "default"));
   }, []);
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-  const handleBack = useCallback(() => {
-    if (activeTab !== "tasks") {
-      setActiveTab("tasks");
-      return;
-    }
-    if (activeView !== "ward") {
-      setActiveView("ward");
-      return;
-    }
-    if (window.history.length > 1) {
-      window.history.back();
-    }
-  }, [activeTab, activeView]);
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-
   /* Build view groups */
   const columns = getColumns(activeView);
   const viewGroups = buildGroups(activeView, wards);
@@ -363,27 +334,9 @@ export default function HospitalBoard() {
   const currentView = VIEWS.find(v => v.id === activeView);
   const sortLabel = sortMode === "default" ? "Default" : sortMode === "priority" ? "Priority" : "Time";
   const navTabs = [
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
     { id: "home", label: "Home", icon: "🏠", dot: false },
     { id: "tasks", label: "Tasks", icon: "🗂️", dot: false },
     { id: "ledger", label: "Ledger", icon: "📒", badge: ledgerEntries.length },
-=======
-    { id: "back", label: "Back", icon: "←", action: true, onPress: handleBack },
-    { id: "home", label: "Home", icon: "🏠" },
-    { id: "tasks", label: "Tasks", icon: "🗂️" },
->>>>>>> theirs
-=======
-    { id: "back", label: "Back", icon: "←", action: true, onPress: handleBack },
-    { id: "home", label: "Home", icon: "🏠" },
-    { id: "tasks", label: "Tasks", icon: "🗂️" },
->>>>>>> theirs
-=======
-    { id: "back", label: "Back", icon: "←", action: true, onPress: handleBack },
-    { id: "home", label: "Home", icon: "🏠" },
-    { id: "tasks", label: "Tasks", icon: "🗂️" },
->>>>>>> theirs
     { id: "reminders", label: "Reminders", icon: "⏰", badge: todayReminders.length },
     { id: "audit", label: "Audit", icon: "🧾", dot: ledgerEntries.length > 0 },
   ];
@@ -391,29 +344,11 @@ export default function HospitalBoard() {
     ? "Task Home"
     : activeTab === "tasks"
       ? "Task Board"
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
       : activeTab === "ledger"
         ? "Task Ledger"
         : activeTab === "reminders"
           ? "Today Reminders"
           : "Audit Trail";
-=======
-      : activeTab === "reminders"
-        ? "Today Reminders"
-        : "Audit Trail";
->>>>>>> theirs
-=======
-      : activeTab === "reminders"
-        ? "Today Reminders"
-        : "Audit Trail";
->>>>>>> theirs
-=======
-      : activeTab === "reminders"
-        ? "Today Reminders"
-        : "Audit Trail";
->>>>>>> theirs
 
   return (
     <div style={{ fontFamily: "'Figtree', -apple-system, sans-serif", background: "#f0f2f7", minHeight: "100vh", paddingBottom: 132 }}>
@@ -424,42 +359,6 @@ export default function HospitalBoard() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-              <button
-                onClick={handleBack}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  fontSize: 18,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  lineHeight: 1,
-                }}
-                aria-label="Back"
-                title="Back"
-              >
-                ←
-              </button>
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #579bfc, #3b6de7)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏥</div>
               <h1 style={{ fontSize: isMobile ? 17 : 21, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{headerTitle}</h1>
             </div>
@@ -567,9 +466,6 @@ export default function HospitalBoard() {
         </div>
       )}
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
       {activeTab === "ledger" && (
         <div style={{ padding: isMobile ? "12px 10px 24px" : "20px 28px 30px", maxWidth: 920, margin: "0 auto" }}>
           <div style={{ background: "#fff", border: "1px solid #e6e8ef", borderRadius: 14, overflow: "hidden" }}>
@@ -588,12 +484,6 @@ export default function HospitalBoard() {
         </div>
       )}
 
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       {activeTab === "reminders" && (
         <div style={{ padding: isMobile ? "12px 10px 24px" : "20px 28px 30px", maxWidth: 980, margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>

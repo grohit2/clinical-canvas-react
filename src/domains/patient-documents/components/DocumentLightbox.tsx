@@ -1,6 +1,6 @@
 // Full-screen document lightbox with zoom and pan support
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import type { DocumentItem } from "../model/types";
+import type { DocumentItem } from "../core/types";
 
 interface DocumentLightboxProps {
   document: DocumentItem;

@@ -1,7 +1,7 @@
 // Document card component for displaying a single document thumbnail
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { DocumentItem } from "../model/types";
+import type { DocumentItem } from "../core/types";
 import { cn } from "@/lib/utils";
 
 interface DocumentCardProps {

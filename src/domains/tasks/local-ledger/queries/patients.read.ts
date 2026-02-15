@@ -13,41 +13,6 @@ export interface PatientReadModel {
   deletedAt: string | null;
 }
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
-=======
-export const PATIENT_SELECT = `SELECT * FROM patients`;
-
->>>>>>> theirs
 export async function getPatientById(_id: string): Promise<PatientReadModel | null> {
   return null;
 }

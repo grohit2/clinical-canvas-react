@@ -18,12 +18,12 @@ import {
   adaptSections,
   sectionHasAnyValue,
   getAutoFillMappings,
-} from "./discharge.sections";
+} from "../core/sections";
 import {
   buildStructuredDischargeDocxBlob,
   safeFileName,
-} from "./export/structuredDischargeDocx";
-import { composeDocxSummaryFromSections } from "./export/sectionsToDocx";
+} from "../core/export/structuredDischargeDocx";
+import { composeDocxSummaryFromSections } from "../core/export/sectionsToDocx";
 
 const deriveSummary = (state: SectionState) => {
   const diagnosis = state.clinicalInfo?.finalDiagnosis?.trim() ?? "";

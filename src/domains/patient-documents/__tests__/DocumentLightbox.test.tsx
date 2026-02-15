@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { DocumentLightbox } from "../DocumentLightbox";
-import type { DocumentItem } from "../../model/types";
+import type { DocumentItem } from "../../core/types";
 
 const mockDocument: DocumentItem = {
   id: "doc-1",

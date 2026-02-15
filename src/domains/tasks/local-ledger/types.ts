@@ -1,34 +1,6 @@
 import type { TaskPriority, TaskStatus } from '../core/types';
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 export type MutableEntityType = 'task' | 'patient';
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
-=======
-export type MutableEntityType = 'task';
->>>>>>> theirs
 export type OpType = 'create' | 'update' | 'delete' | 'undo' | 'automation';
 
 export interface TaskEntity {
@@ -75,35 +47,7 @@ export interface TaskOpRow {
 
 export interface OutboxOpRow {
   opId: string;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
   status: 'pending' | 'acked' | 'failed';
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
-=======
-  status: 'pending' | 'sent' | 'failed';
->>>>>>> theirs
 }
 
 export interface AutomationRunRow {
@@ -112,28 +56,7 @@ export interface AutomationRunRow {
   triggerOpId: string;
   status: 'completed' | 'skipped';
   opsCreated: number;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
   errorMessage: string | null;
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
   createdAt: string;
 }
 

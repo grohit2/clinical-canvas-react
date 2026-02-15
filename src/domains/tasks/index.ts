@@ -70,5 +70,5 @@ export {
 // Components
 export { TaskCard } from './components/TaskCard';
 export { TaskList } from './components/TaskList';
-export { TaskForm } from './components/TaskForm';
+export { AddTaskForm as TaskForm } from './components/TaskForm';
 export { PriorityBadge } from './components/PriorityBadge';

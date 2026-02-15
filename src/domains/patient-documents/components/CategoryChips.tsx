@@ -1,7 +1,7 @@
 // Category chips/tabs for filtering documents
 import React from "react";
-import type { DocCategory } from "../model/types";
-import { DOC_CATEGORIES } from "../model/types";
+import type { DocCategory } from "../core/types";
+import { DOC_CATEGORIES } from "../core/types";
 import { CATEGORY_CONFIG } from "./CategoryConfig";
 import { cn } from "@/lib/utils";
 

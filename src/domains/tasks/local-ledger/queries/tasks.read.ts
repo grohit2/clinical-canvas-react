@@ -1,50 +1,11 @@
 import { readLedgerState } from '../db';
 import type { TaskEntity } from '../types';
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-export const TASK_SELECT = `
+const TASK_SELECT = `
   SELECT t.*, NULL AS patientNameSnapshot
   FROM tasks t
 `;
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 function isActiveTask(task: TaskEntity): boolean {
   return task.deletedAt === null;
 }
@@ -60,10 +21,16 @@ function bySortOrderAndDueDate(a: TaskEntity, b: TaskEntity): number {
   return aTime - bTime;
 }
 
-export async function getTaskById(id: string): Promise<TaskEntity | null> {
+export async function getTaskById(
+  id: string,
+  options: { includeDeleted?: boolean } = {},
+): Promise<TaskEntity | null> {
   const state = readLedgerState();
   const task = state.tasks[id];
-  if (!task || !isActiveTask(task)) {
+  if (!task) {
+    return null;
+  }
+  if (!options.includeDeleted && !isActiveTask(task)) {
     return null;
   }
   return task;

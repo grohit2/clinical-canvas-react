@@ -44,13 +44,6 @@ export function updateAutomationRunOpsCreated(
     opsCreated,
   };
 }
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 
 export function updateAutomationRunStatus(
   state: TaskLedgerState,
@@ -69,17 +62,3 @@ export function updateAutomationRunStatus(
     errorMessage,
   };
 }
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs

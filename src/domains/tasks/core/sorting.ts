@@ -11,11 +11,12 @@ export function sortTasks(tasks: Task[], sort: TaskSort): Task[] {
     let comparison = 0;
 
     switch (sort.field) {
-      case 'dueDate':
+      case 'dueDate': {
         const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
         const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
         comparison = dateA - dateB;
         break;
+      }
 
       case 'priority':
         comparison = comparePriority(a.priority, b.priority);

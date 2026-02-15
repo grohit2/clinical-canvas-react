@@ -1,10 +1,18 @@
 // Screens
-export { TasksScreen } from './screens/TasksScreen';
-export { TasksDueScreen } from './screens/TasksDueScreen';
-export { UrgentAlertsScreen } from './screens/UrgentAlertsScreen';
-export { CompletedTodayScreen } from './screens/CompletedTodayScreen';
-export { AddTaskScreen } from './screens/AddTaskScreen';
-export { EditTaskScreen } from './screens/EditTaskScreen';
+export { TasksPage } from './screens/TasksScreen';
+export { TasksDuePage } from './screens/TasksDueScreen';
+export { UrgentAlertsPage } from './screens/UrgentAlertsScreen';
+export { CompletedTodayPage } from './screens/CompletedTodayScreen';
+export { AddTaskPage } from './screens/AddTaskScreen';
+export { EditTaskPage } from './screens/EditTaskScreen';
+
+// Backwards-compatible aliases
+export { TasksPage as TasksScreen } from './screens/TasksScreen';
+export { TasksDuePage as TasksDueScreen } from './screens/TasksDueScreen';
+export { UrgentAlertsPage as UrgentAlertsScreen } from './screens/UrgentAlertsScreen';
+export { CompletedTodayPage as CompletedTodayScreen } from './screens/CompletedTodayScreen';
+export { AddTaskPage as AddTaskScreen } from './screens/AddTaskScreen';
+export { EditTaskPage as EditTaskScreen } from './screens/EditTaskScreen';
 
 // Types
 export type {
@@ -21,6 +29,12 @@ export type {
 export { useTasks, useTask, useTasksByPatient, useTasksByDepartment } from './api/useTasks';
 export { useCreateTask } from './api/useCreateTask';
 export { useUpdateTask, useCompleteTask, useDeleteTask } from './api/useUpdateTask';
+export { useUndo } from './api/useUndo';
+export {
+  useMyActionsToday,
+  useMyActionCountToday,
+  useTaskActivity,
+} from './api/useMyActivity';
 
 // Hooks
 export { useTaskFilters } from './hooks/useTaskFilters';

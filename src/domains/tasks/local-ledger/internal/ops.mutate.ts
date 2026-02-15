@@ -44,3 +44,42 @@ export function updateAutomationRunOpsCreated(
     opsCreated,
   };
 }
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+
+export function updateAutomationRunStatus(
+  state: TaskLedgerState,
+  runId: string,
+  status: AutomationRunRow['status'],
+  errorMessage: string | null,
+): void {
+  const idx = state.automationRuns.findIndex((row) => row.id === runId);
+  if (idx === -1) {
+    return;
+  }
+
+  state.automationRuns[idx] = {
+    ...state.automationRuns[idx],
+    status,
+    errorMessage,
+  };
+}
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs

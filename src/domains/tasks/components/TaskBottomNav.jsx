@@ -1,3 +1,5 @@
+import React from "react";
+
 export function TaskBottomNav({ tabs, activeTab, onTabChange }) {
   const enabledTabs = tabs.filter((tab) => tab.enabled !== false);
 
@@ -25,13 +27,49 @@ export function TaskBottomNav({ tabs, activeTab, onTabChange }) {
         }}
       >
         {enabledTabs.map((tab) => {
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
           const active = activeTab === tab.id;
           const hasBadge = tab.badge !== undefined && tab.badge !== null && tab.badge !== false;
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+          const active = tab.action ? false : activeTab === tab.id;
+          const hasBadge = tab.badge !== undefined && tab.badge !== null && tab.badge !== false;
+          const handleClick = () => {
+            if (typeof tab.onPress === "function") {
+              tab.onPress();
+              return;
+            }
+            onTabChange(tab.id);
+          };
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 
           return (
             <button
               key={tab.id}
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
               onClick={() => onTabChange(tab.id)}
+=======
+              onClick={handleClick}
+>>>>>>> theirs
+=======
+              onClick={handleClick}
+>>>>>>> theirs
+=======
+              onClick={handleClick}
+>>>>>>> theirs
               style={{
                 border: "none",
                 background: active ? "rgba(87, 155, 252, 0.12)" : "transparent",

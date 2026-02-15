@@ -1,6 +1,26 @@
 import { readLedgerState } from '../db';
 import type { MutableEntityType, TaskOpRow } from '../types';
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 export const OP_SELECT = `
   SELECT
     op_id AS opId,
@@ -22,6 +42,25 @@ export const OP_SELECT = `
   FROM ops
 `;
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 function descByCreatedAt(a: TaskOpRow, b: TaskOpRow): number {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 }

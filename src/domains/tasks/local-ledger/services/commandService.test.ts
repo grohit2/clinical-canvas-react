@@ -1,5 +1,25 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+import { readLedgerState, resetLedgerState } from '../db';
+=======
 import { resetLedgerState } from '../db';
+>>>>>>> theirs
+=======
+import { resetLedgerState } from '../db';
+>>>>>>> theirs
+=======
+import { resetLedgerState } from '../db';
+>>>>>>> theirs
+=======
+import { resetLedgerState } from '../db';
+>>>>>>> theirs
+=======
+import { resetLedgerState } from '../db';
+>>>>>>> theirs
 import { getOpById, getOpsForActorDay, getOpsForEntity } from '../queries/ops.read';
 import { getTaskById } from '../queries/tasks.read';
 import { getLocalDayFromIso } from '../utils/device';
@@ -48,6 +68,109 @@ describe('applyOp', () => {
 
     const entityOps = await getOpsForEntity('task', 'task_1');
     expect(entityOps).toHaveLength(1);
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+
+    const state = readLedgerState();
+    expect(state.outboxOps).toHaveLength(1);
+    expect(state.outboxOps[0].status).toBe('pending');
+  });
+
+  it('rejects unsupported entity types without writing ledger rows', async () => {
+    await expect(
+      applyOp({
+        opId: 'op_patient_1',
+        entityType: 'patient',
+        entityId: 'patient_1',
+        opType: 'create',
+        actorId: 'actor_1',
+        deviceId: 'device_1',
+        baseVersion: 0,
+        patch: { id: 'patient_1' },
+        inversePatch: {},
+      }),
+    ).rejects.toThrow('Unsupported entity type: patient');
+
+    const opRow = await getOpById('op_patient_1');
+    expect(opRow).toBeNull();
+    expect(readLedgerState().outboxOps).toHaveLength(0);
+  });
+
+  it('throws version conflict when baseVersion is stale', async () => {
+    await applyOp({
+      opId: 'op_create_conflict',
+      entityType: 'task',
+      entityId: 'task_conflict',
+      opType: 'create',
+      actorId: 'actor_1',
+      deviceId: 'device_1',
+      baseVersion: 0,
+      patch: { id: 'task_conflict', title: 'Initial' },
+      inversePatch: { deletedAt: '2026-02-15T00:00:00.000Z' },
+      createdAt: '2026-02-15T00:00:00.000Z',
+    });
+
+    await expect(
+      applyOp({
+        opId: 'op_update_conflict',
+        entityType: 'task',
+        entityId: 'task_conflict',
+        opType: 'update',
+        actorId: 'actor_1',
+        deviceId: 'device_1',
+        baseVersion: 0,
+        patch: { title: 'Stale Update' },
+        inversePatch: { title: 'Initial' },
+        createdAt: '2026-02-15T00:01:00.000Z',
+      }),
+    ).rejects.toThrow('Version conflict or task not found');
+  });
+
+  it('soft deletes tasks by setting deletedAt and hiding from reads', async () => {
+    await applyOp({
+      opId: 'op_create_delete',
+      entityType: 'task',
+      entityId: 'task_delete',
+      opType: 'create',
+      actorId: 'actor_1',
+      deviceId: 'device_1',
+      baseVersion: 0,
+      patch: { id: 'task_delete', title: 'Delete me' },
+      inversePatch: { deletedAt: '2026-02-15T10:00:00.000Z' },
+      createdAt: '2026-02-15T10:00:00.000Z',
+    });
+
+    await applyOp({
+      opId: 'op_delete_task',
+      entityType: 'task',
+      entityId: 'task_delete',
+      opType: 'delete',
+      actorId: 'actor_1',
+      deviceId: 'device_1',
+      baseVersion: 1,
+      patch: {},
+      inversePatch: {},
+      createdAt: '2026-02-15T10:01:00.000Z',
+    });
+
+    const hidden = await getTaskById('task_delete');
+    expect(hidden).toBeNull();
+
+    const state = readLedgerState();
+    expect(state.tasks.task_delete.deletedAt).toBe('2026-02-15T10:01:00.000Z');
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
   });
 
   it('records activity rows in reverse-chronological order', async () => {

@@ -30,6 +30,28 @@
 - `eslint.config.js` - restricted internal-mutator imports in tasks domain
 - `src/domains/tasks/local-ledger/services/opService.test.ts` - computePatch behavior test
 - `src/domains/tasks/local-ledger/services/commandService.test.ts` - idempotent applyOp smoke test
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+- `src/domains/tasks/local-ledger/services/undoService.test.ts` - undo operation behavior test (standalone undo op + state restoration)
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 
 ### Notes
 

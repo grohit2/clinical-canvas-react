@@ -4,7 +4,33 @@ import { insertTask, updateTask } from '../internal/tasks.mutate';
 import { getOpById } from '../queries/ops.read';
 import { getLocalDayFromIso } from '../utils/device';
 import { runAutomationForOp } from './automationService';
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+import type {
+  MutableEntityType,
+  OpType,
+  TaskCreateInput,
+  TaskEntity,
+  TaskPatch,
+} from '../types';
+=======
 import type { MutableEntityType, OpType, TaskPatch } from '../types';
+>>>>>>> theirs
+=======
+import type { MutableEntityType, OpType, TaskPatch } from '../types';
+>>>>>>> theirs
+=======
+import type { MutableEntityType, OpType, TaskPatch } from '../types';
+>>>>>>> theirs
+=======
+import type { MutableEntityType, OpType, TaskPatch } from '../types';
+>>>>>>> theirs
+=======
+import type { MutableEntityType, OpType, TaskPatch } from '../types';
+>>>>>>> theirs
 
 export interface OpInput {
   opId: string;
@@ -23,12 +49,99 @@ export interface OpInput {
   createdAt?: string;
 }
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+function assertSupportedEntity(entityType: MutableEntityType): asserts entityType is 'task' {
+  if (entityType !== 'task') {
+    throw new Error(`Unsupported entity type: ${entityType}`);
+  }
+}
+
+function isTaskPriority(value: unknown): value is TaskEntity['priority'] {
+  return value === 'low' || value === 'medium' || value === 'high' || value === 'urgent';
+}
+
+function isTaskStatus(value: unknown): value is TaskEntity['status'] {
+  return (
+    value === 'pending' ||
+    value === 'in_progress' ||
+    value === 'completed' ||
+    value === 'cancelled'
+  );
+}
+
+function toNullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function toTaskCreateInput(
+  op: OpInput,
+  effectivePatch: TaskPatch,
+  createdAt: string,
+): TaskCreateInput {
+  return {
+    id: op.entityId,
+    title: typeof effectivePatch.title === 'string' ? effectivePatch.title : 'Untitled task',
+    description:
+      typeof effectivePatch.description === 'string' ? effectivePatch.description : null,
+    priority: isTaskPriority(effectivePatch.priority) ? effectivePatch.priority : 'medium',
+    status: isTaskStatus(effectivePatch.status) ? effectivePatch.status : 'pending',
+    dueDate: toNullableString(effectivePatch.dueDate),
+    patientId: toNullableString(effectivePatch.patientId),
+    patientName: toNullableString(effectivePatch.patientName),
+    assigneeId: toNullableString(effectivePatch.assigneeId),
+    assigneeName: toNullableString(effectivePatch.assigneeName),
+    departmentId: toNullableString(effectivePatch.departmentId),
+    completedAt: toNullableString(effectivePatch.completedAt),
+    sortOrder: typeof effectivePatch.sortOrder === 'number' ? effectivePatch.sortOrder : undefined,
+    origin:
+      effectivePatch.origin === 'automation' || effectivePatch.origin === 'manual'
+        ? effectivePatch.origin
+        : 'manual',
+    originKey: toNullableString(effectivePatch.originKey),
+    createdAt,
+    updatedAt: createdAt,
+    updatedBy: op.actorId ?? null,
+    deletedAt: effectivePatch.deletedAt ?? null,
+  };
+}
+
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 export async function applyOp(op: OpInput): Promise<{ resultVersion: number }> {
   const existingOp = await getOpById(op.opId);
   if (existingOp) {
     return { resultVersion: existingOp.resultVersion };
   }
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+  assertSupportedEntity(op.entityType);
+
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
   const createdAt = op.createdAt ?? new Date().toISOString();
   const createdDayLocal = getLocalDayFromIso(createdAt);
 
@@ -61,6 +174,32 @@ export async function applyOp(op: OpInput): Promise<{ resultVersion: number }> {
 
     let nextVersion = op.baseVersion + 1;
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+    if (op.opType === 'create' || op.opType === 'automation') {
+      const inserted = insertTask(state, toTaskCreateInput(op, effectivePatch, createdAt));
+      nextVersion = inserted.version;
+    } else {
+      const updated = updateTask(state, {
+        id: op.entityId,
+        baseVersion: op.baseVersion,
+        patch: effectivePatch,
+        actorId: op.actorId ?? null,
+        updatedAt: createdAt,
+      });
+      nextVersion = updated.version;
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     if (op.entityType === 'task') {
       if (op.opType === 'create' || op.opType === 'automation') {
         const inserted = insertTask(state, {
@@ -119,6 +258,19 @@ export async function applyOp(op: OpInput): Promise<{ resultVersion: number }> {
         });
         nextVersion = updated.version;
       }
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     }
 
     insertOp(state, {

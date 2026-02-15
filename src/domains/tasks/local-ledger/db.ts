@@ -39,7 +39,38 @@ export function readLedgerState(): TaskLedgerState {
       tasks: parsed.tasks ?? {},
       ops: parsed.ops ?? [],
       outboxOps: parsed.outboxOps ?? [],
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+      automationRuns: (parsed.automationRuns ?? []).map((run) => ({
+        ...run,
+        errorMessage: run.errorMessage ?? null,
+      })),
+=======
       automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
+=======
+      automationRuns: parsed.automationRuns ?? [],
+>>>>>>> theirs
     };
   } catch {
     return cloneState(INITIAL_STATE);

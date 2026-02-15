@@ -18,6 +18,31 @@ export async function undoLastOp(params: { actorId: string; deviceId: string }) 
     throw new Error('Nothing to undo');
   }
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+  if (last.entityType !== 'task') {
+    throw new Error(`Unsupported entity type for undo: ${last.entityType}`);
+  }
+
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
   const task = await getTaskById(last.entityId);
   if (!task) {
     throw new Error('Cannot undo: entity not found');
@@ -25,7 +50,35 @@ export async function undoLastOp(params: { actorId: string; deviceId: string }) 
 
   return applyOp({
     opId: ulid(),
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+    opGroupId: null,
+=======
     opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
+=======
+    opGroupId: last.opGroupId,
+>>>>>>> theirs
     entityType: 'task',
     entityId: last.entityId,
     opType: 'undo',
@@ -47,6 +100,31 @@ export async function undoOpGroup(params: { opGroupId: string; actorId: string; 
   const results: Array<{ resultVersion: number; opId: string }> = [];
 
   for (const op of reversed) {
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+    if (op.entityType !== 'task') {
+      continue;
+    }
+
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     const task = await getTaskById(op.entityId);
     if (!task) {
       continue;

@@ -14,16 +14,33 @@ function cloneState<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function canUseLocalStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+type StorageLike = {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+};
+
+const memoryStorage = new Map<string, string>();
+
+function getStorage(): StorageLike {
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    return window.localStorage;
+  }
+
+  return {
+    getItem: (key: string) => memoryStorage.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      memoryStorage.set(key, value);
+    },
+    removeItem: (key: string) => {
+      memoryStorage.delete(key);
+    },
+  };
 }
 
 export function readLedgerState(): TaskLedgerState {
-  if (!canUseLocalStorage()) {
-    return cloneState(INITIAL_STATE);
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const storage = getStorage();
+  const raw = storage.getItem(STORAGE_KEY);
   if (!raw) {
     return cloneState(INITIAL_STATE);
   }
@@ -50,11 +67,8 @@ export function readLedgerState(): TaskLedgerState {
 }
 
 export function writeLedgerState(state: TaskLedgerState) {
-  if (!canUseLocalStorage()) {
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const storage = getStorage();
+  storage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 let txQueue: Promise<void> = Promise.resolve();
@@ -79,5 +93,7 @@ export async function runInLedgerTransaction<T>(
 }
 
 export function resetLedgerState() {
+  const storage = getStorage();
+  storage.removeItem(STORAGE_KEY);
   writeLedgerState(cloneState(INITIAL_STATE));
 }

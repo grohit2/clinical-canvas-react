@@ -2,19 +2,36 @@ import { ulid } from './ids';
 
 const DEVICE_ID_KEY = 'device_id';
 const ACTIVE_ACTOR_ID_KEY = 'active_actor_id';
+const memoryStorage = new Map<string, string>();
+
+type StorageLike = {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+};
+
+function getStorage(): StorageLike {
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    return window.localStorage;
+  }
+
+  return {
+    getItem: (key: string) => memoryStorage.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      memoryStorage.set(key, value);
+    },
+    removeItem: (key: string) => {
+      memoryStorage.delete(key);
+    },
+  };
+}
 
 function readLocalStorage(key: string): string | null {
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-    return null;
-  }
-  return window.localStorage.getItem(key);
+  return getStorage().getItem(key);
 }
 
 function writeLocalStorage(key: string, value: string): void {
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(key, value);
+  getStorage().setItem(key, value);
 }
 
 export function getDeviceId(): string {
@@ -33,12 +50,10 @@ export function getActiveActorId(): string | null {
 }
 
 export function setActiveActorId(actorId: string | null): void {
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-    return;
-  }
+  const storage = getStorage();
 
   if (!actorId) {
-    window.localStorage.removeItem(ACTIVE_ACTOR_ID_KEY);
+    storage.removeItem(ACTIVE_ACTOR_ID_KEY);
     return;
   }
 

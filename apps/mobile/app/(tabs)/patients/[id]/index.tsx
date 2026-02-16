@@ -26,16 +26,6 @@ export default function PatientDetailRoute() {
 
       <Pressable
         style={styles.card}
-        onPress={() => router.push(`/patients/${patientId}/add-mrn` as never)}
-      >
-        <View style={styles.content}>
-          <Text style={styles.cardTitle}>Add MRN</Text>
-          <Text style={styles.cardSubtitle}>Append a new MRN/scheme registration entry</Text>
-        </View>
-      </Pressable>
-
-      <Pressable
-        style={styles.card}
         onPress={() => router.push(`/patient/${patientId}/documents` as never)}
       >
         <View style={styles.iconWrap}>

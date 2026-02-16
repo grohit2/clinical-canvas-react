@@ -52,6 +52,30 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="patients/register"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="patients/[id]/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="patients/[id]/edit"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="patients/[id]/add-mrn"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

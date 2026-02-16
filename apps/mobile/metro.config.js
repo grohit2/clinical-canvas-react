@@ -21,6 +21,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-config.resolver.disableHierarchicalLookup = true;
+// Keep hierarchical lookup enabled for pnpm nested deps used by Expo/Expo Router.
+config.resolver.disableHierarchicalLookup = false;
 
 module.exports = config;

@@ -1,5 +1,3 @@
-import { useShareIntentContext as useNativeShareIntentContext } from 'expo-share-intent';
-
 export interface SharedFile {
   path: string;
   mimeType?: string;
@@ -21,9 +19,26 @@ const FALLBACK_CONTEXT: ShareIntentContextValue = {
   resetShareIntent: () => undefined,
 };
 
-export function useSafeShareIntentContext(): ShareIntentContextValue {
+function getNativeShareIntentHook():
+  | (() => ShareIntentContextValue)
+  | null {
   try {
-    return useNativeShareIntentContext() as ShareIntentContextValue;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('expo-share-intent') as {
+      useShareIntentContext?: () => ShareIntentContextValue;
+    };
+    return mod.useShareIntentContext ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function useSafeShareIntentContext(): ShareIntentContextValue {
+  const nativeHook = getNativeShareIntentHook();
+  if (!nativeHook) return FALLBACK_CONTEXT;
+
+  try {
+    return nativeHook();
   } catch {
     return FALLBACK_CONTEXT;
   }

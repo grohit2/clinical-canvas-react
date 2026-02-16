@@ -1,267 +1,373 @@
-import { useState } from "react";
-import { Header } from "@shared/components/layout/Header";
-import { BottomBar } from "@shared/components/layout/BottomBar";
-import { Card } from "@shared/components/ui/card";
-import { Badge } from "@shared/components/ui/badge";
-import { Button } from "@shared/components/ui/button";
-import { Avatar, AvatarFallback } from "@shared/components/ui/avatar";
-import { Clock, User, Calendar, Flag, Plus } from "lucide-react";
-import { cn } from "@shared/lib/utils";
-import { AddTaskForm } from "@/components/task/AddTaskForm";
-import type { Task } from "@shared/types/models";
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Circle, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { useCreateTask } from '../api/useCreateTask';
+import { useMyActionsToday } from '../api/useMyActivity';
+import { useTasks } from '../api/useTasks';
+import { useUndo } from '../api/useUndo';
+import { useDeleteTask, useUpdateTask } from '../api/useUpdateTask';
+import { TASK_BOARD_FILTERS } from '../board/constants';
+import { buildPatientLookup } from '../board/patientLookup';
+import { buildAuditRows, buildTaskBoardModel } from '../board/selectors';
+import type { ActivityLike, TaskBoardFilter, TaskBoardRow, TaskBoardTab } from '../board/types';
+import { getActiveActorId } from '../local-ledger/utils/device';
+import { TaskBottomNav } from '../components/TaskBottomNav';
+import { usePatients } from '../../patient-list/api/usePatients';
 
-// Mock data
-const mockTasks: Task[] = [
-  {
-    taskId: 'task1',
-    patientId: '27e8d1ad',
-    title: 'Review CBC results',
-    type: 'lab',
-    due: '2025-07-19T15:00:00Z',
-    assigneeId: 'doctor1',
-    status: 'open',
-    priority: 'high',
-    recurring: false
-  },
-  {
-    taskId: 'task2',
-    patientId: '3b9f2c1e',
-    title: 'Administer medication',
-    type: 'medication',
-    due: '2025-07-19T16:30:00Z',
-    assigneeId: 'nurse1',
-    status: 'in-progress',
-    priority: 'urgent',
-    recurring: true
-  },
-  {
-    taskId: 'task3',
-    patientId: '8c4d5e2f',
-    title: 'Pre-op assessment',
-    type: 'assessment',
-    due: '2025-07-20T09:00:00Z',
-    assigneeId: 'doctor2',
-    status: 'open',
-    priority: 'medium',
-    recurring: false
-  }
-];
-
-const kanbanColumns = [
-  { id: 'open', title: 'To Do', color: 'bg-muted' },
-  { id: 'in-progress', title: 'In Progress', color: 'bg-caution/20' },
-  { id: 'done', title: 'Done', color: 'bg-stable/20' }
-];
-
-const mockPatients = [
-  { id: 'P001', name: 'John Smith' },
-  { id: 'P002', name: 'Sarah Johnson' },
-  { id: 'P003', name: 'Michael Brown' },
-  { id: 'P004', name: 'Emily Davis' },
-  { id: 'P005', name: 'Robert Wilson' }
-];
-
-const mockStaff = [
-  { id: 'S001', name: 'Dr. Sarah Wilson' },
-  { id: 'S002', name: 'Dr. Michael Chen' },
-  { id: 'S003', name: 'Nurse Lisa Johnson' },
-  { id: 'S004', name: 'Dr. Robert Patel' },
-  { id: 'S005', name: 'Nurse Maria Garcia' }
-];
-
-interface TaskCardProps {
-  task: Task;
-  onStatusChange: (taskId: string, newStatus: Task['status']) => void;
+function statusLabel(status: TaskBoardRow['status']): string {
+  if (status === 'in_progress') return 'In Progress';
+  if (status === 'completed') return 'Completed';
+  if (status === 'cancelled') return 'Cancelled';
+  return 'Scheduled';
 }
 
-function TaskCard({ task, onStatusChange }: TaskCardProps) {
-  const getPriorityColor = (priority: Task['priority']) => {
-    switch (priority) {
-      case 'urgent': return 'text-urgent';
-      case 'high': return 'text-caution';
-      case 'medium': return 'text-medical';
-      case 'low': return 'text-muted-foreground';
-    }
-  };
-
-  const getTypeIcon = (type: Task['type']) => {
-    switch (type) {
-      case 'lab': return '🧪';
-      case 'medication': return '💊';
-      case 'procedure': return '🏥';
-      case 'assessment': return '📋';
-      case 'discharge': return '🚪';
-    }
-  };
-
-  const formatDueTime = (dueDate: string) => {
-    const due = new Date(dueDate);
-    const now = new Date();
-    const diffMs = due.getTime() - now.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-    if (diffHours < 0) return 'Overdue';
-    if (diffHours < 1) return 'Due now';
-    if (diffHours < 24) return `${diffHours}h`;
-    return `${Math.floor(diffHours / 24)}d`;
-  };
+function BoardRow({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: TaskBoardRow;
+  selected: boolean;
+  onSelect: (row: TaskBoardRow) => void;
+}) {
+  const updateTask = useUpdateTask(row.id);
+  const deleteTask = useDeleteTask(row.id);
+  const completed = row.status === 'completed';
 
   return (
-    <Card className="p-3 cursor-pointer hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{getTypeIcon(task.type)}</span>
-          <Flag className={cn("h-3 w-3", getPriorityColor(task.priority))} />
+    <tr className={selected ? 'bg-blue-50' : 'bg-white'} onClick={() => onSelect(row)}>
+      <td className="border-b border-slate-100 px-2 py-2">
+        <button
+          type="button"
+          className="rounded"
+          onClick={(event) => {
+            event.stopPropagation();
+            updateTask.mutate({ status: completed ? 'pending' : 'completed' });
+          }}
+          aria-label={`Toggle ${row.title}`}
+        >
+          {completed ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Circle className="h-4 w-4 text-slate-500" />}
+        </button>
+      </td>
+      <td className="border-b border-slate-100 px-2 py-2">
+        <div className="min-w-[220px]">
+          <div className={`truncate text-sm font-semibold ${completed ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+            {row.title}
+          </div>
+          <div className="truncate text-xs text-slate-500">{row.patientName}</div>
         </div>
-        <Badge variant="outline" className="text-xs">
-          {formatDueTime(task.due)}
-        </Badge>
-      </div>
-
-      <h4 className="font-medium text-sm mb-2">{task.title}</h4>
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <User className="h-3 w-3" />
-          <span>Patient #{task.patientId.slice(-4)}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          <span>{new Date(task.due).toLocaleDateString()}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-3">
-        <Avatar className="h-6 w-6">
-          <AvatarFallback className="text-xs">
-            {task.assigneeId.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-
-        <div className="flex gap-1">
-          {task.status !== 'done' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-xs"
-              onClick={() => onStatusChange(task.taskId,
-                task.status === 'open' ? 'in-progress' : 'done'
-              )}
-            >
-              {task.status === 'open' ? 'Start' : 'Complete'}
-            </Button>
-          )}
-        </div>
-      </div>
-    </Card>
+      </td>
+      <td className="border-b border-slate-100 px-2 py-2 text-center">
+        <span
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
+          style={{ backgroundColor: row.doctor.color }}
+          title={row.doctor.name}
+        >
+          {row.doctor.initials}
+        </span>
+      </td>
+      <td className="border-b border-slate-100 px-2 py-2 text-center">
+        <span
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
+          style={{ backgroundColor: row.nurse.color }}
+          title={row.nurse.name}
+        >
+          {row.nurse.initials}
+        </span>
+      </td>
+      <td className="border-b border-slate-100 px-2 py-2 text-center text-xs font-semibold text-slate-700">
+        {statusLabel(row.status)}
+      </td>
+      <td className="border-b border-slate-100 px-2 py-2 text-center">
+        <button
+          type="button"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg hover:bg-rose-50"
+          onClick={(event) => {
+            event.stopPropagation();
+            deleteTask.mutate();
+          }}
+          disabled={deleteTask.isPending}
+          aria-label={`Delete ${row.title}`}
+        >
+          <Trash2 className="h-4 w-4 text-rose-600" />
+        </button>
+      </td>
+    </tr>
   );
 }
 
 export function TasksPage() {
-  const [tasks, setTasks] = useState(mockTasks);
-  const [filter, setFilter] = useState<'all' | 'my-tasks'>('all');
-  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const navigate = useNavigate();
+  const actorId = getActiveActorId() ?? 'anon';
 
-  const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
-    setTasks(prev => prev.map(task =>
-      task.taskId === taskId ? { ...task, status: newStatus } : task
-    ));
-  };
+  const { data: tasks = [], isLoading } = useTasks();
+  const { data: patients = [] } = usePatients();
+  const { data: activityRows = [] } = useMyActionsToday(actorId);
 
-  const handleAddTask = (newTask: Omit<Task, 'taskId'>) => {
-    const taskWithId = {
-      ...newTask,
-      taskId: `task_${Date.now()}`
-    };
-    setTasks(prevTasks => [...prevTasks, taskWithId]);
-  };
+  const createTask = useCreateTask();
+  const undo = useUndo();
 
-  const filteredTasks = tasks.filter(task =>
-    filter === 'all' || task.assigneeId === 'current-user'
+  const [activeTab, setActiveTab] = useState<TaskBoardTab>('board');
+  const [activeFilter, setActiveFilter] = useState<TaskBoardFilter>('all');
+  const [showViewPanel, setShowViewPanel] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+  const patientLookup = useMemo(() => buildPatientLookup(patients as unknown[]), [patients]);
+  const model = useMemo(
+    () => buildTaskBoardModel(tasks, patientLookup, { filter: activeFilter }),
+    [tasks, patientLookup, activeFilter],
   );
 
+  const selectedRow = useMemo(
+    () => model.allRows.find((row) => row.id === selectedRowId) ?? null,
+    [model.allRows, selectedRowId],
+  );
+
+  const auditRows = useMemo(() => {
+    const taskById = Object.fromEntries(model.allRows.map((row) => [row.id, { title: row.title }]));
+    return buildAuditRows(activityRows as ActivityLike[], taskById);
+  }, [activityRows, model.allRows]);
+
+  const handleCreate = async () => {
+    const title = titleInput.trim();
+    if (!title || createTask.isPending) {
+      return;
+    }
+
+    await createTask.mutateAsync({
+      title,
+      dueDate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    });
+    setTitleInput('');
+  };
+
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header
-        title="Tasks"
-        notificationCount={4}
-      />
-
-      <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
-        {/* Header with Add Task Button */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Task Management</h2>
-          <Button onClick={() => setShowAddTaskForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            All Tasks
-          </Button>
-          <Button
-            variant={filter === 'my-tasks' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('my-tasks')}
-          >
-            My Tasks
-          </Button>
-        </div>
-
-        {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-full">
-          {kanbanColumns.map(column => {
-            const columnTasks = filteredTasks.filter(task => task.status === column.id);
-
-            return (
-              <div key={column.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{column.title}</h3>
-                  <Badge variant="secondary">
-                    {columnTasks.length}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {columnTasks.map(task => (
-                    <TaskCard
-                      key={task.taskId}
-                      task={task}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))}
-                </div>
-
-                {columnTasks.length === 0 && (
-                  <div className={cn(
-                    "rounded-lg border-2 border-dashed p-6 text-center text-muted-foreground",
-                    column.color
-                  )}>
-                    No tasks
-                  </div>
-                )}
+    <div className="min-h-screen bg-slate-100 pb-40">
+      <header className="sticky top-0 z-30 bg-gradient-to-r from-slate-900 to-indigo-950 px-4 pb-4 pt-4 shadow-md">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-2xl">🏥</div>
+                <h1 className="text-4xl font-black tracking-tight text-white">Task Board</h1>
               </div>
-            );
-          })}
+              <p className="mt-1 text-sm text-blue-100">Local ledger powered workflows</p>
+            </div>
+
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700"
+              onClick={() => undo.mutate()}
+              disabled={undo.isPending}
+            >
+              <RotateCcw className="h-4 w-4" /> Undo
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="text-4xl font-black text-blue-300">{model.metrics.total}</div>
+              <div className="text-sm font-semibold text-slate-200">Total</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="text-4xl font-black text-rose-300">{model.metrics.urgent}</div>
+              <div className="text-sm font-semibold text-slate-200">Urgent</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="text-4xl font-black text-amber-300">{model.metrics.active}</div>
+              <div className="text-sm font-semibold text-slate-200">Active</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="text-4xl font-black text-emerald-300">{model.metrics.done}</div>
+              <div className="text-sm font-semibold text-slate-200">Done</div>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <AddTaskForm
-        open={showAddTaskForm}
-        onOpenChange={setShowAddTaskForm}
-        onSubmit={handleAddTask}
-        patients={mockPatients}
-        staff={mockStaff}
+      <main className="mx-auto mt-3 w-full max-w-6xl px-3">
+        {activeTab === 'board' ? (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 shadow-sm">
+              <input
+                className="min-w-[240px] flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                placeholder="Add a task"
+                value={titleInput}
+                onChange={(event) => setTitleInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    void handleCreate();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white"
+                onClick={() => void handleCreate()}
+                disabled={createTask.isPending}
+                aria-label="Create task"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-3 shadow-sm">
+              {TASK_BOARD_FILTERS.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    activeFilter === chip.id
+                      ? 'border-blue-600 bg-blue-100 text-blue-700'
+                      : 'border-slate-300 bg-white text-slate-600'
+                  }`}
+                  onClick={() => setActiveFilter(chip.id)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {isLoading ? (
+              <div className="rounded-2xl bg-white p-8 text-center text-sm font-semibold text-slate-500 shadow-sm">
+                Loading tasks...
+              </div>
+            ) : null}
+
+            {!isLoading && model.sections.length === 0 ? (
+              <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
+                <div className="text-2xl font-bold text-slate-600">No tasks yet</div>
+                <div className="mt-1 text-sm text-slate-500">Create one using the input above.</div>
+              </div>
+            ) : null}
+
+            {!isLoading
+              ? model.sections.map((section) => (
+                  <article key={section.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
+                      <h2 className="text-2xl font-black" style={{ color: section.color }}>
+                        {section.title}
+                      </h2>
+                      <span className="text-sm font-semibold text-slate-400">{section.total} tasks</span>
+                      {section.urgentCount > 0 ? (
+                        <span className="ml-auto rounded-full bg-rose-600 px-2 py-0.5 text-xs font-bold text-white">
+                          {section.urgentCount} urgent
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left">
+                        <thead>
+                          <tr className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
+                            <th className="px-2 py-2">Done</th>
+                            <th className="px-2 py-2">Task</th>
+                            <th className="px-2 py-2 text-center">Doctor</th>
+                            <th className="px-2 py-2 text-center">Nurse</th>
+                            <th className="px-2 py-2 text-center">Status</th>
+                            <th className="px-2 py-2 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {section.rows.map((row) => (
+                            <BoardRow
+                              key={row.id}
+                              row={row}
+                              selected={row.id === selectedRowId}
+                              onSelect={(next) => {
+                                setSelectedRowId(next.id);
+                                if (!showViewPanel) {
+                                  setShowViewPanel(true);
+                                }
+                              }}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                ))
+              : null}
+          </section>
+        ) : null}
+
+        {activeTab === 'home' ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-black text-blue-900">Home Summary</h2>
+            <p className="mt-2 text-sm text-slate-700">Total tasks: {model.metrics.total}</p>
+            <p className="text-sm text-slate-700">Urgent tasks: {model.metrics.urgent}</p>
+            <p className="text-sm text-slate-700">Active tasks: {model.metrics.active}</p>
+            <p className="text-sm text-slate-700">Scheduled tasks: {model.metrics.scheduled}</p>
+            <p className="text-sm text-slate-700">Completed tasks: {model.metrics.done}</p>
+          </section>
+        ) : null}
+
+        {activeTab === 'reminders' ? (
+          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-black text-blue-900">Today</h2>
+            {model.remindersToday.length === 0 ? (
+              <p className="text-sm text-slate-500">No reminders for today.</p>
+            ) : (
+              model.remindersToday.map((row) => (
+                <p key={`today_${row.id}`} className="text-sm text-slate-700">
+                  {row.dueLabel} · {row.title}
+                </p>
+              ))
+            )}
+
+            <h2 className="pt-1 text-lg font-black text-blue-900">Upcoming</h2>
+            {model.remindersUpcoming.length === 0 ? (
+              <p className="text-sm text-slate-500">No upcoming reminders.</p>
+            ) : (
+              model.remindersUpcoming.map((row) => (
+                <p key={`up_${row.id}`} className="text-sm text-slate-700">
+                  {row.dueLabel} · {row.title}
+                </p>
+              ))
+            )}
+          </section>
+        ) : null}
+
+        {activeTab === 'audit' ? (
+          <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-black text-blue-900">Audit Activity</h2>
+            {auditRows.length === 0 ? <p className="text-sm text-slate-500">No activity yet.</p> : null}
+            {auditRows.map((row) => (
+              <article key={row.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-bold text-slate-900">{row.title}</p>
+                <p className="text-xs text-slate-600">{row.detail}</p>
+                <p className="text-xs text-slate-400">{new Date(row.at).toLocaleString()}</p>
+              </article>
+            ))}
+          </section>
+        ) : null}
+      </main>
+
+      {showViewPanel ? (
+        <aside className="fixed bottom-28 left-1/2 z-40 w-[min(820px,calc(100%-20px))] -translate-x-1/2 rounded-2xl border border-blue-200 bg-blue-50 p-3 shadow-lg">
+          <div className="text-xs font-black text-blue-900">{activeTab.toUpperCase()} · View</div>
+          {selectedRow ? (
+            <>
+              <div className="text-sm text-slate-700">Task: {selectedRow.title}</div>
+              <div className="text-sm text-slate-700">Patient: {selectedRow.patientName}</div>
+              <div className="text-sm text-slate-700">Doctor: {selectedRow.doctor.name}</div>
+              <div className="text-sm text-slate-700">Nurse: {selectedRow.nurse.name}</div>
+              <div className="text-sm text-slate-700">Due: {selectedRow.dueLabel}</div>
+            </>
+          ) : (
+            <div className="text-sm text-slate-700">Select a task from the board.</div>
+          )}
+        </aside>
+      ) : null}
+
+      <TaskBottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onBack={() => navigate('/patients')}
+        onToggleView={() => setShowViewPanel((current) => !current)}
+        showViewPanel={showViewPanel}
       />
-
-      <BottomBar />
     </div>
   );
 }

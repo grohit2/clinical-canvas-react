@@ -41,6 +41,11 @@
 - Every sub-task references the exact code from `FINAL_ARCHITECTURE_V1.md`. When in doubt, copy from that doc.
 - This repo does not currently have the Expo SQLite foundation described in the architecture. Implementation is adapted to a task-isolated local-ledger (`localStorage`) under `src/domains/tasks/local-ledger`.
 - Patient writes were intentionally deferred per request; patient-related checklist items are left unchecked or marked as deferred placeholders.
+- Deferred by design for this release:
+  - `3.5` patient mutators (`patients.mutate.ts`) remain out of scope while patient data is read from existing patient list/detail APIs.
+  - `7.x` patient-triggered automations remain out of scope; task integration proceeds with task-only automations and guard rails.
+  - `8.4` `useCreatePatient` remains out of scope for the task board integration milestone.
+  - `10.5` patient automation end-to-end path remains deferred until patient ledger write support is enabled.
 
 ---
 

@@ -43,6 +43,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <ClipboardList color={color} size={size} />
           ),
+          tabBarStyle: {
+            display: 'none',
+          },
         }}
       />
       <Tabs.Screen

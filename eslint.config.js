@@ -25,5 +25,31 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    files: ["src/domains/tasks/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/local-ledger/internal/*"],
+              message:
+                "Task internal mutators can only be imported by commandService.ts and automationService.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      "src/domains/tasks/local-ledger/services/commandService.ts",
+      "src/domains/tasks/local-ledger/services/automationService.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
+    },
   }
 );

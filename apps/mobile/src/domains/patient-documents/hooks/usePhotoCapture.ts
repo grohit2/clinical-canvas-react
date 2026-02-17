@@ -53,40 +53,50 @@ export function usePhotoCapture(patientId: string, category: DocCategory) {
   );
 
   const captureFromCamera = useCallback(async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (permission.status !== 'granted') {
-      Alert.alert('Permission required', 'Camera permission is required to capture documents.');
-      return;
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Camera permission is required to capture documents.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.9,
+        allowsEditing: false,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      await persistAssets(result.assets);
+    } catch (error) {
+      console.warn('camera capture failed', error);
+      Alert.alert('Upload failed', 'Could not capture photo. Please try again.');
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.9,
-      allowsEditing: false,
-    });
-
-    if (result.canceled || !result.assets.length) return;
-
-    await persistAssets(result.assets);
   }, [persistAssets]);
 
   const pickFromGallery = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== 'granted') {
-      Alert.alert('Permission required', 'Photo library permission is required to attach documents.');
-      return;
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission required', 'Photo library permission is required to attach documents.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.9,
+        allowsMultipleSelection: true,
+        selectionLimit: 8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      await persistAssets(result.assets);
+    } catch (error) {
+      console.warn('gallery pick failed', error);
+      Alert.alert('Upload failed', 'Could not import selected photo(s). Please try again.');
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.9,
-      allowsMultipleSelection: true,
-      selectionLimit: 8,
-    });
-
-    if (result.canceled || !result.assets.length) return;
-
-    await persistAssets(result.assets);
   }, [persistAssets]);
 
   return {

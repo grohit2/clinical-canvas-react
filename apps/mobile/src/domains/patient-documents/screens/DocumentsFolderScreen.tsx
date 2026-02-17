@@ -101,7 +101,27 @@ export function DocumentsFolderScreen({
       await shareDocument(doc);
       return;
     }
-    setLightboxIndex(index);
+
+    let nextIndex = index;
+
+    if (!doc.localUri) {
+      const result = await downloadForOffline([doc]);
+      if (result.failed > 0 && !doc.fileUrl) {
+        Alert.alert('Preview unavailable', 'Could not download this image for viewing.');
+        return;
+      }
+
+      if (result.succeeded > 0) {
+        const refreshed = await docsQuery.refetch();
+        const refreshedDocs = refreshed.data || [];
+        const refreshedIndex = refreshedDocs.findIndex((item) => item.id === doc.id);
+        if (refreshedIndex >= 0) {
+          nextIndex = refreshedIndex;
+        }
+      }
+    }
+
+    setLightboxIndex(nextIndex);
   };
 
   const failedCount = documents.filter((item) => item.backupState === 'error').length;

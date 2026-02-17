@@ -8,6 +8,7 @@ import {
   getDocuments,
   initDocuments,
   presignUpload,
+  presignDownload,
   detachDocument,
 } from '../api/documentsApi';
 import {
@@ -123,7 +124,13 @@ function sanitizeFileName(name: string): string {
 export async function ensureLocalFileForViewing(doc: DocumentItem): Promise<string> {
   if (doc.localUri) return doc.localUri;
 
-  if (!doc.fileUrl) {
+  let remoteUrl = doc.fileUrl;
+  if (!remoteUrl && doc.remoteKey) {
+    const presigned = await presignDownload(doc.patientId, doc.remoteKey);
+    remoteUrl = presigned.url;
+  }
+
+  if (!remoteUrl) {
     throw new Error('No local or remote file available');
   }
 
@@ -131,7 +138,7 @@ export async function ensureLocalFileForViewing(doc: DocumentItem): Promise<stri
     patientId: doc.patientId,
     docId: doc.id,
     name: doc.name || 'document',
-    remoteUrl: doc.fileUrl,
+    remoteUrl,
     variant: 'full',
   });
 

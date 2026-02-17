@@ -55,12 +55,17 @@ export async function mergeServerDocuments(
   const localUnsynced = localDocuments.filter((local) => {
     if (seenLocalIds.has(local.id)) return false;
     if (!local.remoteKey) return true;
-    return local.backupState !== 'backed_up';
+    if (local.backupState !== 'backed_up') return true;
+
+    // Keep locally cached files even if the server read is temporarily stale.
+    return Boolean(local.localUri || local.localThumbUri);
   });
 
   const staleBackedUpLocalDocs = localDocuments.filter((local) => {
+    if (seenLocalIds.has(local.id)) return false;
     if (!local.remoteKey) return false;
     if (local.backupState !== 'backed_up') return false;
+    if (local.localUri || local.localThumbUri) return false;
     return !seenRemoteKeys.has(local.remoteKey);
   });
 

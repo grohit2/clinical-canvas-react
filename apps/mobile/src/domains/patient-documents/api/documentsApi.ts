@@ -33,6 +33,13 @@ export interface PresignUploadResponse {
   expiresIn: number;
 }
 
+export interface PresignDownloadResponse {
+  url: string;
+  method: 'GET';
+  key: string;
+  expiresIn: number;
+}
+
 interface HttpError extends Error {
   status?: number;
 }
@@ -96,6 +103,17 @@ export async function presignUpload(patientId: string, args: {
         kind: 'doc',
         docType: categoryToDocType(args.category),
       }),
+    }
+  );
+}
+
+export async function presignDownload(patientId: string, key: string): Promise<PresignDownloadResponse> {
+  return request<PresignDownloadResponse>(
+    `/patients/${encodeURIComponent(patientId)}/files/presign-download`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
     }
   );
 }

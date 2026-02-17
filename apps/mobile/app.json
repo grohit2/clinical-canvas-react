@@ -33,6 +33,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Clinical Canvas to access your photos to attach patient documents.",
+          "cameraPermission": "Allow Clinical Canvas to use the camera to capture patient documents."
+        }
+      ],
       "expo-secure-store",
       "expo-sqlite",
       "expo-share-intent"

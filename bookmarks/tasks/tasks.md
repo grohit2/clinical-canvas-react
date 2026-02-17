@@ -1,4 +1,4 @@
-# Tasks Feature Runtime Context
+# Tasks Feature Runtime
 src/domains/tasks/DEPENDENCIES.md
 src/domains/tasks/README.md
 src/domains/tasks/api/useCreateTask.ts
@@ -64,15 +64,16 @@ apps/mobile/app/(tabs)/_layout.tsx
 apps/mobile/app/(tabs)/tasks.tsx
 
 # Tasks Public API Importers
-src/app/App.tsx
 apps/mobile/app/(tabs)/tasks.tsx
+src/app/App.tsx
 
 # Tasks Cross-Feature Consumers
 src/app/layout/AppShell.tsx
 src/shared/components/layout/BottomBar.tsx
 
 # Tasks Dependency Chain
+src/shared/lib/api.ts
+src/shared/types/api.ts
+src/shared/components/layout/Header.tsx
+src/shared/components/layout/BottomBar.tsx
 apps/mobile/src/hooks/usePatients.ts
-src/domains/patient-list/api/usePatients.ts
-src/types/sqljs.d.ts
-apps/mobile/metro.config.js

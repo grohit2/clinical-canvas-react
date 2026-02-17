@@ -1,7 +1,21 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText } from 'lucide-react-native';
 import { usePatient } from '../../../src/hooks/usePatients';
+
+const SCROLL_DELTA_THRESHOLD = 10;
+const SCROLL_TOP_RESET_OFFSET = 8;
+const SCROLL_COLLAPSE_OFFSET = 32;
 
 export default function PatientDetailScreen() {
   const router = useRouter();
@@ -9,6 +23,34 @@ export default function PatientDetailScreen() {
   const patientId = Array.isArray(params.id) ? params.id[0] : params.id;
   const safePatientId = patientId || '';
   const { data: patient } = usePatient(safePatientId);
+  const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
+  const lastScrollOffsetRef = useRef(0);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const delta = offsetY - lastScrollOffsetRef.current;
+
+      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        lastScrollOffsetRef.current = offsetY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
+        if (!isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(true);
+        }
+      } else if (delta < -SCROLL_DELTA_THRESHOLD && isTopChromeCollapsed) {
+        setIsTopChromeCollapsed(false);
+      }
+
+      lastScrollOffsetRef.current = offsetY;
+    },
+    [isTopChromeCollapsed],
+  );
 
   if (!patientId) {
     return null;
@@ -16,23 +58,35 @@ export default function PatientDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{patient?.name || 'Patient'}</Text>
-        <Text style={styles.subtitle}>ID: {patientId}</Text>
-      </View>
-
-      <Pressable
-        style={styles.card}
-        onPress={() => router.push(`/patient/${patientId}/documents` as never)}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.iconWrap}>
-          <FileText size={20} color="#2563eb" />
+        <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>
+            {patient?.name || 'Patient'}
+          </Text>
+          {!isTopChromeCollapsed ? (
+            <Text style={styles.subtitle}>ID: {patientId}</Text>
+          ) : null}
         </View>
-        <View style={styles.content}>
-          <Text style={styles.cardTitle}>Documents</Text>
-          <Text style={styles.cardSubtitle}>Offline-first patient document folders and uploads</Text>
-        </View>
-      </Pressable>
+
+        <Pressable
+          style={styles.card}
+          onPress={() => router.push(`/patient/${patientId}/documents` as never)}
+        >
+          <View style={styles.iconWrap}>
+            <FileText size={20} color="#2563eb" />
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Documents</Text>
+            <Text style={styles.cardSubtitle}>Offline-first patient document folders and uploads</Text>
+          </View>
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -41,6 +95,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
     gap: 12,
   },
@@ -48,10 +107,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
+  headerCollapsed: {
+    marginTop: 6,
+    marginBottom: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  titleCollapsed: {
+    fontSize: 21,
   },
   subtitle: {
     fontSize: 13,
@@ -75,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
+  cardContent: {
     flex: 1,
     gap: 2,
   },

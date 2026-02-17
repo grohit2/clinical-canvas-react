@@ -9,6 +9,7 @@ import {
   Clock3,
   FileText,
   Home,
+  Layers3,
   Plus,
   RotateCcw,
 } from 'lucide-react-native';
@@ -18,17 +19,23 @@ import { useCreateTask } from '../api/useCreateTask';
 import { useMyActionsToday } from '../api/useMyActivity';
 import { useTasks } from '../api/useTasks';
 import { useUndo } from '../api/useUndo';
-import { TASK_BOARD_FILTERS } from '../board/constants';
 import { buildPatientLookup } from '../board/patientLookup';
 import { buildAuditRows, buildTaskBoardModel } from '../board/selectors';
-import type { ActivityLike, TaskBoardFilter, TaskBoardRow, TaskBoardTab } from '../board/types';
+import type {
+  ActivityLike,
+  TaskBoardRow,
+  TaskBoardSection,
+  TaskBoardTab,
+} from '../board/types';
 import type { TaskNavTabNative } from '../components/TaskBottomNav.native';
 import { TaskBottomNavNative } from '../components/TaskBottomNav.native';
 import { StatsBarNative } from '../hospital-board/components/StatsBar.native';
+import { BottomSheetNative } from '../hospital-board/components/BottomSheet.native';
 import { TableGroupNative } from '../hospital-board/components/TableGroup.native';
 import { TaskAuditLogViewNative } from '../hospital-board/components/TaskAuditLogView.native';
 import { TaskModalNative } from '../hospital-board/components/TaskModal.native';
 import {
+  GROUP_COLORS,
   PRIORITY_TONES,
   TASK_STATUS_TONES,
   mapTaskPriorityToBoardPriority,
@@ -39,6 +46,92 @@ import { getActiveActorId } from '../local-ledger/utils/device';
 
 interface TaskBoardMobileScreenProps {
   patients?: unknown[];
+}
+
+type BoardViewMode = 'ward' | 'patient' | 'doctor' | 'place' | 'day' | 'priority' | 'type';
+
+const MY_NURSE_NAME = 'RN Sarah M.';
+
+const BOARD_VIEW_OPTIONS: Array<{ id: BoardViewMode; label: string }> = [
+  { id: 'ward', label: 'Ward' },
+  { id: 'patient', label: 'Patient' },
+  { id: 'doctor', label: 'Doctor' },
+  { id: 'place', label: 'Place' },
+  { id: 'day', label: 'Day' },
+  { id: 'priority', label: 'Priority' },
+  { id: 'type', label: 'Type' },
+];
+
+const DAY_SORT_INDEX: Record<string, number> = {
+  Monday: 0,
+  Tuesday: 1,
+  Wednesday: 2,
+  Thursday: 3,
+  Friday: 4,
+  Saturday: 5,
+  Sunday: 6,
+};
+
+const PRIORITY_SORT_INDEX: Record<string, number> = {
+  Critical: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+};
+
+function sanitizeLabel(value: string | null | undefined, fallback = 'Unassigned'): string {
+  const next = value?.trim();
+  return next && next.length > 0 ? next : fallback;
+}
+
+function buildViewSections(rows: TaskBoardRow[], viewMode: BoardViewMode): TaskBoardSection[] {
+  const grouped = new Map<string, TaskBoardRow[]>();
+
+  for (const row of rows) {
+    const key =
+      viewMode === 'patient'
+        ? sanitizeLabel(row.patientName, 'Unassigned Patient')
+        : viewMode === 'doctor'
+          ? sanitizeLabel(row.doctor.name, 'Unassigned Doctor')
+          : viewMode === 'place'
+            ? sanitizeLabel(row.placeText, 'Unassigned Place')
+            : viewMode === 'day'
+              ? sanitizeLabel(row.scheduleDay, 'Unscheduled')
+              : viewMode === 'priority'
+                ? sanitizeLabel(row.priorityLabel, 'Medium')
+                : sanitizeLabel(row.taskType, 'Task');
+
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(row);
+    grouped.set(key, bucket);
+  }
+
+  const entries = [...grouped.entries()];
+  entries.sort(([left], [right]) => {
+    if (viewMode === 'day') {
+      return (DAY_SORT_INDEX[left] ?? Number.MAX_SAFE_INTEGER) - (DAY_SORT_INDEX[right] ?? Number.MAX_SAFE_INTEGER);
+    }
+    if (viewMode === 'priority') {
+      return (PRIORITY_SORT_INDEX[left] ?? Number.MAX_SAFE_INTEGER) - (PRIORITY_SORT_INDEX[right] ?? Number.MAX_SAFE_INTEGER);
+    }
+    return left.localeCompare(right);
+  });
+
+  return entries.map(([title, sectionRows], index) => {
+    const color =
+      viewMode === 'priority'
+        ? (PRIORITY_TONES[title]?.bg ?? GROUP_COLORS[index % GROUP_COLORS.length])
+        : GROUP_COLORS[index % GROUP_COLORS.length];
+
+    return {
+      id: `${viewMode}_${title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${index}`,
+      title,
+      color,
+      rows: sectionRows,
+      urgentCount: sectionRows.filter((row) => row.urgent).length,
+      total: sectionRows.length,
+    };
+  });
 }
 
 export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
@@ -54,10 +147,11 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
   const undo = useUndo();
 
   const [activeTab, setActiveTab] = useState<TaskBoardTab>('board');
-  const [activeFilter, setActiveFilter] = useState<TaskBoardFilter>('all');
+  const [activeViewMode, setActiveViewMode] = useState<BoardViewMode>('ward');
   const [activeDetailRow, setActiveDetailRow] = useState<TaskBoardRow | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [collapsedBySection, setCollapsedBySection] = useState<Record<string, boolean>>({});
+  const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(true);
 
   useEffect(() => {
@@ -85,8 +179,13 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
 
   const patientLookup = useMemo(() => buildPatientLookup(patients), [patients]);
   const model = useMemo(
-    () => buildTaskBoardModel(tasks, patientLookup, { filter: activeFilter }),
-    [tasks, patientLookup, activeFilter],
+    () => buildTaskBoardModel(tasks, patientLookup, { filter: 'all' }),
+    [tasks, patientLookup],
+  );
+
+  const boardSections = useMemo(
+    () => (activeViewMode === 'ward' ? model.sections : buildViewSections(model.allRows, activeViewMode)),
+    [activeViewMode, model.allRows, model.sections],
   );
 
   const auditRows = useMemo(() => {
@@ -94,7 +193,16 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
     return buildAuditRows(activityRows as ActivityLike[], tasksById);
   }, [activityRows, model.allRows]);
 
-  const homeRows = useMemo(() => model.allRows.slice(0, 6), [model.allRows]);
+  const homeRows = useMemo(
+    () =>
+      model.allRows
+        .filter((row) => {
+          const assigned = row.source.nurseName ?? row.source.assigneeName ?? row.nurse.name;
+          return assigned === MY_NURSE_NAME;
+        })
+        .slice(0, 12),
+    [model.allRows],
+  );
   const reminderQueue = useMemo(
     () => [...model.remindersToday, ...model.remindersUpcoming],
     [model.remindersToday, model.remindersUpcoming],
@@ -160,8 +268,9 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
           ? 'Every change written to the local task ledger.'
           : 'Local ledger powered';
 
-  const showFab = activeTab === 'home' || activeTab === 'board' || activeTab === 'reminders';
+  const showFab = activeTab === 'home' || activeTab === 'reminders';
   const fabLabel = activeTab === 'reminders' ? 'Add Reminder' : 'Add Task';
+  const activeView = BOARD_VIEW_OPTIONS.find((view) => view.id === activeViewMode)?.label ?? 'Ward';
 
   const addQuickTask = async (overrides?: Partial<Parameters<typeof createTask.mutateAsync>[0]>) => {
     if (createTask.isPending) {
@@ -204,32 +313,30 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
 
   const renderBoard = () => (
     <View style={styles.tabContent}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {TASK_BOARD_FILTERS.map((chip) => (
-          <Pressable
-            key={chip.id}
-            style={[styles.filterChip, activeFilter === chip.id && styles.filterChipActive]}
-            onPress={() => setActiveFilter(chip.id)}
-          >
-            <Text style={[styles.filterText, activeFilter === chip.id && styles.filterTextActive]}>
-              {chip.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.boardActionRow}>
+        <Pressable
+          style={[styles.boardActionButton, createTask.isPending && styles.boardActionButtonDisabled]}
+          onPress={() => void addQuickTask()}
+          disabled={createTask.isPending}
+        >
+          <Plus size={16} color="#ffffff" />
+          <Text style={styles.boardActionText}>{createTask.isPending ? 'Adding...' : 'Add Task'}</Text>
+        </Pressable>
 
-      {model.sections.length === 0 ? (
+        <Pressable style={styles.viewButton} onPress={() => setIsViewSheetOpen(true)}>
+          <Layers3 size={16} color="#334155" />
+          <Text style={styles.viewButtonText}>View: {activeView}</Text>
+        </Pressable>
+      </View>
+
+      {boardSections.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>No tasks yet</Text>
           <Text style={styles.emptySub}>Create one using the Add Task button.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.sectionsWrap}>
-          {model.sections.map((section) => {
+          {boardSections.map((section) => {
             const collapsed = collapsedBySection[section.id] ?? false;
 
             return (
@@ -249,9 +356,13 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
                   setActiveDetailRow(row);
                 }}
                 onAddTask={async (nextSection) => {
+                  const targetDepartment =
+                    activeViewMode === 'ward'
+                      ? nextSection.title
+                      : model.sections[0]?.title ?? 'Ward A — Cardiology';
                   await addQuickTask({
                     title: 'New task',
-                    departmentId: nextSection.title,
+                    departmentId: targetDepartment,
                   });
                 }}
               />
@@ -360,7 +471,7 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
-        <View style={styles.contentWrap}>
+        <View style={[styles.contentWrap, !showFab && styles.contentWrapNoFab]}>
           {activeTab === 'home' ? renderHome() : null}
           {activeTab === 'board' ? renderBoard() : null}
           {activeTab === 'reminders' ? renderReminders() : null}
@@ -386,6 +497,29 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
           onClose={() => setActiveDetailRow(null)}
         />
       ) : null}
+
+      <BottomSheetNative visible={isViewSheetOpen} title="Task Board Views" onClose={() => setIsViewSheetOpen(false)}>
+        <View style={styles.viewSheetList}>
+          {BOARD_VIEW_OPTIONS.map((view) => {
+            const active = activeViewMode === view.id;
+
+            return (
+              <Pressable
+                key={view.id}
+                style={[styles.viewSheetItem, active && styles.viewSheetItemActive]}
+                onPress={() => {
+                  setActiveViewMode(view.id);
+                  setIsViewSheetOpen(false);
+                }}
+              >
+                <Text style={[styles.viewSheetItemText, active && styles.viewSheetItemTextActive]}>
+                  {view.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </BottomSheetNative>
 
       <TaskBottomNavNative tabs={navTabs} activeTab={activeTab} onTabChange={handleBottomTabChange} />
     </SafeAreaView>
@@ -443,34 +577,79 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 130,
   },
+  contentWrapNoFab: {
+    paddingBottom: 92,
+  },
   tabContent: {
     flex: 1,
   },
-  filterRow: {
-    minHeight: 44,
+  boardActionRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
-  filterChip: {
+  boardActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  boardActionButtonDisabled: {
+    opacity: 0.7,
+  },
+  boardActionText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  viewButton: {
+    flex: 1,
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: '#fff',
   },
-  filterChipActive: {
-    borderColor: '#2563eb',
-    backgroundColor: '#dbeafe',
-  },
-  filterText: {
+  viewButtonText: {
     fontSize: 12,
-    color: '#475569',
+    color: '#334155',
     fontWeight: '700',
   },
-  filterTextActive: {
+  viewSheetList: {
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    gap: 8,
+  },
+  viewSheetItem: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: '#ffffff',
+  },
+  viewSheetItemActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#dbeafe',
+  },
+  viewSheetItemText: {
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '700',
+  },
+  viewSheetItemTextActive: {
     color: '#1d4ed8',
   },
   emptyWrap: {

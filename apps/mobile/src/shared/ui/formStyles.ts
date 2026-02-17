@@ -13,7 +13,7 @@ export const formStyles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 14,
     padding: 14,
-    marginBottom: 14,
+    marginBottom: 0,
   },
   sectionHeader: { marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '900', color: '#111827' },

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Home, Users, ClipboardList, User } from 'lucide-react-native';
+import { TAB_BAR_HIDDEN_STYLE, TAB_BAR_VISIBLE_STYLE } from '../../src/navigation/tabBarStyle';
 
 export default function TabLayout() {
   return (
@@ -8,14 +9,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: '#6b7280',
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 60,
-        },
+        tabBarStyle: TAB_BAR_VISIBLE_STYLE,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
@@ -43,9 +37,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <ClipboardList color={color} size={size} />
           ),
-          tabBarStyle: {
-            display: 'none',
-          },
+          tabBarStyle: TAB_BAR_HIDDEN_STYLE,
         }}
       />
       <Tabs.Screen

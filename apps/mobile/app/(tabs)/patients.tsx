@@ -1,20 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   TextInput,
   Pressable,
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Search, Plus, Filter, X, FileText, Pin, MoreVertical } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useRouter } from 'expo-router';
+import { Search, Plus, X, FileText, Pin } from 'lucide-react-native';
 import { usePatients } from '../../src/hooks/usePatients';
 import { usePatientsFilters } from '../../src/hooks/usePatientsFilters';
 import { usePinnedPatients } from '../../src/hooks/usePinnedPatients';
+import { TAB_BAR_HIDDEN_STYLE, TAB_BAR_VISIBLE_STYLE } from '../../src/navigation/tabBarStyle';
 import {
   parseComorbidities,
   getDaysSinceSurgery,
@@ -38,6 +41,10 @@ const borderColors: Record<string, string> = {
   caution: '#f59e0b',
   stable: '#22c55e',
 };
+
+const SCROLL_DELTA_THRESHOLD = 10;
+const SCROLL_TOP_RESET_OFFSET = 8;
+const SCROLL_COLLAPSE_OFFSET = 40;
 
 function PatientCard({
   patient,
@@ -64,8 +71,8 @@ function PatientCard({
   const comorbidities = parseComorbidities(patient.comorbidities);
   const stageLabel = getStageLabel(patient.currentState || '');
   const variant = getStageVariant(patient.currentState || '');
-  const stageStyle = stageColors[variant];
-  const borderColor = borderColors[variant];
+  const stageStyle = stageColors[variant] ?? stageColors.default;
+  const borderColor = borderColors[variant] ?? borderColors.default;
 
   return (
     <Pressable onPress={onPress}>
@@ -129,21 +136,111 @@ function PatientCard({
 
 export default function PatientsScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { data: patients = [], isLoading, refetch, isRefetching } = usePatients();
   const filters = usePatientsFilters();
-  const { isPinned, togglePin } = usePinnedPatients();
+  const { isPinned } = usePinnedPatients();
+
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
+  const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
+  const [isTabBarHidden, setIsTabBarHidden] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const lastScrollOffsetRef = useRef(0);
+  const searchInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: isTabBarHidden ? TAB_BAR_HIDDEN_STYLE : TAB_BAR_VISIBLE_STYLE,
+    });
+  }, [isTabBarHidden, navigation]);
+
+  useEffect(() => {
+    return () => {
+      navigation.setOptions({ tabBarStyle: TAB_BAR_VISIBLE_STYLE });
+    };
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return;
+    }
+
+    const focusId = requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+
+    return () => {
+      cancelAnimationFrame(focusId);
+    };
+  }, [isSearchOpen]);
 
   const filteredPatients = useMemo(() => {
     return filters.filterPatients(patients as Patient[]);
   }, [patients, filters]);
 
   const hasFilters = filters.activeFiltersCount > 0 || filters.searchQuery !== '';
+  const listBottomPadding = isTabBarHidden
+    ? Math.max(insets.bottom + 16, 24)
+    : Math.max(insets.bottom + 92, 100);
+  const fabBottom = isTabBarHidden
+    ? Math.max(insets.bottom + 16, 20)
+    : Math.max(insets.bottom + 86, 96);
 
   const handleClearAll = () => {
     filters.setSearchQuery('');
     filters.clearFilters();
   };
+
+  const handleSearchToggle = useCallback(() => {
+    if (isSearchOpen) {
+      filters.setSearchQuery('');
+      setIsSearchOpen(false);
+      return;
+    }
+
+    setIsTopChromeCollapsed(false);
+    setIsTabBarHidden(false);
+    setIsSearchOpen(true);
+  }, [filters, isSearchOpen]);
+
+  const handleListScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const delta = offsetY - lastScrollOffsetRef.current;
+
+      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        if (isTabBarHidden) {
+          setIsTabBarHidden(false);
+        }
+        lastScrollOffsetRef.current = offsetY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
+        if (!isSearchOpen && !isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(true);
+        }
+        if (!isTabBarHidden) {
+          setIsTabBarHidden(true);
+        }
+      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        if (isTabBarHidden) {
+          setIsTabBarHidden(false);
+        }
+      }
+
+      lastScrollOffsetRef.current = offsetY;
+    },
+    [isSearchOpen, isTabBarHidden, isTopChromeCollapsed],
+  );
 
   const renderPatient = ({ item }: { item: Patient }) => (
     <View style={styles.patientItem}>
@@ -178,63 +275,81 @@ export default function PatientsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Patients</Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color="#6b7280" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search patients..."
-            placeholderTextColor="#9ca3af"
-            value={filters.searchQuery}
-            onChangeText={filters.setSearchQuery}
-          />
-          {filters.searchQuery.length > 0 && (
-            <Pressable onPress={() => filters.setSearchQuery('')}>
-              <X size={20} color="#6b7280" />
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.tabContainer}>
-        <Pressable
-          onPress={() => {
-            setActiveTab('all');
-            filters.setActiveTab('all');
-          }}
-          style={[styles.tab, activeTab === 'all' && styles.activeTab]}
-        >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
-            All Patients
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            setActiveTab('my');
-            filters.setActiveTab('my');
-          }}
-          style={[styles.tab, activeTab === 'my' && styles.activeTab]}
-        >
-          <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>
-            My Patients
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.filterBar}>
-        <Text style={styles.countText}>
-          {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''}
-        </Text>
-        {filters.activeFiltersCount > 0 && (
-          <Pressable onPress={filters.clearFilters}>
-            <Text style={styles.clearText}>Clear filters</Text>
+      <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>Patients</Text>
+          <Pressable
+            style={styles.iconButton}
+            onPress={handleSearchToggle}
+            accessibilityRole="button"
+            accessibilityLabel={isSearchOpen ? 'Close patient search' : 'Search patients'}
+          >
+            {isSearchOpen ? <X size={18} color="#0f172a" /> : <Search size={18} color="#0f172a" />}
           </Pressable>
+        </View>
+
+        {isSearchOpen && (
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Search size={18} color="#6b7280" />
+              <TextInput
+                ref={searchInputRef}
+                style={styles.searchInput}
+                placeholder="Search patients..."
+                placeholderTextColor="#9ca3af"
+                value={filters.searchQuery}
+                onChangeText={filters.setSearchQuery}
+                returnKeyType="search"
+              />
+              {filters.searchQuery.length > 0 && (
+                <Pressable onPress={() => filters.setSearchQuery('')}>
+                  <X size={18} color="#6b7280" />
+                </Pressable>
+              )}
+            </View>
+          </View>
         )}
       </View>
+
+      {!isTopChromeCollapsed && (
+        <>
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => {
+                setActiveTab('all');
+                filters.setActiveTab('all');
+              }}
+              style={[styles.tab, activeTab === 'all' && styles.activeTab]}
+            >
+              <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
+                All Patients
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setActiveTab('my');
+                filters.setActiveTab('my');
+              }}
+              style={[styles.tab, activeTab === 'my' && styles.activeTab]}
+            >
+              <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>
+                My Patients
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.filterBar}>
+            <Text style={styles.countText}>
+              {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''}
+            </Text>
+            {filters.activeFiltersCount > 0 && (
+              <Pressable onPress={filters.clearFilters}>
+                <Text style={styles.clearText}>Clear filters</Text>
+              </Pressable>
+            )}
+          </View>
+        </>
+      )}
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
@@ -246,18 +361,15 @@ export default function PatientsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderPatient}
           ListEmptyComponent={renderEmpty}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-          }
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+          onScroll={handleListScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
         />
       )}
 
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/patients/register' as never)}
-      >
+      <Pressable style={[styles.fab, { bottom: fabBottom }]} onPress={() => router.push('/patients/register' as never)}>
         <Plus size={24} color="#fff" />
       </Pressable>
     </SafeAreaView>
@@ -271,29 +383,51 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 14,
     paddingBottom: 8,
+  },
+  headerCollapsed: {
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#0f172a',
   },
+  titleCollapsed: {
+    fontSize: 21,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: 10,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f1f5f9',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
+    marginRight: 6,
     fontSize: 16,
     color: '#0f172a',
   },
@@ -341,7 +475,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingBottom: 100,
+    flexGrow: 1,
+    paddingTop: 2,
   },
   patientItem: {
     paddingHorizontal: 16,
@@ -461,12 +596,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 80,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '500',
     color: '#4b5563',
+    textAlign: 'center',
   },
   clearFiltersText: {
     fontSize: 14,
@@ -489,7 +626,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 96,
     right: 24,
     width: 56,
     height: 56,

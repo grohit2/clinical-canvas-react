@@ -1,4 +1,20 @@
-# Patient Documents Feature - Mobile Runtime
+# Patient Documents Runtime - Web Feature Module
+src/domains/patient-documents/api/usePatientDocuments.ts
+src/domains/patient-documents/components/CategoryChips.tsx
+src/domains/patient-documents/components/DocumentCard.tsx
+src/domains/patient-documents/components/DocumentGrid.tsx
+src/domains/patient-documents/components/DocumentLightbox.tsx
+src/domains/patient-documents/components/FolderCard.tsx
+src/domains/patient-documents/components/index.ts
+src/domains/patient-documents/core/CategoryConfig.ts
+src/domains/patient-documents/core/mapFromApi.ts
+src/domains/patient-documents/core/types.ts
+src/domains/patient-documents/core/waitForS3Event.ts
+src/domains/patient-documents/index.ts
+src/domains/patient-documents/screens/DocumentsFolderScreen.tsx
+src/domains/patient-documents/screens/DocumentsRootScreen.tsx
+
+# Patient Documents Runtime - Mobile Feature Module
 apps/mobile/src/domains/patient-documents/api/documentsApi.ts
 apps/mobile/src/domains/patient-documents/components/BackupBadge.tsx
 apps/mobile/src/domains/patient-documents/components/DocumentCard.native.tsx
@@ -24,52 +40,41 @@ apps/mobile/src/domains/patient-documents/screens/DocumentsFolderScreen.tsx
 apps/mobile/src/domains/patient-documents/screens/DocumentsRootScreen.tsx
 apps/mobile/src/domains/patient-documents/screens/ImportSharedToPatientScreen.tsx
 
-# Patient Documents Routes and Entry Points - Mobile
+# Patient Documents Routes and Entry Points
+src/app/App.tsx
+src/app/navigation.ts
 apps/mobile/app/patient/[id]/documents/index.tsx
 apps/mobile/app/patient/[id]/documents/[category].tsx
 apps/mobile/app/import-shared.tsx
 
-# Patient Documents Cross-Feature Consumers - Mobile
-apps/mobile/app/patient/[id]/index.tsx
-apps/mobile/app/(tabs)/patients.tsx
-apps/mobile/app/_layout.tsx
-
-# Patient Documents Dependency Chain - Mobile
-apps/mobile/src/hooks/usePatients.ts
-apps/mobile/src/lib/api.ts
-apps/mobile/src/lib/shareIntent-context.ts
-apps/mobile/src/lib/shareIntent-provider.tsx
-apps/mobile/app.json
-apps/mobile/package.json
-
-# Patient Documents Feature - Web Runtime (Legacy)
-src/domains/patient-documents/DEPENDENCIES.md
-src/domains/patient-documents/README.md
-src/domains/patient-documents/api/usePatientDocuments.ts
-src/domains/patient-documents/components/CategoryChips.tsx
-src/domains/patient-documents/components/DocumentCard.tsx
-src/domains/patient-documents/components/DocumentGrid.tsx
-src/domains/patient-documents/components/DocumentLightbox.tsx
-src/domains/patient-documents/components/FolderCard.tsx
-src/domains/patient-documents/components/index.ts
-src/domains/patient-documents/core/CategoryConfig.ts
-src/domains/patient-documents/core/mapFromApi.ts
-src/domains/patient-documents/core/types.ts
-src/domains/patient-documents/core/waitForS3Event.ts
+# Patient Documents Public APIs and Barrels
 src/domains/patient-documents/index.ts
-src/domains/patient-documents/screens/DocumentsFolderScreen.tsx
-src/domains/patient-documents/screens/DocumentsRootScreen.tsx
+src/domains/patient-documents/components/index.ts
+apps/mobile/src/domains/patient-documents/index.ts
 
-# Patient Documents Routes and Consumers - Web
-src/app/App.tsx
-src/app/navigation.ts
+# Patient Documents Cross-Feature Consumers
+apps/mobile/app/_layout.tsx
+apps/mobile/app/(tabs)/patients.tsx
+apps/mobile/app/(tabs)/patients/[id]/index.tsx
+apps/mobile/app/patient/[id]/index.tsx
 
-# Patient Documents Dependency Chain - Web
-src/shared/lib/filesApi.ts
+# Patient Documents Dependency Chain
+src/lib/api.ts
 src/shared/lib/api.ts
+src/shared/lib/filesApi.ts
+src/shared/lib/docsWaitForEvent.ts
+src/shared/lib/support.ts
 src/shared/lib/utils.ts
 src/shared/components/layout/Header.tsx
 src/shared/components/layout/BottomBar.tsx
 src/shared/components/ui/button.tsx
+src/shared/components/ui/alert-dialog.tsx
 src/shared/components/ui/checkbox.tsx
+src/shared/components/ui/sonner.tsx
 src/domains/patient-registration/components/PhotoUploader.tsx
+apps/mobile/src/lib/api.ts
+apps/mobile/src/hooks/usePatients.ts
+apps/mobile/src/lib/shareIntent-context.ts
+apps/mobile/src/lib/shareIntent-provider.tsx
+apps/mobile/app.json
+apps/mobile/package.json

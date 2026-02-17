@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const createMutateAsync = vi.fn(async () => ({}));
 const undoMutate = vi.fn();
 const updateMutate = vi.fn();
+const updateMutateAsync = vi.fn(async () => ({}));
 const deleteMutate = vi.fn();
 
 vi.mock('../api/useTasks', () => ({
@@ -48,6 +49,7 @@ vi.mock('../api/useUndo', () => ({
 vi.mock('../api/useUpdateTask', () => ({
   useUpdateTask: vi.fn(() => ({
     mutate: updateMutate,
+    mutateAsync: updateMutateAsync,
     isPending: false,
   })),
   useDeleteTask: vi.fn(() => ({
@@ -87,10 +89,11 @@ describe('TasksPage integration', () => {
     createMutateAsync.mockClear();
     undoMutate.mockClear();
     updateMutate.mockClear();
+    updateMutateAsync.mockClear();
     deleteMutate.mockClear();
   });
 
-  it('creates, updates, undoes, switches tabs, and toggles view panel', async () => {
+  it('creates, updates, opens task detail modal, undoes, and switches tabs', async () => {
     const { TasksPage } = await import('./TasksScreen');
 
     render(
@@ -118,8 +121,21 @@ describe('TasksPage integration', () => {
     fireEvent.click(screen.getByRole('button', { name: /Undo/i }));
     expect(undoMutate).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /View/i }));
-    expect(screen.getByText('BOARD · View')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Post-op vitals check'));
+    expect(screen.getByText('Task Details')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Task title'), {
+      target: { value: 'Post-op vitals check updated' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Post-op vitals check updated',
+        }),
+      );
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /Reminders/i }));
     expect(screen.getByText('Today')).toBeInTheDocument();

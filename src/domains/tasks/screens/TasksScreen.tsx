@@ -1,6 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  Bell,
+  CheckCircle2,
+  Circle,
+  ClipboardList,
+  FileText,
+  Home,
+  Plus,
+  RotateCcw,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useCreateTask } from '../api/useCreateTask';
 import { useMyActionsToday } from '../api/useMyActivity';
 import { useTasks } from '../api/useTasks';
@@ -10,6 +22,7 @@ import { TASK_BOARD_FILTERS } from '../board/constants';
 import { buildPatientLookup } from '../board/patientLookup';
 import { buildAuditRows, buildTaskBoardModel } from '../board/selectors';
 import type { ActivityLike, TaskBoardFilter, TaskBoardRow, TaskBoardTab } from '../board/types';
+import type { TaskPriority, TaskStatus } from '../core/types';
 import { getActiveActorId } from '../local-ledger/utils/device';
 import { TaskBottomNav } from '../components/TaskBottomNav';
 import { usePatients } from '../../patient-list/api/usePatients';
@@ -19,6 +32,207 @@ function statusLabel(status: TaskBoardRow['status']): string {
   if (status === 'completed') return 'Completed';
   if (status === 'cancelled') return 'Cancelled';
   return 'Scheduled';
+}
+
+function toDateTimeLocal(value: string | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  const local = new Date(date.getTime() - offsetMs);
+  return local.toISOString().slice(0, 16);
+}
+
+function toIsoOrUndefined(value: string): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
+function TaskDetailModal({
+  row,
+  onClose,
+}: {
+  row: TaskBoardRow;
+  onClose: () => void;
+}) {
+  const updateTask = useUpdateTask(row.id);
+  const [draft, setDraft] = useState({
+    title: row.source.title,
+    description: row.source.description ?? '',
+    patientName: row.source.patientName ?? '',
+    assigneeName: row.source.assigneeName ?? '',
+    departmentId: row.source.departmentId ?? '',
+    status: row.source.status,
+    priority: row.source.priority,
+    dueDateLocal: toDateTimeLocal(row.source.dueDate),
+  });
+
+  useEffect(() => {
+    setDraft({
+      title: row.source.title,
+      description: row.source.description ?? '',
+      patientName: row.source.patientName ?? '',
+      assigneeName: row.source.assigneeName ?? '',
+      departmentId: row.source.departmentId ?? '',
+      status: row.source.status,
+      priority: row.source.priority,
+      dueDateLocal: toDateTimeLocal(row.source.dueDate),
+    });
+  }, [row]);
+
+  const save = async () => {
+    await updateTask.mutateAsync({
+      title: draft.title.trim() || row.source.title,
+      description: draft.description,
+      patientName: draft.patientName.trim() || undefined,
+      assigneeName: draft.assigneeName.trim() || undefined,
+      departmentId: draft.departmentId.trim() || undefined,
+      status: draft.status as TaskStatus,
+      priority: draft.priority as TaskPriority,
+      dueDate: toIsoOrUndefined(draft.dueDateLocal),
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" onClick={onClose}>
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-black text-slate-900">Task Details</h2>
+            <p className="text-xs text-slate-500">Ledger-backed task update</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close task details"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-3 px-5 py-4 md:grid-cols-2">
+          <label className="md:col-span-2">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Title</span>
+            <input
+              aria-label="Task title"
+              value={draft.title}
+              onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <label className="md:col-span-2">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Description</span>
+            <textarea
+              value={draft.description}
+              onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
+              rows={3}
+              className="w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status</span>
+            <select
+              value={draft.status}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, status: event.target.value as TaskStatus }))
+              }
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            >
+              <option value="pending">Scheduled</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</span>
+            <select
+              value={draft.priority}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, priority: event.target.value as TaskPriority }))
+              }
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Due Date</span>
+            <input
+              type="datetime-local"
+              value={draft.dueDateLocal}
+              onChange={(event) => setDraft((prev) => ({ ...prev, dueDateLocal: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Department</span>
+            <input
+              value={draft.departmentId}
+              onChange={(event) => setDraft((prev) => ({ ...prev, departmentId: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Patient Name</span>
+            <input
+              value={draft.patientName}
+              onChange={(event) => setDraft((prev) => ({ ...prev, patientName: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Assignee</span>
+            <input
+              value={draft.assigneeName}
+              onChange={(event) => setDraft((prev) => ({ ...prev, assigneeName: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500"
+            />
+          </label>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 md:col-span-2">
+            Assigned board avatars: {row.doctor.name} / {row.nurse.name}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={updateTask.isPending}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {updateTask.isPending ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function BoardRow({
@@ -109,7 +323,7 @@ export function TasksPage() {
 
   const [activeTab, setActiveTab] = useState<TaskBoardTab>('board');
   const [activeFilter, setActiveFilter] = useState<TaskBoardFilter>('all');
-  const [showViewPanel, setShowViewPanel] = useState(false);
+  const [activeDetailRow, setActiveDetailRow] = useState<TaskBoardRow | null>(null);
   const [titleInput, setTitleInput] = useState('');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
@@ -119,15 +333,31 @@ export function TasksPage() {
     [tasks, patientLookup, activeFilter],
   );
 
-  const selectedRow = useMemo(
-    () => model.allRows.find((row) => row.id === selectedRowId) ?? null,
-    [model.allRows, selectedRowId],
-  );
-
   const auditRows = useMemo(() => {
     const taskById = Object.fromEntries(model.allRows.map((row) => [row.id, { title: row.title }]));
     return buildAuditRows(activityRows as ActivityLike[], taskById);
   }, [activityRows, model.allRows]);
+
+  const navTabs = useMemo(
+    () => [
+      { id: 'back' as const, label: 'Back', icon: <ArrowLeft className="h-4 w-4" /> },
+      { id: 'home' as const, label: 'Home', icon: <Home className="h-4 w-4" /> },
+      { id: 'board' as const, label: 'Task Board', icon: <ClipboardList className="h-4 w-4" /> },
+      {
+        id: 'reminders' as const,
+        label: 'Reminders',
+        icon: <Bell className="h-4 w-4" />,
+        badge: model.remindersToday.length || undefined,
+      },
+      {
+        id: 'audit' as const,
+        label: 'Audit Log',
+        icon: <FileText className="h-4 w-4" />,
+        dot: auditRows.length > 0,
+      },
+    ],
+    [auditRows.length, model.remindersToday.length],
+  );
 
   const handleCreate = async () => {
     const title = titleInput.trim();
@@ -142,8 +372,16 @@ export function TasksPage() {
     setTitleInput('');
   };
 
+  const handleBottomTabChange = (tab: TaskBoardTab) => {
+    if (tab === 'back') {
+      navigate(-1);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 pb-40">
+    <div className="min-h-screen bg-slate-100 pb-28">
       <header className="sticky top-0 z-30 bg-gradient-to-r from-slate-900 to-indigo-950 px-4 pb-4 pt-4 shadow-md">
         <div className="mx-auto w-full max-w-6xl">
           <div className="flex items-start justify-between gap-4">
@@ -165,24 +403,26 @@ export function TasksPage() {
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="text-4xl font-black text-blue-300">{model.metrics.total}</div>
-              <div className="text-sm font-semibold text-slate-200">Total</div>
+          {activeTab === 'home' ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+              <div className="rounded-2xl bg-white/10 p-3">
+                <div className="text-4xl font-black text-blue-300">{model.metrics.total}</div>
+                <div className="text-sm font-semibold text-slate-200">Total</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <div className="text-4xl font-black text-rose-300">{model.metrics.urgent}</div>
+                <div className="text-sm font-semibold text-slate-200">Urgent</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <div className="text-4xl font-black text-amber-300">{model.metrics.active}</div>
+                <div className="text-sm font-semibold text-slate-200">Active</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <div className="text-4xl font-black text-emerald-300">{model.metrics.done}</div>
+                <div className="text-sm font-semibold text-slate-200">Done</div>
+              </div>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="text-4xl font-black text-rose-300">{model.metrics.urgent}</div>
-              <div className="text-sm font-semibold text-slate-200">Urgent</div>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="text-4xl font-black text-amber-300">{model.metrics.active}</div>
-              <div className="text-sm font-semibold text-slate-200">Active</div>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="text-4xl font-black text-emerald-300">{model.metrics.done}</div>
-              <div className="text-sm font-semibold text-slate-200">Done</div>
-            </div>
-          </div>
+          ) : null}
         </div>
       </header>
 
@@ -277,9 +517,7 @@ export function TasksPage() {
                               selected={row.id === selectedRowId}
                               onSelect={(next) => {
                                 setSelectedRowId(next.id);
-                                if (!showViewPanel) {
-                                  setShowViewPanel(true);
-                                }
+                                setActiveDetailRow(next);
                               }}
                             />
                           ))}
@@ -343,31 +581,9 @@ export function TasksPage() {
           </section>
         ) : null}
       </main>
+      {activeDetailRow ? <TaskDetailModal row={activeDetailRow} onClose={() => setActiveDetailRow(null)} /> : null}
 
-      {showViewPanel ? (
-        <aside className="fixed bottom-28 left-1/2 z-40 w-[min(820px,calc(100%-20px))] -translate-x-1/2 rounded-2xl border border-blue-200 bg-blue-50 p-3 shadow-lg">
-          <div className="text-xs font-black text-blue-900">{activeTab.toUpperCase()} · View</div>
-          {selectedRow ? (
-            <>
-              <div className="text-sm text-slate-700">Task: {selectedRow.title}</div>
-              <div className="text-sm text-slate-700">Patient: {selectedRow.patientName}</div>
-              <div className="text-sm text-slate-700">Doctor: {selectedRow.doctor.name}</div>
-              <div className="text-sm text-slate-700">Nurse: {selectedRow.nurse.name}</div>
-              <div className="text-sm text-slate-700">Due: {selectedRow.dueLabel}</div>
-            </>
-          ) : (
-            <div className="text-sm text-slate-700">Select a task from the board.</div>
-          )}
-        </aside>
-      ) : null}
-
-      <TaskBottomNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onBack={() => navigate('/patients')}
-        onToggleView={() => setShowViewPanel((current) => !current)}
-        showViewPanel={showViewPanel}
-      />
+      <TaskBottomNav tabs={navTabs} activeTab={activeTab} onTabChange={handleBottomTabChange} />
     </div>
   );
 }

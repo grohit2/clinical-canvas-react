@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomBar } from "@/components/layout/BottomBar";
 
@@ -102,10 +102,13 @@ export function AppShell({
  * Use for pages that manage their own header.
  */
 export function MinimalShell({ children }: { children?: React.ReactNode }) {
+  const location = useLocation();
+  const hideGlobalBottomBar = location.pathname === "/tasks";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 pb-20">{children ?? <Outlet />}</main>
-      <BottomBar />
+      <main className={`flex-1 ${hideGlobalBottomBar ? "" : "pb-20"}`}>{children ?? <Outlet />}</main>
+      {!hideGlobalBottomBar ? <BottomBar /> : null}
     </div>
   );
 }

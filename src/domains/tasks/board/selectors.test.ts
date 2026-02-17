@@ -14,6 +14,14 @@ const BASE_TASK: Task = {
   assigneeId: 'a1',
   assigneeName: 'Nurse A',
   departmentId: 'A',
+  doctorName: 'Dr. Patel',
+  nurseName: 'RN Sarah M.',
+  taskType: 'Vital Signs',
+  placeText: 'Room 101',
+  recurrence: 'Daily',
+  scheduleDay: 'Monday',
+  scheduleTime: '08:00',
+  boardStatusLabel: 'In Progress',
   createdAt: '2026-02-16T09:00:00.000Z',
   updatedAt: '2026-02-16T09:00:00.000Z',
   completedAt: undefined,
@@ -37,13 +45,22 @@ describe('task board selectors', () => {
     expect(model.sections).toHaveLength(2);
     expect(model.allRows.find((row) => row.id === 't1')?.patientName).toBe('John');
     expect(model.allRows.find((row) => row.id === 't2')?.urgent).toBe(true);
+    expect(model.allRows.find((row) => row.id === 't1')?.doctor.name).toBe('Dr. Patel');
+    expect(model.allRows.find((row) => row.id === 't1')?.scheduleTime).toBe('08:00');
+    expect(model.allRows.find((row) => row.id === 't1')?.taskType).toBe('Vital Signs');
   });
 
   it('filters by status and priority semantics', () => {
     const rows = [
       BASE_TASK,
       { ...BASE_TASK, id: 't2', status: 'completed', priority: 'low' as const },
-      { ...BASE_TASK, id: 't3', status: 'in_progress', priority: 'high' as const },
+      {
+        ...BASE_TASK,
+        id: 't3',
+        status: 'in_progress',
+        priority: 'high' as const,
+        boardStatusLabel: 'Urgent',
+      },
     ];
 
     const scheduled = buildTaskBoardModel(rows, {}, { filter: 'scheduled' });

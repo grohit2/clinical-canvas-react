@@ -1,5 +1,12 @@
 import type { Task } from '../core/types';
-import { DUMMY_DOCTORS, DUMMY_NURSES, SECTION_COLORS } from './constants';
+import {
+  DOCTORS,
+  GROUP_COLORS,
+  NURSES,
+  initialsFromName,
+  mapTaskPriorityToBoardPriority,
+  mapTaskStatusToBoardStatus,
+} from '../hospital-board/constants';
 import type {
   ActivityLike,
   BuildTaskBoardOptions,
@@ -7,6 +14,7 @@ import type {
   TaskBoardAuditRow,
   TaskBoardMetrics,
   TaskBoardModel,
+  TaskBoardPerson,
   TaskBoardRow,
   TaskBoardSection,
 } from './types';
@@ -21,7 +29,7 @@ function hashString(value: string): number {
 
 function resolveSectionTitle(task: Task): string {
   if (task.departmentId && task.departmentId.trim().length > 0) {
-    return `Ward ${task.departmentId}`;
+    return task.departmentId.trim();
   }
   return 'General Ward';
 }
@@ -44,8 +52,94 @@ function toDueLabel(dueDate: string | undefined): string {
   });
 }
 
+function resolveDoctor(task: Task): TaskBoardPerson {
+  const requested = task.doctorName?.trim() ?? '';
+  const exact = DOCTORS.find((doctor) => doctor.name === requested);
+
+  if (exact) {
+    return {
+      name: exact.name,
+      initials: exact.initials,
+      color: exact.color,
+    };
+  }
+
+  const fallback = DOCTORS[hashString(`${task.id}:doctor`) % DOCTORS.length];
+  const name = requested.length > 0 ? requested : fallback.name;
+
+  return {
+    name,
+    initials: requested.length > 0 ? initialsFromName(requested) : fallback.initials,
+    color: fallback.color,
+  };
+}
+
+function resolveNurse(task: Task): TaskBoardPerson {
+  const requested = task.nurseName?.trim() ?? task.assigneeName?.trim() ?? '';
+  const exact = NURSES.find((nurse) => nurse.name === requested);
+
+  if (exact) {
+    return {
+      name: exact.name,
+      initials: exact.initials,
+      color: exact.color,
+    };
+  }
+
+  const fallback = NURSES[hashString(`${task.id}:nurse`) % NURSES.length];
+  const name = requested.length > 0 ? requested : fallback.name;
+
+  return {
+    name,
+    initials: requested.length > 0 ? initialsFromName(requested) : fallback.initials,
+    color: fallback.color,
+  };
+}
+
+function inferScheduleTime(task: Task): string {
+  if (task.scheduleTime && task.scheduleTime.length > 0) {
+    return task.scheduleTime;
+  }
+
+  if (!task.dueDate) {
+    return '--:--';
+  }
+
+  const due = new Date(task.dueDate);
+  if (Number.isNaN(due.getTime())) {
+    return '--:--';
+  }
+
+  return due.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function inferScheduleDay(task: Task): string {
+  if (task.scheduleDay && task.scheduleDay.length > 0) {
+    return task.scheduleDay;
+  }
+
+  if (!task.dueDate) {
+    return '--';
+  }
+
+  const due = new Date(task.dueDate);
+  if (Number.isNaN(due.getTime())) {
+    return '--';
+  }
+
+  return due.toLocaleDateString([], { weekday: 'short' });
+}
+
 function isUrgent(task: Task): boolean {
-  return task.priority === 'urgent' || task.status === 'in_progress';
+  if (task.priority === 'urgent') {
+    return true;
+  }
+
+  return task.boardStatusLabel === 'Urgent';
 }
 
 function statusRank(status: Task['status']): number {
@@ -90,11 +184,12 @@ function mapTaskToRow(task: Task, patientLookup: PatientLookup): TaskBoardRow {
   const patientNameFromLookup = task.patientId ? patientLookup[task.patientId] : undefined;
   const patientName = task.patientName || patientNameFromLookup || 'Unassigned Patient';
 
-  const doctor = DUMMY_DOCTORS[hashString(`${task.id}:doctor`) % DUMMY_DOCTORS.length];
-  const nurse = DUMMY_NURSES[hashString(`${task.id}:nurse`) % DUMMY_NURSES.length];
+  const doctor = resolveDoctor(task);
+  const nurse = resolveNurse(task);
 
   const sectionTitle = resolveSectionTitle(task);
   const sectionId = sectionTitle.toLowerCase().replace(/\s+/g, '_');
+  const boardStatusLabel = mapTaskStatusToBoardStatus(task.status, task.boardStatusLabel);
 
   return {
     id: task.id,
@@ -104,8 +199,15 @@ function mapTaskToRow(task: Task, patientLookup: PatientLookup): TaskBoardRow {
     nurse,
     status: task.status,
     priority: task.priority,
+    boardStatusLabel,
+    priorityLabel: mapTaskPriorityToBoardPriority(task.priority),
     dueDate: task.dueDate ?? null,
     dueLabel: toDueLabel(task.dueDate),
+    scheduleTime: inferScheduleTime(task),
+    scheduleDay: inferScheduleDay(task),
+    recurrence: task.recurrence ?? 'None',
+    placeText: task.placeText ?? '—',
+    taskType: task.taskType ?? 'Task',
     sectionId,
     sectionTitle,
     urgent: isUrgent(task),
@@ -161,7 +263,7 @@ function applySort(rows: TaskBoardRow[], sortMode: BuildTaskBoardOptions['sortMo
   });
 }
 
-function buildSections(rows: TaskBoardRow[]): TaskBoardSection[] {
+function buildSections(rows: TaskBoardRow[], sectionOrder: Map<string, number>): TaskBoardSection[] {
   const grouped = new Map<string, TaskBoardRow[]>();
 
   for (const row of rows) {
@@ -171,14 +273,16 @@ function buildSections(rows: TaskBoardRow[]): TaskBoardSection[] {
   }
 
   const sections: TaskBoardSection[] = [];
-  const keys = [...grouped.keys()].sort();
+  const keys = [...grouped.keys()].sort(
+    (a, b) => (sectionOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sectionOrder.get(b) ?? Number.MAX_SAFE_INTEGER),
+  );
 
   keys.forEach((key, index) => {
     const sectionRows = grouped.get(key) ?? [];
     sections.push({
       id: key,
       title: sectionRows[0]?.sectionTitle ?? 'General Ward',
-      color: SECTION_COLORS[index % SECTION_COLORS.length],
+      color: GROUP_COLORS[index % GROUP_COLORS.length],
       rows: sectionRows,
       urgentCount: sectionRows.filter((row) => row.urgent).length,
       total: sectionRows.length,
@@ -240,8 +344,16 @@ export function buildTaskBoardModel(
   options: BuildTaskBoardOptions,
 ): TaskBoardModel {
   const allRows = tasks.map((task) => mapTaskToRow(task, patientLookup));
+  const sectionOrder = new Map<string, number>();
+
+  allRows.forEach((row, idx) => {
+    if (!sectionOrder.has(row.sectionId)) {
+      sectionOrder.set(row.sectionId, idx);
+    }
+  });
+
   const filteredRows = applySort(applyFilter(allRows, options.filter), options.sortMode ?? 'default');
-  const sections = buildSections(filteredRows);
+  const sections = buildSections(filteredRows, sectionOrder);
   const metrics = deriveTaskBoardMetrics(tasks);
   const { remindersToday, remindersUpcoming } = splitReminders(allRows, options.now ?? new Date());
 

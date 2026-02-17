@@ -13,9 +13,19 @@ export interface UpdateTaskPayload {
   priority?: TaskPriority;
   status?: TaskStatus;
   dueDate?: string;
+  patientId?: string;
+  patientName?: string;
   assigneeId?: string;
   assigneeName?: string;
   departmentId?: string;
+  doctorName?: string;
+  nurseName?: string;
+  taskType?: string;
+  placeText?: string;
+  recurrence?: string;
+  scheduleDay?: string;
+  scheduleTime?: string;
+  boardStatusLabel?: string;
 }
 
 export function useUpdateTask(taskId: string) {
@@ -41,7 +51,10 @@ export function useUpdateTask(taskId: string) {
         updatesWithDerived.completedAt = null;
       }
 
-      const { patch, inversePatch } = computePatch(current as Record<string, unknown>, updatesWithDerived);
+      const { patch, inversePatch } = computePatch(
+        current as unknown as Record<string, unknown>,
+        updatesWithDerived,
+      );
 
       if (Object.keys(patch).length === 0) {
         return toPublicTask(current);

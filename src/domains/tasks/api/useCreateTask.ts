@@ -16,6 +16,14 @@ export interface CreateTaskPayload {
   assigneeId?: string;
   assigneeName?: string;
   departmentId?: string;
+  doctorName?: string;
+  nurseName?: string;
+  taskType?: string;
+  placeText?: string;
+  recurrence?: string;
+  scheduleDay?: string;
+  scheduleTime?: string;
+  boardStatusLabel?: string;
 }
 
 export function useCreateTask() {
@@ -49,6 +57,14 @@ export function useCreateTask() {
           assigneeId: payload.assigneeId ?? null,
           assigneeName: payload.assigneeName ?? null,
           departmentId: payload.departmentId ?? null,
+          doctorName: payload.doctorName ?? null,
+          nurseName: payload.nurseName ?? null,
+          taskType: payload.taskType ?? null,
+          placeText: payload.placeText ?? null,
+          recurrence: payload.recurrence ?? null,
+          scheduleDay: payload.scheduleDay ?? null,
+          scheduleTime: payload.scheduleTime ?? null,
+          boardStatusLabel: payload.boardStatusLabel ?? null,
           createdAt: now,
           updatedAt: now,
           completedAt: null,

@@ -6,7 +6,7 @@ function descByCreatedAt(a: TaskOpRow, b: TaskOpRow): number {
 }
 
 export async function getOpById(opId: string): Promise<TaskOpRow | null> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return state.ops.find((op) => op.opId === opId) ?? null;
 }
 
@@ -15,7 +15,7 @@ export async function getOpsForEntity(
   entityId: string,
   limit = 200,
 ): Promise<TaskOpRow[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return state.ops
     .filter((op) => op.entityType === entityType && op.entityId === entityId)
     .sort(descByCreatedAt)
@@ -23,7 +23,7 @@ export async function getOpsForEntity(
 }
 
 export async function getOpsForActorDay(actorId: string, dayLocal: string): Promise<TaskOpRow[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return state.ops
     .filter((op) => op.actorId === actorId && op.createdDayLocal === dayLocal)
     .sort(descByCreatedAt)
@@ -36,7 +36,7 @@ export async function countOpsForActorDay(actorId: string, dayLocal: string): Pr
 }
 
 export async function getLastUndoableOp(actorId?: string): Promise<TaskOpRow | null> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
 
   const filtered = state.ops
     .filter((op) => op.opType !== 'undo' && op.opType !== 'automation')
@@ -47,14 +47,14 @@ export async function getLastUndoableOp(actorId?: string): Promise<TaskOpRow | n
 }
 
 export async function getOpsByGroupId(opGroupId: string): Promise<TaskOpRow[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return state.ops
     .filter((op) => op.opGroupId === opGroupId)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
 export async function hasAutomationRun(ruleId: string, triggerOpId: string): Promise<boolean> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return state.automationRuns.some(
     (row) => row.ruleId === ruleId && row.triggerOpId === triggerOpId,
   );

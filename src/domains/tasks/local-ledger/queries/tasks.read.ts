@@ -17,7 +17,7 @@ function bySortOrderAndDueDate(a: TaskEntity, b: TaskEntity): number {
 }
 
 export async function getTaskById(id: string): Promise<TaskEntity | null> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   const task = state.tasks[id];
   if (!task || !isActiveTask(task)) {
     return null;
@@ -26,12 +26,12 @@ export async function getTaskById(id: string): Promise<TaskEntity | null> {
 }
 
 export async function listTasks(): Promise<TaskEntity[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return Object.values(state.tasks).filter(isActiveTask).sort(bySortOrderAndDueDate);
 }
 
 export async function getTasksByWard(wardId: string): Promise<TaskEntity[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return Object.values(state.tasks)
     .filter((task) => isActiveTask(task) && task.departmentId === wardId)
     .sort(bySortOrderAndDueDate);
@@ -42,14 +42,14 @@ export async function getTasksByDepartment(departmentId: string): Promise<TaskEn
 }
 
 export async function getTasksByPatient(patientId: string): Promise<TaskEntity[]> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   return Object.values(state.tasks)
     .filter((task) => isActiveTask(task) && task.patientId === patientId)
     .sort(bySortOrderAndDueDate);
 }
 
 export async function findTaskByOriginKey(originKey: string): Promise<{ id: string } | null> {
-  const state = readLedgerState();
+  const state = await readLedgerState();
   const match = Object.values(state.tasks).find(
     (task) => isActiveTask(task) && task.originKey === originKey,
   );

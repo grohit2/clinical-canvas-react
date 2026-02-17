@@ -6,8 +6,8 @@ import { getLocalDayFromIso } from '../utils/device';
 import { applyOp } from './commandService';
 
 describe('applyOp', () => {
-  beforeEach(() => {
-    resetLedgerState();
+  beforeEach(async () => {
+    await resetLedgerState();
   });
 
   it('creates task snapshot + ops row + outbox idempotently', async () => {
@@ -49,7 +49,7 @@ describe('applyOp', () => {
     const entityOps = await getOpsForEntity('task', 'task_1');
     expect(entityOps).toHaveLength(1);
 
-    const state = readLedgerState();
+    const state = await readLedgerState();
     expect(state.outboxOps).toHaveLength(1);
     expect(state.outboxOps[0].status).toBe('pending');
   });
@@ -71,7 +71,7 @@ describe('applyOp', () => {
 
     const opRow = await getOpById('op_patient_1');
     expect(opRow).toBeNull();
-    expect(readLedgerState().outboxOps).toHaveLength(0);
+    expect((await readLedgerState()).outboxOps).toHaveLength(0);
   });
 
   it('throws version conflict when baseVersion is stale', async () => {
@@ -134,7 +134,7 @@ describe('applyOp', () => {
     const hidden = await getTaskById('task_delete');
     expect(hidden).toBeNull();
 
-    const state = readLedgerState();
+    const state = await readLedgerState();
     expect(state.tasks.task_delete.deletedAt).toBe('2026-02-15T10:01:00.000Z');
   });
 

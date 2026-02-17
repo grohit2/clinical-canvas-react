@@ -43,6 +43,14 @@ export interface Task {
   assigneeId?: string;
   assigneeName?: string;
   departmentId?: string;
+  doctorName?: string;
+  nurseName?: string;
+  taskType?: string;
+  placeText?: string;
+  recurrence?: string;
+  scheduleDay?: string;
+  scheduleTime?: string;
+  boardStatusLabel?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

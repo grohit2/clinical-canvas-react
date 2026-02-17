@@ -6,7 +6,7 @@
 ## Relevant Files
 
 - `src/domains/tasks/local-ledger/types.ts` - Task-local ledger data models (task snapshot, ops, outbox, automation runs)
-- `src/domains/tasks/local-ledger/db.ts` - LocalStorage-backed task ledger state + transaction queue
+- `src/domains/tasks/local-ledger/db.ts` / `db.native.ts` - Platform ledger DB adapters with shared API + transaction queue (`sql.js` on web, `expo-sqlite` on native)
 - `src/domains/tasks/local-ledger/utils/ids.ts` - ULID generator wrapper for task ledger IDs
 - `src/domains/tasks/local-ledger/utils/device.ts` - device/actor identity helpers + local-day derivation helpers
 - `src/domains/tasks/local-ledger/services/opService.ts` - computePatch utility with undefined filtering + inverse patch generation
@@ -39,7 +39,7 @@
 - The migration `002` includes a data migration that maps old `tasks` columns to new schema. Test this carefully with existing data.
 - All timestamps should be ISO UTC strings. Never use SQLite `datetime('now')` at the application level.
 - Every sub-task references the exact code from `FINAL_ARCHITECTURE_V1.md`. When in doubt, copy from that doc.
-- This repo does not currently have the Expo SQLite foundation described in the architecture. Implementation is adapted to a task-isolated local-ledger (`localStorage`) under `src/domains/tasks/local-ledger`.
+- This repo uses a task-isolated local-ledger backed by SQLite in both runtimes: web uses `sql.js` persisted in local storage, and native uses `expo-sqlite` file-backed storage under `src/domains/tasks/local-ledger`.
 - Patient writes were intentionally deferred per request; patient-related checklist items are left unchecked or marked as deferred placeholders.
 - Deferred by design for this release:
   - `3.5` patient mutators (`patients.mutate.ts`) remain out of scope while patient data is read from existing patient list/detail APIs.

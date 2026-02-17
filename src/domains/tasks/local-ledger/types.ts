@@ -15,6 +15,14 @@ export interface TaskEntity {
   assigneeId: string | null;
   assigneeName: string | null;
   departmentId: string | null;
+  doctorName: string | null;
+  nurseName: string | null;
+  taskType: string | null;
+  placeText: string | null;
+  recurrence: string | null;
+  scheduleDay: string | null;
+  scheduleTime: string | null;
+  boardStatusLabel: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -82,6 +90,14 @@ export type TaskPatch = Partial<
     | 'assigneeId'
     | 'assigneeName'
     | 'departmentId'
+    | 'doctorName'
+    | 'nurseName'
+    | 'taskType'
+    | 'placeText'
+    | 'recurrence'
+    | 'scheduleDay'
+    | 'scheduleTime'
+    | 'boardStatusLabel'
     | 'completedAt'
     | 'deletedAt'
     | 'updatedAt'
@@ -106,6 +122,14 @@ export interface TaskCreateInput {
   assigneeId?: string | null;
   assigneeName?: string | null;
   departmentId?: string | null;
+  doctorName?: string | null;
+  nurseName?: string | null;
+  taskType?: string | null;
+  placeText?: string | null;
+  recurrence?: string | null;
+  scheduleDay?: string | null;
+  scheduleTime?: string | null;
+  boardStatusLabel?: string | null;
   completedAt?: string | null;
   sortOrder?: number;
   origin?: 'manual' | 'automation';

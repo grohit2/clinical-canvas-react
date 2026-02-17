@@ -6,8 +6,8 @@ import { applyOp } from './commandService';
 import { undoLastOp } from './undoService';
 
 describe('undoService', () => {
-  beforeEach(() => {
-    resetLedgerState();
+  beforeEach(async () => {
+    await resetLedgerState();
   });
 
   it('creates standalone undo op and restores previous value', async () => {

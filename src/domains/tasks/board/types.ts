@@ -1,6 +1,6 @@
 import type { Task, TaskPriority, TaskStatus } from '../core/types';
 
-export type TaskBoardTab = 'home' | 'board' | 'reminders' | 'audit';
+export type TaskBoardTab = 'back' | 'home' | 'board' | 'ledger' | 'reminders' | 'audit';
 export type TaskBoardFilter = 'all' | 'urgent' | 'in_progress' | 'scheduled' | 'completed';
 export type TaskBoardSortMode = 'default' | 'priority' | 'time';
 
@@ -18,8 +18,15 @@ export interface TaskBoardRow {
   nurse: TaskBoardPerson;
   status: TaskStatus;
   priority: TaskPriority;
+  boardStatusLabel: string;
+  priorityLabel: string;
   dueDate: string | null;
   dueLabel: string;
+  scheduleTime: string;
+  scheduleDay: string;
+  recurrence: string;
+  placeText: string;
+  taskType: string;
   sectionId: string;
   sectionTitle: string;
   urgent: boolean;

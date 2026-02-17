@@ -1,10 +1,12 @@
 import type { TaskBoardFilter, TaskBoardPerson, TaskBoardTab } from './types';
 
 export const TASK_BOARD_TABS: Array<{ id: TaskBoardTab; label: string }> = [
+  { id: 'back', label: 'Back' },
   { id: 'home', label: 'Home' },
-  { id: 'board', label: 'Board' },
+  { id: 'board', label: 'Task Board' },
+  { id: 'ledger', label: 'Ledger' },
   { id: 'reminders', label: 'Reminders' },
-  { id: 'audit', label: 'Audit' },
+  { id: 'audit', label: 'Audit Log' },
 ];
 
 export const TASK_BOARD_FILTERS: Array<{ id: TaskBoardFilter; label: string }> = [

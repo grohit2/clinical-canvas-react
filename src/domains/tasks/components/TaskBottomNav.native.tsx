@@ -1,78 +1,72 @@
-import { Bell, ClipboardList, Eye, FileText, Home, Undo2 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TaskBoardTab } from '../board/types';
 
+export interface TaskNavTabNative {
+  id: TaskBoardTab;
+  label: string;
+  icon: ReactNode;
+  badge?: number;
+  dot?: boolean;
+  enabled?: boolean;
+}
+
 export interface TaskBottomNavNativeProps {
+  tabs: TaskNavTabNative[];
   activeTab: TaskBoardTab;
   onTabChange: (tab: TaskBoardTab) => void;
-  onBack: () => void;
-  onToggleView: () => void;
-  showViewPanel: boolean;
 }
 
 function TabButton({
+  tab,
   active,
-  label,
   onPress,
-  children,
 }: {
+  tab: TaskNavTabNative;
   active: boolean;
-  label: string;
   onPress: () => void;
-  children: ReactNode;
 }) {
+  const badgeValue =
+    typeof tab.badge === 'number' && Number.isFinite(tab.badge) ? tab.badge : 0;
+  const hasBadge = badgeValue > 0;
+
   return (
     <Pressable style={[styles.tabButton, active && styles.tabButtonActive]} onPress={onPress}>
-      {children}
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      <View style={styles.iconWrap}>
+        {tab.icon}
+        {hasBadge ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badgeValue > 99 ? '99+' : String(badgeValue)}</Text>
+          </View>
+        ) : null}
+        {!hasBadge && tab.dot ? <View style={styles.dot} /> : null}
+      </View>
+      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
     </Pressable>
   );
 }
 
 export function TaskBottomNavNative(props: TaskBottomNavNativeProps) {
-  const { activeTab, onTabChange, onBack, onToggleView, showViewPanel } = props;
+  const { tabs, activeTab, onTabChange } = props;
+  const insets = useSafeAreaInsets();
+  const enabledTabs = tabs.filter((tab) => tab.enabled !== false);
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.sideGroup}>
-        <TabButton active={false} label="Back" onPress={onBack}>
-          <Undo2 size={16} color="#334155" />
-        </TabButton>
-        <TabButton active={activeTab === 'home'} label="Home" onPress={() => onTabChange('home')}>
-          <Home size={16} color={activeTab === 'home' ? '#1d4ed8' : '#334155'} />
-        </TabButton>
-        <TabButton
-          active={activeTab === 'board'}
-          label="Board"
-          onPress={() => onTabChange('board')}
-        >
-          <ClipboardList size={16} color={activeTab === 'board' ? '#1d4ed8' : '#334155'} />
-        </TabButton>
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      <View style={styles.tabRow}>
+        {enabledTabs.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              active={active}
+              onPress={() => onTabChange(tab.id)}
+            />
+          );
+        })}
       </View>
-
-      <View style={styles.sideGroup}>
-        <TabButton
-          active={activeTab === 'reminders'}
-          label="Reminders"
-          onPress={() => onTabChange('reminders')}
-        >
-          <Bell size={16} color={activeTab === 'reminders' ? '#1d4ed8' : '#334155'} />
-        </TabButton>
-        <TabButton active={activeTab === 'audit'} label="Audit" onPress={() => onTabChange('audit')}>
-          <FileText size={16} color={activeTab === 'audit' ? '#1d4ed8' : '#334155'} />
-        </TabButton>
-      </View>
-
-      <Pressable
-        style={[styles.viewFab, showViewPanel && styles.viewFabActive]}
-        onPress={onToggleView}
-        accessibilityRole="button"
-        accessibilityLabel="Toggle view panel"
-      >
-        <Eye size={18} color="#ffffff" />
-        <Text style={styles.viewFabText}>View</Text>
-      </Pressable>
     </View>
   );
 }
@@ -80,64 +74,77 @@ export function TaskBottomNavNative(props: TaskBottomNavNativeProps) {
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#dbe2ea',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#dbe2ea',
     backgroundColor: '#ffffff',
     minHeight: 72,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 12,
+  },
+  tabRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  sideGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 6,
   },
   tabButton: {
+    flex: 1,
     borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 7,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
   tabButtonActive: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#171d3a',
   },
   tabLabel: {
     fontSize: 10,
-    color: '#334155',
+    color: '#64748b',
     fontWeight: '700',
   },
   tabLabelActive: {
-    color: '#1d4ed8',
+    color: '#ffffff',
   },
-  viewFab: {
+  iconWrap: {
+    position: 'relative',
+    marginBottom: 2,
+  },
+  badge: {
     position: 'absolute',
-    left: '50%',
-    top: -20,
-    marginLeft: -28,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2563eb',
+    right: -10,
+    top: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#e11d48',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    paddingHorizontal: 3,
   },
-  viewFabActive: {
-    backgroundColor: '#1d4ed8',
-  },
-  viewFabText: {
-    fontSize: 10,
+  badgeText: {
+    fontSize: 9,
+    lineHeight: 10,
     color: '#ffffff',
     fontWeight: '800',
+  },
+  dot: {
+    position: 'absolute',
+    right: -5,
+    top: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#e11d48',
   },
 });
 

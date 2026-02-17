@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,11 +17,17 @@ import { useDocumentFolders } from '../hooks/useDocumentFolders';
 import { useDocumentSync } from '../hooks/useDocumentSync';
 import { usePatient } from '../../../hooks/usePatients';
 
+const SCROLL_DELTA_THRESHOLD = 10;
+const SCROLL_TOP_RESET_OFFSET = 8;
+const SCROLL_COLLAPSE_OFFSET = 40;
+
 export function DocumentsRootScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
   const { data: patient } = usePatient(patientId);
   const foldersQuery = useDocumentFolders(patientId);
   const { syncNow, isOnline } = useDocumentSync(patientId);
+  const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
+  const lastScrollOffsetRef = useRef(0);
 
   const pendingCount = useMemo(
     () => (foldersQuery.data || []).reduce((sum, item) => sum + item.pendingBackupCount, 0),
@@ -34,22 +42,58 @@ export function DocumentsRootScreen({ patientId }: { patientId: string }) {
     router.push(`/patient/${patientId}/documents/${category}` as never);
   };
 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const delta = offsetY - lastScrollOffsetRef.current;
+
+      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        lastScrollOffsetRef.current = offsetY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
+        if (!isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(true);
+        }
+      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+      }
+
+      lastScrollOffsetRef.current = offsetY;
+    },
+    [isTopChromeCollapsed],
+  );
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={foldersQuery.isFetching} onRefresh={syncNow} />}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Patient Documents</Text>
-        <Text style={styles.subtitle}>{patient?.name || patientId}</Text>
+      <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
+        <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>
+          Patient Documents
+        </Text>
+        {!isTopChromeCollapsed ? (
+          <Text style={styles.subtitle}>{patient?.name || patientId}</Text>
+        ) : null}
       </View>
 
-      <View style={[styles.onlineBadge, isOnline ? styles.online : styles.offline]}>
-        <Text style={styles.onlineText}>{isOnline ? 'Online' : 'Offline'}</Text>
-      </View>
+      {!isTopChromeCollapsed ? (
+        <View style={[styles.onlineBadge, isOnline ? styles.online : styles.offline]}>
+          <Text style={styles.onlineText}>{isOnline ? 'Online' : 'Offline'}</Text>
+        </View>
+      ) : null}
 
-      {pendingCount > 0 ? (
+      {!isTopChromeCollapsed && pendingCount > 0 ? (
         <View style={styles.pendingBanner}>
           <Text style={styles.pendingText}>{pendingCount} items pending backup</Text>
           <Pressable
@@ -102,10 +146,16 @@ const styles = StyleSheet.create({
   header: {
     gap: 4,
   },
+  headerCollapsed: {
+    gap: 0,
+  },
   title: {
     fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  titleCollapsed: {
+    fontSize: 20,
   },
   subtitle: {
     color: '#64748b',

@@ -1,4 +1,12 @@
-import { FlatList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type { DocumentItem } from '../core/types';
 import { DocumentCard } from './DocumentCard.native';
 
@@ -16,6 +24,7 @@ export function DocumentGrid({
   onToggleDocument,
   onRefresh,
   refreshing,
+  onScroll,
 }: {
   documents: DocumentItem[];
   selectionMode: boolean;
@@ -24,6 +33,7 @@ export function DocumentGrid({
   onToggleDocument: (docId: string) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }) {
   const { width } = useWindowDimensions();
   const numColumns = resolveColumns(width);
@@ -47,6 +57,8 @@ export function DocumentGrid({
       contentContainerStyle={styles.content}
       onRefresh={onRefresh}
       refreshing={!!refreshing}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       renderItem={({ item, index }) => {
         const selected = selectedIds.has(item.id);
         return (

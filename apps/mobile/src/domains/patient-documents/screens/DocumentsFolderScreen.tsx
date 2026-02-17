@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -19,6 +21,10 @@ import { useCategoryDocuments } from '../hooks/useCategoryDocuments';
 import { useDocumentActions } from '../hooks/useDocumentActions';
 import { useDocumentSync } from '../hooks/useDocumentSync';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
+
+const SCROLL_DELTA_THRESHOLD = 10;
+const SCROLL_TOP_RESET_OFFSET = 8;
+const SCROLL_COLLAPSE_OFFSET = 36;
 
 function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): DocumentItem[] {
   const selected: DocumentItem[] = [];
@@ -48,6 +54,8 @@ export function DocumentsFolderScreen({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
+  const lastScrollOffsetRef = useRef(0);
 
   const selectedDocs = useMemo(
     () => computeSelection(documents, selectedIds),
@@ -55,6 +63,45 @@ export function DocumentsFolderScreen({
   );
 
   const config = CATEGORY_CONFIG[category];
+
+  useEffect(() => {
+    if (!selectionMode) {
+      return;
+    }
+    setIsTopChromeCollapsed(false);
+  }, [selectionMode]);
+
+  const handleGridScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (selectionMode) {
+        return;
+      }
+
+      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const delta = offsetY - lastScrollOffsetRef.current;
+
+      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        lastScrollOffsetRef.current = offsetY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
+        if (!isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(true);
+        }
+      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+      }
+
+      lastScrollOffsetRef.current = offsetY;
+    },
+    [isTopChromeCollapsed, selectionMode],
+  );
 
   const toggleSelected = (docId: string) => {
     setSelectionMode(true);
@@ -128,15 +175,17 @@ export function DocumentsFolderScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={20} color="#334155" />
         </Pressable>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>{config.title}</Text>
-          <Text style={styles.subtitle}>
-            {documents.length} documents • {isOnline ? 'Online' : 'Offline'}
-          </Text>
+          {!isTopChromeCollapsed ? (
+            <Text style={styles.subtitle}>
+              {documents.length} documents • {isOnline ? 'Online' : 'Offline'}
+            </Text>
+          ) : null}
         </View>
         <Pressable
           style={styles.selectButton}
@@ -152,36 +201,38 @@ export function DocumentsFolderScreen({
         </Pressable>
       </View>
 
-      <View style={styles.actionRow}>
-        <Pressable
-          style={styles.actionButton}
-          onPress={async () => {
-            await downloadForOffline(documents);
-          }}
-        >
-          <Download size={16} color="#334155" />
-          <Text style={styles.actionText}>Download Offline</Text>
-        </Pressable>
-
-        <Pressable style={styles.actionButton} onPress={syncNow}>
-          <RefreshCcw size={16} color="#334155" />
-          <Text style={styles.actionText}>Sync</Text>
-        </Pressable>
-
-        {failedCount > 0 ? (
+      {!isTopChromeCollapsed ? (
+        <View style={styles.actionRow}>
           <Pressable
             style={styles.actionButton}
             onPress={async () => {
-              const retried = await retryFailedUploads();
-              if (retried > 0) {
-                Alert.alert('Retry started', `Queued ${retried} failed items for retry.`);
-              }
+              await downloadForOffline(documents);
             }}
           >
-            <Text style={[styles.actionText, styles.warnText]}>Retry Failed ({failedCount})</Text>
+            <Download size={16} color="#334155" />
+            <Text style={styles.actionText}>Download Offline</Text>
           </Pressable>
-        ) : null}
-      </View>
+
+          <Pressable style={styles.actionButton} onPress={syncNow}>
+            <RefreshCcw size={16} color="#334155" />
+            <Text style={styles.actionText}>Sync</Text>
+          </Pressable>
+
+          {failedCount > 0 ? (
+            <Pressable
+              style={styles.actionButton}
+              onPress={async () => {
+                const retried = await retryFailedUploads();
+                if (retried > 0) {
+                  Alert.alert('Retry started', `Queued ${retried} failed items for retry.`);
+                }
+              }}
+            >
+              <Text style={[styles.actionText, styles.warnText]}>Retry Failed ({failedCount})</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {selectionMode ? (
         <View style={styles.selectionBar}>
@@ -207,7 +258,9 @@ export function DocumentsFolderScreen({
         </View>
       ) : null}
 
-      <PhotoUploader onCamera={captureFromCamera} onGallery={pickFromGallery} />
+      {!isTopChromeCollapsed ? (
+        <PhotoUploader onCamera={captureFromCamera} onGallery={pickFromGallery} />
+      ) : null}
 
       {docsQuery.isLoading ? (
         <View style={styles.loadingWrap}>
@@ -222,6 +275,7 @@ export function DocumentsFolderScreen({
           onPressDocument={openDocument}
           onRefresh={syncNow}
           refreshing={docsQuery.isFetching}
+          onScroll={handleGridScroll}
         />
       )}
 
@@ -257,6 +311,9 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     gap: 8,
+  },
+  headerCollapsed: {
+    paddingBottom: 4,
   },
   backButton: {
     width: 36,

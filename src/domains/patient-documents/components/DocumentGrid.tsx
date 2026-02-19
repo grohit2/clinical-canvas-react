@@ -9,6 +9,8 @@ interface DocumentGridProps {
   documents: DocumentItem[];
   className?: string;
   columns?: 2 | 3 | 4;
+  /** Google Photos tight layout - minimal gaps, no rounded corners */
+  tight?: boolean;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
@@ -20,6 +22,7 @@ export function DocumentGrid({
   documents,
   className,
   columns = 3,
+  tight = false,
   selectionMode = false,
   selectedIds = new Set(),
   onSelectionChange,
@@ -56,20 +59,30 @@ export function DocumentGrid({
     );
   }
 
-  const gridCols = {
-    2: "grid-cols-2",
-    3: "grid-cols-2 md:grid-cols-3",
-    4: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
-  };
+  const gridCols = tight
+    ? "grid-cols-4"
+    : {
+        2: "grid-cols-2",
+        3: "grid-cols-2 md:grid-cols-3",
+        4: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+      }[columns];
 
   return (
     <>
-      <div className={cn("grid gap-4", gridCols[columns], className)}>
+      <div
+        className={cn(
+          "grid",
+          tight ? "gap-[2px]" : "gap-4",
+          gridCols,
+          className
+        )}
+      >
         {documents.map((doc, index) => (
           <DocumentCard
             key={doc.id}
             document={doc}
             index={index}
+            tight={tight}
             isSelected={selectedIds.has(doc.id)}
             selectionMode={selectionMode}
             onSelect={handleSelect}

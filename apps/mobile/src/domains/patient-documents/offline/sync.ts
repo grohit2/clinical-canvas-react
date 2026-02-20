@@ -1,5 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { v4 as uuidv4 } from 'uuid';
 import type { DocCategory, DocumentItem } from '../core/types';
 import { mapAllDocumentsFromApi } from '../core/mapFromApi';

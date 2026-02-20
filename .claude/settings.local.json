@@ -49,7 +49,13 @@
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws cloudfront:*)",
       "Bash(cat:*)",
       "Bash(AWS_DEFAULT_REGION=ap-south-1 aws logs tail:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(adb devices:*)",
+      "Bash(export PATH=\"$PATH:$HOME/Library/Android/sdk/platform-tools\")",
+      "Bash(pnpm ls:*)",
+      "Bash(kill:*)",
+      "Bash(xargs:*)",
+      "Bash(timeout 15 npx expo start:*)"
     ],
     "deny": []
   }

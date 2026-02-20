@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { usePatients } from '../../../hooks/usePatients';
 import type { DocCategory } from '../core/types';
 import { DOC_CATEGORIES, CATEGORY_FULL_LABELS } from '../core/types';
@@ -54,10 +55,22 @@ export function ImportSharedToPatientScreen() {
     () => shareContext.shareIntent.files || [],
     [shareContext.shareIntent.files]
   );
+  const isExpoGo =
+    Constants.executionEnvironment === 'storeClient' ||
+    Constants.appOwnership === 'expo';
 
   const availablePatients = patients || [];
 
   const patientId = selectedPatientId || availablePatients[0]?.id;
+
+  useEffect(() => {
+    // In Expo Go, this route should only open for explicit in-app navigation or share intent.
+    if (!isExpoGo) return;
+    if (patientIdFromParams) return;
+    if (sharedFiles.length > 0) return;
+
+    router.replace('/(tabs)' as never);
+  }, [isExpoGo, patientIdFromParams, router, sharedFiles.length]);
 
   const handleImport = async () => {
     if (!patientId) {

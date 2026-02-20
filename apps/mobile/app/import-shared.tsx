@@ -1,5 +1,21 @@
+import Constants from 'expo-constants';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { ImportSharedToPatientScreen } from '../src/domains/patient-documents/screens/ImportSharedToPatientScreen';
 
 export default function ImportSharedRoute() {
+  const params = useLocalSearchParams<{ patientId?: string | string[] }>();
+  const patientIdFromParams = Array.isArray(params.patientId)
+    ? params.patientId[0]
+    : params.patientId;
+  const isExpoGo =
+    Constants.executionEnvironment === 'storeClient' ||
+    Constants.appOwnership === 'expo';
+
+  // Expo Go cannot reliably emulate Android share-intent handoff.
+  // Route launches without an explicit patient context should return to tabs.
+  if (isExpoGo && !patientIdFromParams) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return <ImportSharedToPatientScreen />;
 }

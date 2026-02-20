@@ -36,8 +36,6 @@ export const TASK_COL_MAP: Record<string, string> = {
   doctorName: 'doctor_name',
   nurseName: 'nurse_name',
   taskType: 'task_type',
-  placeText: 'place_text',
-  recurrence: 'recurrence',
   scheduleDay: 'schedule_day',
   scheduleTime: 'schedule_time',
   boardStatusLabel: 'board_status_label',

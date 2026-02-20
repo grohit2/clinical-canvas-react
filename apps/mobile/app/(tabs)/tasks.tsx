@@ -1,4 +1,4 @@
-import { TaskBoardMobileScreen } from '@/domains/tasks/screens/TaskBoardMobileScreen.native';
+import { TaskBoardMobileScreen } from '@/domains/tasks/screens/TaskBoardMobileScreen';
 import { usePatients } from '../../src/hooks/usePatients';
 
 export default function TasksTabRoute() {

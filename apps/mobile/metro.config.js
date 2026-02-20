@@ -4,6 +4,7 @@ const fs = require('fs');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
+const patientDocumentsRoot = path.resolve(workspaceRoot, 'src/domains/patient-documents');
 const appNodeModules = path.resolve(projectRoot, 'node_modules');
 const resolvePkgRoot = (pkgName) =>
   fs.realpathSync(
@@ -24,7 +25,7 @@ const config = getDefaultConfig(projectRoot);
 config.transformer.unstable_allowRequireContext = true;
 
 // Allow imports from monorepo root (shared src/* and packages/*)
-config.watchFolders = [workspaceRoot];
+config.watchFolders = [workspaceRoot, patientDocumentsRoot];
 
 // Use symlinks for pnpm
 config.resolver.unstable_enableSymlinks = true;
@@ -39,6 +40,7 @@ config.resolver.nodeModulesPaths = [
 // Prevent duplicate React instances across workspace imports (invalid hook call).
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
+  '@patient-documents': patientDocumentsRoot,
   react: resolvePkgRoot('react'),
   'react/jsx-runtime': fs.realpathSync(path.resolve(resolvePkgRoot('react'), 'jsx-runtime.js')),
   'react/jsx-dev-runtime': fs.realpathSync(path.resolve(resolvePkgRoot('react'), 'jsx-dev-runtime.js')),
@@ -52,6 +54,10 @@ config.resolver.disableHierarchicalLookup = false;
 
 // Force all `react-native` imports (and subpaths) to resolve from the mobile app's copy.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'react' || moduleName.startsWith('react/')) {
+    return context.resolveRequest(context, resolveFromApp(moduleName), platform);
+  }
+
   if (moduleName === 'react-native' || moduleName.startsWith('react-native/')) {
     return context.resolveRequest(context, path.join(appNodeModules, moduleName), platform);
   }

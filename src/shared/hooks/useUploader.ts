@@ -1,5 +1,5 @@
 // src/hooks/useUploader.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { processImageFile } from "../lib/image";
 import { putToS3Presigned } from "../lib/s3upload";
 import {
@@ -9,13 +9,13 @@ import {
   attachTaskFile,
   PresignUploadRequest,
   DocType,
-  DocumentsCategory,
   HttpError,
 } from "../lib/filesApi";
-import { waitForS3EventMaterialization } from "../lib/docsWaitForEvent";
+import { createDocumentsApi } from "@/domains/patient-documents/api";
+import { waitForS3EventMaterialization, type DocCategory } from "@/domains/patient-documents";
 import { toast } from "@shared/components/ui/sonner";
 
-type ContextDoc = { kind: "doc"; docType: DocType; category: DocumentsCategory; label?: string };
+type ContextDoc = { kind: "doc"; docType: DocType; category: DocCategory; label?: string };
 type ContextNote = { kind: "note"; refId: string; label?: string };
 type ContextMed = { kind: "med"; refId: string; label?: string };
 type ContextTask = { kind: "task"; refId: string; label?: string };
@@ -23,6 +23,10 @@ type ContextTask = { kind: "task"; refId: string; label?: string };
 export type UploadContext = ContextDoc | ContextNote | ContextMed | ContextTask;
 
 export function useUploader(patientId: string, currentUserId?: string) {
+  const documentsApi = useMemo(
+    () => createDocumentsApi(import.meta.env.VITE_API_BASE_URL || "/api"),
+    []
+  );
   const [progress, setProgress] = useState<number>(0);
   const [busy, setBusy] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +72,12 @@ export function useUploader(patientId: string, currentUserId?: string) {
 
         if (ctx.kind === "doc") {
           // S3 event will auto-attach via Lambda - poll until materialized
-          const ok = await waitForS3EventMaterialization(patientId, ctx.category, pre.key);
+          const ok = await waitForS3EventMaterialization(
+            (uid) => documentsApi.getDocuments(uid),
+            patientId,
+            ctx.category,
+            pre.key
+          );
           if (!ok) {
             // Not an error; the event can be slightly delayed. Caller will refresh.
             console.warn("S3 event not materialized within timeout, proceeding anyway");
@@ -92,7 +101,7 @@ export function useUploader(patientId: string, currentUserId?: string) {
         setTimeout(() => setProgress(0), 400);
       }
     },
-    [patientId, currentUserId]
+    [currentUserId, documentsApi, patientId]
   );
 
   return { upload, progress, busy, error };

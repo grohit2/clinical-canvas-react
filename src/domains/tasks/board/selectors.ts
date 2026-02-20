@@ -131,7 +131,7 @@ function inferScheduleDay(task: Task): string {
     return '--';
   }
 
-  return due.toLocaleDateString([], { weekday: 'short' });
+  return due.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
 function isUrgent(task: Task): boolean {
@@ -188,7 +188,7 @@ function mapTaskToRow(task: Task, patientLookup: PatientLookup): TaskBoardRow {
   const nurse = resolveNurse(task);
 
   const sectionTitle = resolveSectionTitle(task);
-  const sectionId = sectionTitle.toLowerCase().replace(/\s+/g, '_');
+  const sectionId = sectionTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_');
   const boardStatusLabel = mapTaskStatusToBoardStatus(task.status, task.boardStatusLabel);
 
   return {

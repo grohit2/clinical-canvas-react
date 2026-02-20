@@ -1,5 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
-import { DocumentsRootScreen } from '../../../../src/domains/patient-documents/screens/DocumentsRootScreen';
+import { createDocumentsApi } from '@patient-documents/api';
+import { DocumentsRootScreen } from '@patient-documents/mobile';
+import { getApiBaseUrl } from '../../../../src/lib/api';
+
+const documentsApi = createDocumentsApi(getApiBaseUrl());
 
 export default function PatientDocumentsRootRoute() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
@@ -7,5 +11,5 @@ export default function PatientDocumentsRootRoute() {
 
   if (!patientId) return null;
 
-  return <DocumentsRootScreen patientId={patientId} />;
+  return <DocumentsRootScreen patientId={patientId} documentsApi={documentsApi} />;
 }

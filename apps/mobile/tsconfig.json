@@ -25,17 +25,53 @@
       "@core/*": [
         "../../packages/core/src/*"
       ],
+      "@patient-documents/*": [
+        "../../src/domains/patient-documents/*"
+      ],
       "expo-router": [
         "./node_modules/expo-router"
       ],
       "expo-linear-gradient": [
         "./node_modules/expo-linear-gradient"
       ],
+      "expo-image": [
+        "./node_modules/expo-image"
+      ],
+      "expo-image-picker": [
+        "./node_modules/expo-image-picker"
+      ],
+      "expo-constants": [
+        "./node_modules/expo-constants"
+      ],
+      "expo-sharing": [
+        "./node_modules/expo-sharing"
+      ],
+      "expo-file-system": [
+        "./node_modules/expo-file-system"
+      ],
+      "expo/fetch": [
+        "./node_modules/expo/fetch"
+      ],
+      "expo-sqlite": [
+        "./node_modules/expo-sqlite"
+      ],
       "lucide-react-native": [
         "./node_modules/lucide-react-native"
       ],
+      "@react-native-community/netinfo": [
+        "./node_modules/@react-native-community/netinfo"
+      ],
+      "react-native-gesture-handler": [
+        "./node_modules/react-native-gesture-handler"
+      ],
+      "react-native-reanimated": [
+        "./node_modules/react-native-reanimated"
+      ],
       "react-native-safe-area-context": [
         "./node_modules/react-native-safe-area-context"
+      ],
+      "uuid": [
+        "./node_modules/uuid"
       ]
     }
   },

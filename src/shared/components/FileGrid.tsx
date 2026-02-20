@@ -5,11 +5,11 @@ import {
   detachNoteFile,
   detachMedFile,
   detachTaskFile,
-  detachDocument,
   deleteFiles,
   DocType,
-  DocumentsCategory,
 } from "../lib/filesApi";
+import { createDocumentsApi } from "@/domains/patient-documents/api";
+import type { DocCategory } from "@/domains/patient-documents";
 import { toast } from "@/components/ui/sonner";
 
 // CDN Configuration
@@ -25,7 +25,7 @@ function generateCdnUrl(s3Key: string): string {
   if (s3Key.startsWith('http')) return s3Key;
   
   // Remove any bucket prefix if present
-  const cleanKey = s3Key.replace(/^[^\/]+\//, '');
+  const cleanKey = s3Key.replace(/^[^/]+\//, '');
   return `${CDN_DOMAIN}/${cleanKey}`;
 }
 
@@ -35,10 +35,12 @@ type Props = {
   docType?: DocType;
   refId?: string;
   detachable?: boolean;
-  docCategory?: DocumentsCategory; // required if detachable && kind==='doc'
+  docCategory?: DocCategory; // required if detachable && kind==='doc'
   onDetached?: (key: string) => void;
   refreshToken?: number;
 };
+
+const documentsApi = createDocumentsApi(import.meta.env.VITE_API_BASE_URL || "/api");
 
 export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, detachable, docCategory, onDetached, refreshToken }) => {
   const [items, setItems] = useState<FilesListItem[]>([]);
@@ -125,7 +127,7 @@ export const FileGrid: React.FC<Props> = ({ patientId, kind, docType, refId, det
       else if (kind === "task" && refId) await detachTaskFile(patientId, refId, key);
       else if (kind === "doc" && docCategory) {
         console.log('Detaching document:', { patientId, category: docCategory, key });
-        await detachDocument(patientId, { category: docCategory, key });
+        await documentsApi.detachDocument(patientId, { category: docCategory, key });
       }
       else return;
 

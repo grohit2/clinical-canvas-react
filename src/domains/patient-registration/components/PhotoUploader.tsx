@@ -1,35 +1,26 @@
-import React, { useState, useRef } from "react";
-import { Camera, Upload, X } from "lucide-react";
+import React, { useRef, useState } from 'react';
+import { Camera, Upload } from 'lucide-react';
+import { createDocumentsApi } from '@/domains/patient-documents/api';
 import {
-  presignUpload,
-  DocumentsCategory,
-  PresignUploadRequest,
-} from "../lib/filesApi";
-import { waitForS3EventMaterialization } from "../lib/docsWaitForEvent";
-import { toast } from "@/components/ui/sonner";
+  type DocCategory,
+  waitForS3EventMaterialization,
+} from '@/domains/patient-documents';
+import { toast } from '@/components/ui/sonner';
 
 type Props = {
   patientId: string;
-  category: DocumentsCategory;
+  category: DocCategory;
   onUploadComplete: () => void;
   className?: string;
 };
 
-const CATEGORY_TO_DOCTYPE: Record<DocumentsCategory, string> = {
-  preop_pics: "preop",
-  lab_reports: "lab", 
-  radiology: "radiology",
-  intraop_pics: "intraop",
-  ot_notes: "otnotes",
-  postop_pics: "postop",
-  discharge_pics: "discharge",
-};
+const documentsApi = createDocumentsApi(import.meta.env.VITE_API_BASE_URL || '/api');
 
-export const PhotoUploader: React.FC<Props> = ({ 
-  patientId, 
-  category, 
-  onUploadComplete, 
-  className = "" 
+export const PhotoUploader: React.FC<Props> = ({
+  patientId,
+  category,
+  onUploadComplete,
+  className = '',
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -38,9 +29,9 @@ export const PhotoUploader: React.FC<Props> = ({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      Array.from(files).forEach(file => uploadFile(file));
+      Array.from(files).forEach((file) => uploadFile(file));
     }
-    // Reset input so same file can be selected again
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -48,14 +39,13 @@ export const PhotoUploader: React.FC<Props> = ({
 
   const uploadFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast("Please select an image file");
+      toast('Please select an image file');
       return;
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast("File size must be less than 10MB");
+      toast('File size must be less than 10MB');
       return;
     }
 
@@ -63,36 +53,20 @@ export const PhotoUploader: React.FC<Props> = ({
     setUploadProgress(0);
 
     try {
-      console.log('📤 Starting upload:', {
-        filename: file.name,
-        size: file.size,
-        type: file.type,
-        category
-      });
+      const mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif';
 
-      // Step 1: Get pre-signed upload URL
-      const mimeType = file.type as "image/jpeg" | "image/png" | "image/webp" | "image/avif";
-      
-      const uploadRequest: PresignUploadRequest = {
+      const presignResponse = await documentsApi.presignUpload(patientId, {
         filename: file.name,
         mimeType,
-        target: "optimized",
-        kind: "doc",
-        docType: CATEGORY_TO_DOCTYPE[category] as any,
+        category,
         needsOptimization: true,
         quality: 80,
         maxW: 1600,
-        label: file.name.replace(/\.[^/.]+$/, "") // Remove extension
-      };
-
-      console.log('🔄 Getting pre-signed URL...');
-      const presignResponse = await presignUpload(patientId, uploadRequest);
-      console.log('✅ Pre-signed URL obtained:', presignResponse.key);
+        label: file.name.replace(/\.[^/.]+$/, ''),
+      });
 
       setUploadProgress(25);
 
-      // Step 2: Upload file to S3
-      console.log('🔄 Uploading to S3...');
       const uploadResponse = await fetch(presignResponse.uploadUrl, {
         method: presignResponse.method,
         headers: presignResponse.headers,
@@ -103,23 +77,24 @@ export const PhotoUploader: React.FC<Props> = ({
         throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
       }
 
-      console.log('✅ File uploaded to S3');
       setUploadProgress(90);
 
-      // S3 event will auto-attach via Lambda - poll until materialized
-      console.log('⏳ Waiting for S3 event processing...');
-      const ok = await waitForS3EventMaterialization(patientId, category, presignResponse.key);
+      const ok = await waitForS3EventMaterialization(
+        (uid) => documentsApi.getDocuments(uid),
+        patientId,
+        category,
+        presignResponse.key
+      );
+
       if (!ok) {
         console.warn('S3 event not materialized within timeout, proceeding anyway');
       }
 
       setUploadProgress(100);
-
       toast(`Successfully uploaded ${file.name}`);
       onUploadComplete();
-
-    } catch (error: any) {
-      console.error('❌ Upload failed:', error);
+    } catch (error: unknown) {
+      console.error('Upload failed:', error);
       toast(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
@@ -141,10 +116,9 @@ export const PhotoUploader: React.FC<Props> = ({
         onChange={handleFileSelect}
         className="hidden"
       />
-      
+
       {!isUploading ? (
         <div className="flex gap-2">
-          {/* Camera/Gallery Button */}
           <button
             onClick={triggerFileInput}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
@@ -154,7 +128,6 @@ export const PhotoUploader: React.FC<Props> = ({
             <span>Add Photo</span>
           </button>
 
-          {/* Upload Files Button (alternative) */}
           <button
             onClick={triggerFileInput}
             className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
@@ -172,7 +145,7 @@ export const PhotoUploader: React.FC<Props> = ({
               <span>{uploadProgress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />

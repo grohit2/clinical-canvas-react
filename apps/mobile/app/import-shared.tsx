@@ -1,9 +1,17 @@
 import Constants from 'expo-constants';
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { ImportSharedToPatientScreen } from '../src/domains/patient-documents/screens/ImportSharedToPatientScreen';
+import { createDocumentsApi } from '@patient-documents/api';
+import { ImportSharedToPatientScreen } from '@patient-documents/mobile';
+import { usePatients } from '../src/hooks/usePatients';
+import { useSafeShareIntentContext } from '../src/lib/shareIntent-context';
+import { getApiBaseUrl } from '../src/lib/api';
+
+const documentsApi = createDocumentsApi(getApiBaseUrl());
 
 export default function ImportSharedRoute() {
   const params = useLocalSearchParams<{ patientId?: string | string[] }>();
+  const { data: patients = [], isLoading } = usePatients();
+  const shareContext = useSafeShareIntentContext();
   const patientIdFromParams = Array.isArray(params.patientId)
     ? params.patientId[0]
     : params.patientId;
@@ -17,5 +25,13 @@ export default function ImportSharedRoute() {
     return <Redirect href="/(tabs)" />;
   }
 
-  return <ImportSharedToPatientScreen />;
+  return (
+    <ImportSharedToPatientScreen
+      documentsApi={documentsApi}
+      availablePatients={patients}
+      isLoading={isLoading}
+      sharedFiles={shareContext.shareIntent.files || []}
+      resetShareIntent={shareContext.resetShareIntent}
+    />
+  );
 }

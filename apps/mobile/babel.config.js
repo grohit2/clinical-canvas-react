@@ -16,6 +16,7 @@ module.exports = function (api) {
             '@features': '../../src/features',
             '@mobile': './src',
             '@core': '../../packages/core/src',
+            '@patient-documents': '../../src/domains/patient-documents',
           },
         },
       ],

@@ -1,42 +1,35 @@
-import type { DocCategory, DocumentItem, FolderSummary } from "./types";
+import { DOC_CATEGORIES } from './categories';
+import {
+  type BackupState,
+  type DocCategory,
+  type DocumentItem,
+  type FolderSummary,
+  type OfflineState,
+  type SortOrder,
+} from './types';
+import { filenameFromKey, isImageByMimeOrExt } from './utils';
 
-// Helper to extract filename from S3 key
-function filenameFromKey(key?: string): string {
-  if (!key) return "file";
-  const parts = key.split("/");
-  return parts[parts.length - 1] || "file";
-}
-
-// Helper to detect if file is an image
-function isImageByMimeOrExt(mime?: string, name?: string): boolean {
-  if (mime?.startsWith("image/")) return true;
-  const ext = name?.split(".").pop()?.toLowerCase() ?? "";
-  return ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "heic", "heif"].includes(ext);
-}
-
-// Raw API document shape (from backend)
 export interface ApiDocument {
   key?: string;
   id?: string;
   name?: string;
   title?: string;
-  cdnUrl?: string;
-  url?: string;
-  thumbUrl?: string;
-  thumbnailUrl?: string;
+  caption?: string;
+  cdnUrl?: string | null;
+  url?: string | null;
+  thumbUrl?: string | null;
+  thumbnailUrl?: string | null;
   uploadedAt?: string;
   createdAt?: string;
   date?: string;
   timestamp?: string;
-  mimeType?: string;
-  size?: number;
-  uploadedBy?: string;
+  mimeType?: string | null;
+  size?: number | null;
+  uploadedBy?: string | null;
   version?: number;
   isShared?: boolean;
-  caption?: string;
 }
 
-// Raw documents profile from API (all categories)
 export interface ApiDocumentsProfile {
   preopPics?: ApiDocument[];
   labReports?: ApiDocument[];
@@ -47,136 +40,133 @@ export interface ApiDocumentsProfile {
   dischargePics?: ApiDocument[];
 }
 
-/**
- * Maps a raw API document to our canonical DocumentItem type
- */
-export function mapDocumentFromApi(
-  raw: ApiDocument,
-  category: DocCategory
-): DocumentItem {
-  const uploadedAt =
-    raw.uploadedAt ||
-    raw.createdAt ||
-    raw.date ||
-    raw.timestamp ||
-    new Date().toISOString();
+export type LocalStateByRemoteKey = Record<
+  string,
+  {
+    id?: string;
+    localUri?: string;
+    localThumbUri?: string;
+    backupState?: BackupState;
+    offlineState?: OfflineState;
+    lastError?: string;
+  }
+>;
 
-  const fileUrl = raw.cdnUrl || raw.url || "";
+function normalizeUploadedAt(raw: ApiDocument): string {
+  return raw.uploadedAt || raw.createdAt || raw.date || raw.timestamp || new Date().toISOString();
+}
+
+function makeStableDocId(patientId: string, category: DocCategory, key?: string, uploadedAt?: string): string {
+  if (key) return `${patientId}:${category}:${key}`;
+  return `${patientId}:${category}:${uploadedAt || new Date().toISOString()}`;
+}
+
+const CATEGORY_PROFILE_MAP: Record<DocCategory, keyof ApiDocumentsProfile> = {
+  preop_pics: 'preopPics',
+  lab_reports: 'labReports',
+  radiology: 'radiology',
+  intraop_pics: 'intraopPics',
+  ot_notes: 'otNotes',
+  postop_pics: 'postopPics',
+  discharge_pics: 'dischargePics',
+};
+
+function sortByUploadedAt(items: DocumentItem[], sortOrder: SortOrder): DocumentItem[] {
+  return [...items].sort((a, b) => {
+    const ta = new Date(a.uploadedAt).getTime();
+    const tb = new Date(b.uploadedAt).getTime();
+    return sortOrder === 'asc' ? ta - tb : tb - ta;
+  });
+}
+
+export function mapDocumentFromApi(
+  patientId: string,
+  raw: ApiDocument,
+  category: DocCategory,
+  localStateByRemoteKey?: LocalStateByRemoteKey
+): DocumentItem {
+  const uploadedAt = normalizeUploadedAt(raw);
+  const remoteKey = raw.key ?? raw.id;
+  const fileUrl = raw.cdnUrl || raw.url || undefined;
   const thumbUrl = raw.thumbUrl || raw.thumbnailUrl || fileUrl;
-  const id = String(raw.key ?? raw.id ?? `${fileUrl}-${uploadedAt}`);
-  const name = raw.name || raw.title || raw.caption || filenameFromKey(raw.key) || "file";
-  const contentType = raw.mimeType;
+  const name = raw.name || raw.title || raw.caption || filenameFromKey(remoteKey);
+  const contentType = raw.mimeType || undefined;
   const isImage = isImageByMimeOrExt(contentType, name);
+  const localState = remoteKey ? localStateByRemoteKey?.[remoteKey] : undefined;
 
   return {
-    id,
+    id: localState?.id || makeStableDocId(patientId, category, remoteKey, uploadedAt),
+    patientId,
     category,
     name,
     uploadedAt,
-    fileUrl,
-    thumbUrl,
     contentType,
     isImage,
-    size: raw.size,
-    uploaderName: raw.uploadedBy,
+    size: raw.size ?? undefined,
+    remoteKey,
+    fileUrl,
+    thumbUrl,
+    localUri: localState?.localUri,
+    localThumbUri: localState?.localThumbUri,
+    backupState: localState?.backupState ?? 'backed_up',
+    offlineState: localState?.offlineState ?? 'online_only',
+    lastError: localState?.lastError,
+    uploaderName: raw.uploadedBy || undefined,
     isShared: raw.isShared,
     version: raw.version,
   };
 }
 
-/**
- * Maps an API documents profile to an array of folder summaries
- */
-export function mapFolderSummariesFromApi(
-  profile: ApiDocumentsProfile
-): FolderSummary[] {
-  const categories: { key: DocCategory; arr: ApiDocument[] | undefined }[] = [
-    { key: "preop_pics", arr: profile.preopPics },
-    { key: "lab_reports", arr: profile.labReports },
-    { key: "radiology", arr: profile.radiology },
-    { key: "intraop_pics", arr: profile.intraopPics },
-    { key: "ot_notes", arr: profile.otNotes },
-    { key: "postop_pics", arr: profile.postopPics },
-    { key: "discharge_pics", arr: profile.dischargePics },
-  ];
-
-  return categories.map(({ key, arr }) => {
-    const count = arr?.length ?? 0;
-    let lastUpdatedAt: string | undefined;
-
-    if (count && arr) {
-      const sorted = [...arr].sort((a, b) => {
-        const ta = new Date(a.uploadedAt || a.createdAt || 0).getTime();
-        const tb = new Date(b.uploadedAt || b.createdAt || 0).getTime();
-        return tb - ta;
-      });
-      lastUpdatedAt = sorted[0]?.uploadedAt || sorted[0]?.createdAt;
-    }
-
-    return { category: key, count, lastUpdatedAt };
-  });
-}
-
-/**
- * Maps API documents profile to document items for a specific category
- */
 export function mapCategoryDocumentsFromApi(
+  patientId: string,
   profile: ApiDocumentsProfile,
   category: DocCategory,
-  sortOrder: "asc" | "desc" = "desc"
+  localStateByRemoteKey?: LocalStateByRemoteKey,
+  sortOrder: SortOrder = 'desc'
 ): DocumentItem[] {
-  const categoryMap: Record<DocCategory, ApiDocument[] | undefined> = {
-    preop_pics: profile.preopPics,
-    lab_reports: profile.labReports,
-    radiology: profile.radiology,
-    intraop_pics: profile.intraopPics,
-    ot_notes: profile.otNotes,
-    postop_pics: profile.postopPics,
-    discharge_pics: profile.dischargePics,
-  };
+  const key = CATEGORY_PROFILE_MAP[category];
+  const rawDocs = (profile[key] || []) as ApiDocument[];
 
-  const raw = categoryMap[category] ?? [];
-  const items = raw.map((doc) => mapDocumentFromApi(doc, category));
+  const items = rawDocs.map((raw) =>
+    mapDocumentFromApi(patientId, raw, category, localStateByRemoteKey)
+  );
 
-  items.sort((a, b) => {
-    const ta = new Date(a.uploadedAt).getTime();
-    const tb = new Date(b.uploadedAt).getTime();
-    return sortOrder === "asc" ? ta - tb : tb - ta;
-  });
-
-  return items;
+  return sortByUploadedAt(items, sortOrder);
 }
 
-/**
- * Maps API documents profile to all document items (all categories)
- */
 export function mapAllDocumentsFromApi(
+  patientId: string,
   profile: ApiDocumentsProfile,
-  sortOrder: "asc" | "desc" = "desc"
+  localStateByRemoteKey?: LocalStateByRemoteKey,
+  sortOrder: SortOrder = 'desc'
 ): DocumentItem[] {
-  const allDocs: DocumentItem[] = [];
+  const items = DOC_CATEGORIES.flatMap((category) =>
+    mapCategoryDocumentsFromApi(patientId, profile, category, localStateByRemoteKey, sortOrder)
+  );
 
-  const categories: { key: DocCategory; arr: ApiDocument[] | undefined }[] = [
-    { key: "preop_pics", arr: profile.preopPics },
-    { key: "lab_reports", arr: profile.labReports },
-    { key: "radiology", arr: profile.radiology },
-    { key: "intraop_pics", arr: profile.intraopPics },
-    { key: "ot_notes", arr: profile.otNotes },
-    { key: "postop_pics", arr: profile.postopPics },
-    { key: "discharge_pics", arr: profile.dischargePics },
-  ];
+  return sortByUploadedAt(items, sortOrder);
+}
 
-  categories.forEach(({ key, arr }) => {
-    (arr ?? []).forEach((doc) => {
-      allDocs.push(mapDocumentFromApi(doc, key));
-    });
+export function mapFolderSummariesFromDocuments(items: DocumentItem[]): FolderSummary[] {
+  return DOC_CATEGORIES.map((category) => {
+    const docs = items
+      .filter((item) => item.category === category)
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+    return {
+      category,
+      count: docs.length,
+      lastUpdatedAt: docs[0]?.uploadedAt,
+      pendingBackupCount: docs.filter((doc) => doc.backupState !== 'backed_up').length,
+    };
   });
+}
 
-  allDocs.sort((a, b) => {
-    const ta = new Date(a.uploadedAt).getTime();
-    const tb = new Date(b.uploadedAt).getTime();
-    return sortOrder === "asc" ? ta - tb : tb - ta;
-  });
-
-  return allDocs;
+export function mapFolderSummariesFromApi(
+  patientId: string,
+  profile: ApiDocumentsProfile,
+  localStateByRemoteKey?: LocalStateByRemoteKey
+): FolderSummary[] {
+  const documents = mapAllDocumentsFromApi(patientId, profile, localStateByRemoteKey, 'desc');
+  return mapFolderSummariesFromDocuments(documents);
 }

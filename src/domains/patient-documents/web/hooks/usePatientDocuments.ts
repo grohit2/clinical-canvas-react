@@ -1,0 +1,158 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createDocumentsApi, type DocumentsApi } from '../../api/documentsApi';
+import {
+  mapAllDocumentsFromApi,
+  mapCategoryDocumentsFromApi,
+  mapFolderSummariesFromApi,
+  type ApiDocumentsProfile,
+} from '../../core/mapFromApi';
+import type { DocCategory, SortOrder } from '../../core/types';
+
+const DOCUMENTS_QUERY_KEY = 'patient-documents';
+const defaultDocumentsApi = createDocumentsApi(import.meta.env.VITE_API_BASE_URL || '/api');
+type DetachErrorLike = {
+  status?: number;
+  message?: string;
+  body?: { error?: string };
+};
+
+export function usePatientDocumentsProfile(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  return useQuery({
+    queryKey: [DOCUMENTS_QUERY_KEY, patientId, 'profile'],
+    queryFn: async () => {
+      if (!patientId) throw new Error('Patient ID required');
+      return (await documentsApi.getDocuments(patientId)) as ApiDocumentsProfile;
+    },
+    enabled: !!patientId,
+    staleTime: 30_000,
+  });
+}
+
+export function useDocumentFolderSummaries(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const profileQuery = usePatientDocumentsProfile(patientId, documentsApi);
+
+  return {
+    ...profileQuery,
+    data:
+      profileQuery.data && patientId
+        ? mapFolderSummariesFromApi(patientId, profileQuery.data)
+        : undefined,
+  };
+}
+
+export function useCategoryDocuments(
+  patientId: string | undefined,
+  category: DocCategory | undefined,
+  sortOrder: SortOrder = 'desc',
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const profileQuery = usePatientDocumentsProfile(patientId, documentsApi);
+
+  return {
+    ...profileQuery,
+    data:
+      profileQuery.data && patientId && category
+        ? mapCategoryDocumentsFromApi(patientId, profileQuery.data, category, undefined, sortOrder)
+        : undefined,
+  };
+}
+
+export function useAllDocuments(
+  patientId: string | undefined,
+  sortOrder: SortOrder = 'desc',
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const profileQuery = usePatientDocumentsProfile(patientId, documentsApi);
+
+  return {
+    ...profileQuery,
+    data:
+      profileQuery.data && patientId
+        ? mapAllDocumentsFromApi(patientId, profileQuery.data, undefined, sortOrder)
+        : undefined,
+  };
+}
+
+export function useDeleteDocument(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      category,
+      key,
+    }: {
+      category: DocCategory;
+      key: string;
+    }) => {
+      if (!patientId) throw new Error('Patient ID required');
+
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await documentsApi.detachDocument(patientId, { category, key });
+          return { success: true };
+        } catch (err: unknown) {
+          const typedErr = err as DetachErrorLike;
+          const fallbackErr = err instanceof Error ? err : new Error('Failed to detach document');
+
+          lastError = fallbackErr;
+          const status = typedErr.status ?? 0;
+          const msg = typedErr.body?.error || typedErr.message || '';
+          const is409 = status === 409 || String(msg).includes('retry detach');
+
+          if (!is409 || attempt === 2) {
+            throw fallbackErr;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      throw lastError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [DOCUMENTS_QUERY_KEY, patientId],
+      });
+    },
+  });
+}
+
+export function useDeleteDocuments(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const queryClient = useQueryClient();
+  const deleteMutation = useDeleteDocument(patientId, documentsApi);
+
+  return useMutation({
+    mutationFn: async (items: Array<{ category: DocCategory; key: string }>) => {
+      const results = { succeeded: 0, failed: 0 };
+
+      for (const item of items) {
+        try {
+          await deleteMutation.mutateAsync(item);
+          results.succeeded += 1;
+        } catch {
+          results.failed += 1;
+        }
+      }
+
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [DOCUMENTS_QUERY_KEY, patientId],
+      });
+    },
+  });
+}

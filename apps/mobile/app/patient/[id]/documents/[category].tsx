@@ -1,6 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
-import { DocumentsFolderScreen } from '../../../../src/domains/patient-documents/screens/DocumentsFolderScreen';
-import { isValidCategory } from '../../../../src/domains/patient-documents/core/types';
+import { createDocumentsApi } from '@patient-documents/api';
+import { isValidCategory } from '@patient-documents/core';
+import { DocumentsFolderScreen } from '@patient-documents/mobile';
+import { getApiBaseUrl } from '../../../../src/lib/api';
+
+const documentsApi = createDocumentsApi(getApiBaseUrl());
 
 export default function PatientDocumentsCategoryRoute() {
   const params = useLocalSearchParams<{
@@ -14,5 +18,11 @@ export default function PatientDocumentsCategoryRoute() {
     return null;
   }
 
-  return <DocumentsFolderScreen patientId={patientId} category={category} />;
+  return (
+    <DocumentsFolderScreen
+      patientId={patientId}
+      category={category}
+      documentsApi={documentsApi}
+    />
+  );
 }

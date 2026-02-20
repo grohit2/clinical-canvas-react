@@ -278,8 +278,12 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
     }
 
     const now = new Date();
-    const defaultDay = now.toLocaleDateString([], { weekday: 'long' });
-    const defaultTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const defaultDay = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const defaultTime = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
 
     await createTask.mutateAsync({
       title: 'New task',
@@ -302,7 +306,7 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
     if (activeTab === 'reminders') {
       const now = new Date();
       await addQuickTask({
-        title: `Reminder ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        title: `Reminder ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
         priority: 'high',
       });
       return;

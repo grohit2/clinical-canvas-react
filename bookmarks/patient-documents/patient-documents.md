@@ -1,4 +1,6 @@
 # Patient Documents Runtime - Web Feature Module
+src/domains/patient-documents/DEPENDENCIES.md
+src/domains/patient-documents/README.md
 src/domains/patient-documents/api/usePatientDocuments.ts
 src/domains/patient-documents/components/CategoryChips.tsx
 src/domains/patient-documents/components/DocumentCard.tsx
@@ -43,17 +45,13 @@ apps/mobile/src/domains/patient-documents/screens/ImportSharedToPatientScreen.ts
 # Patient Documents Routes and Entry Points
 src/app/App.tsx
 src/app/navigation.ts
+apps/mobile/app/_layout.tsx
+apps/mobile/app/import-shared.tsx
 apps/mobile/app/patient/[id]/documents/index.tsx
 apps/mobile/app/patient/[id]/documents/[category].tsx
-apps/mobile/app/import-shared.tsx
-
-# Patient Documents Public APIs and Barrels
-src/domains/patient-documents/index.ts
-src/domains/patient-documents/components/index.ts
-apps/mobile/src/domains/patient-documents/index.ts
 
 # Patient Documents Cross-Feature Consumers
-apps/mobile/app/_layout.tsx
+src/domains/patient-detail/components/PatientHeader.tsx
 apps/mobile/app/(tabs)/patients.tsx
 apps/mobile/app/(tabs)/patients/[id]/index.tsx
 apps/mobile/app/patient/[id]/index.tsx
@@ -63,18 +61,17 @@ src/lib/api.ts
 src/shared/lib/api.ts
 src/shared/lib/filesApi.ts
 src/shared/lib/docsWaitForEvent.ts
-src/shared/lib/support.ts
 src/shared/lib/utils.ts
 src/shared/components/layout/Header.tsx
 src/shared/components/layout/BottomBar.tsx
 src/shared/components/ui/button.tsx
 src/shared/components/ui/alert-dialog.tsx
 src/shared/components/ui/checkbox.tsx
-src/shared/components/ui/sonner.tsx
 src/domains/patient-registration/components/PhotoUploader.tsx
 apps/mobile/src/lib/api.ts
 apps/mobile/src/hooks/usePatients.ts
 apps/mobile/src/lib/shareIntent-context.ts
 apps/mobile/src/lib/shareIntent-provider.tsx
+apps/mobile/src/navigation/tabBarStyle.ts
 apps/mobile/app.json
 apps/mobile/package.json

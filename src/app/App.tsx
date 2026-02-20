@@ -30,7 +30,7 @@ import {
 import {
   DocumentsRootPage,
   DocumentsFolderPage,
-} from "@features/patient-documents";
+} from "@/domains/patient-documents/web";
 
 // Pages not yet migrated to features (will be refactored later)
 import PatientDetail from "@/pages/PatientDetail";

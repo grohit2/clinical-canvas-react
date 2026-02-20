@@ -414,27 +414,27 @@ export function mapTaskPriorityToBoardPriority(priority: TaskPriority): string {
 export function toIsoFromBoardSchedule(
   day: string,
   time: string,
-  baseMondayIso = '2026-02-16T00:00:00.000Z',
+  baseMondayIso?: string,
 ): string {
   const offset = DAY_TO_OFFSET[day] ?? 0;
   const [hoursRaw, minutesRaw] = time.split(':');
   const hours = Number.parseInt(hoursRaw ?? '9', 10);
   const minutes = Number.parseInt(minutesRaw ?? '0', 10);
 
-  const base = new Date(baseMondayIso);
-  const due = new Date(
-    Date.UTC(
-      base.getUTCFullYear(),
-      base.getUTCMonth(),
-      base.getUTCDate() + offset,
-      Number.isFinite(hours) ? hours : 9,
-      Number.isFinite(minutes) ? minutes : 0,
-      0,
-      0,
-    ),
-  );
+  const base = baseMondayIso ? new Date(baseMondayIso) : getLocalMondayStart(new Date());
+  const due = new Date(base);
+  due.setDate(base.getDate() + offset);
+  due.setHours(Number.isFinite(hours) ? hours : 9, Number.isFinite(minutes) ? minutes : 0, 0, 0);
 
   return due.toISOString();
+}
+
+function getLocalMondayStart(now: Date): Date {
+  const d = new Date(now);
+  const daysSinceMonday = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - daysSinceMonday);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export function initialsFromName(name: string): string {

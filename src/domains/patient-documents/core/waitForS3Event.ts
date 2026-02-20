@@ -1,30 +1,47 @@
-import { getDocuments, DocumentsProfile, DocumentsCategory } from "@/lib/filesApi";
+import type { DocCategory } from './types';
+import type { ApiDocumentsProfile } from './mapFromApi';
 
-function listForCategory(p: DocumentsProfile, c: DocumentsCategory) {
-  switch (c) {
-    case "preop_pics": return p.preopPics || [];
-    case "lab_reports": return p.labReports || [];
-    case "radiology": return p.radiology || [];
-    case "intraop_pics": return p.intraopPics || [];
-    case "ot_notes": return p.otNotes || [];
-    case "postop_pics": return p.postopPics || [];
-    case "discharge_pics": return p.dischargePics || [];
+export type FetchDocumentsProfile = (patientId: string) => Promise<ApiDocumentsProfile>;
+
+function listForCategory(profile: ApiDocumentsProfile, category: DocCategory) {
+  switch (category) {
+    case 'preop_pics':
+      return profile.preopPics || [];
+    case 'lab_reports':
+      return profile.labReports || [];
+    case 'radiology':
+      return profile.radiology || [];
+    case 'intraop_pics':
+      return profile.intraopPics || [];
+    case 'ot_notes':
+      return profile.otNotes || [];
+    case 'postop_pics':
+      return profile.postopPics || [];
+    case 'discharge_pics':
+      return profile.dischargePics || [];
   }
 }
 
 export async function waitForS3EventMaterialization(
+  fetchProfile: FetchDocumentsProfile,
   patientId: string,
-  category: DocumentsCategory,
+  category: DocCategory,
   uploadedKey: string,
   timeoutMs = 4000,
   intervalMs = 300
-) {
+): Promise<boolean> {
   const start = Date.now();
+
   while (Date.now() - start < timeoutMs) {
-    const profile = await getDocuments(patientId);
-    const arr = listForCategory(profile, category);
-    if (arr.some((e: any) => e.key === uploadedKey)) return true;
-    await new Promise(r => setTimeout(r, intervalMs));
+    const profile = await fetchProfile(patientId);
+    const docs = listForCategory(profile, category);
+
+    if (docs.some((entry: { key?: string }) => entry.key === uploadedKey)) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
+
   return false;
 }

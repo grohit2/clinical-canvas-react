@@ -11,8 +11,13 @@ type StorageLike = {
 };
 
 function getStorage(): StorageLike {
-  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
-    return window.localStorage;
+  const root = globalThis as unknown as { localStorage?: StorageLike };
+  if (root.localStorage) {
+    return root.localStorage;
+  }
+
+  if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+    return window.localStorage as StorageLike;
   }
 
   return {

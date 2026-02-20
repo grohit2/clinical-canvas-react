@@ -17,7 +17,7 @@ import { Search, Plus, X, FileText, Pin } from 'lucide-react-native';
 import { usePatients } from '../../src/hooks/usePatients';
 import { usePatientsFilters } from '../../src/hooks/usePatientsFilters';
 import { usePinnedPatients } from '../../src/hooks/usePinnedPatients';
-import { TAB_BAR_HIDDEN_STYLE, TAB_BAR_VISIBLE_STYLE } from '../../src/navigation/tabBarStyle';
+import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../src/navigation/tabBarStyle';
 import {
   parseComorbidities,
   getDaysSinceSurgery,
@@ -141,6 +141,10 @@ export default function PatientsScreen() {
   const { data: patients = [], isLoading, refetch, isRefetching } = usePatients();
   const filters = usePatientsFilters();
   const { isPinned } = usePinnedPatients();
+  const tabBarVisibleStyle = useMemo(
+    () => getTabBarVisibleStyle(insets.bottom),
+    [insets.bottom],
+  );
 
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
@@ -152,15 +156,15 @@ export default function PatientsScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      tabBarStyle: isTabBarHidden ? TAB_BAR_HIDDEN_STYLE : TAB_BAR_VISIBLE_STYLE,
+      tabBarStyle: isTabBarHidden ? TAB_BAR_HIDDEN_STYLE : tabBarVisibleStyle,
     });
-  }, [isTabBarHidden, navigation]);
+  }, [isTabBarHidden, navigation, tabBarVisibleStyle]);
 
   useEffect(() => {
     return () => {
-      navigation.setOptions({ tabBarStyle: TAB_BAR_VISIBLE_STYLE });
+      navigation.setOptions({ tabBarStyle: tabBarVisibleStyle });
     };
-  }, [navigation]);
+  }, [navigation, tabBarVisibleStyle]);
 
   useEffect(() => {
     if (!isSearchOpen) {

@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+
 export interface SharedFile {
   path: string;
   mimeType?: string;
@@ -19,9 +21,18 @@ const FALLBACK_CONTEXT: ShareIntentContextValue = {
   resetShareIntent: () => undefined,
 };
 
+function isExpoGoRuntime(): boolean {
+  return (
+    Constants.executionEnvironment === 'storeClient' ||
+    Constants.appOwnership === 'expo'
+  );
+}
+
 function getNativeShareIntentHook():
   | (() => ShareIntentContextValue)
   | null {
+  if (isExpoGoRuntime()) return null;
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('expo-share-intent') as {

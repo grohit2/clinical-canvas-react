@@ -1,9 +1,19 @@
 import type { ComponentType, ReactNode } from 'react';
 import { Fragment } from 'react';
+import Constants from 'expo-constants';
 
 type ProviderProps = { children: ReactNode };
 
+function isExpoGoRuntime(): boolean {
+  return (
+    Constants.executionEnvironment === 'storeClient' ||
+    Constants.appOwnership === 'expo'
+  );
+}
+
 function getNativeProvider(): ComponentType<ProviderProps> {
+  if (isExpoGoRuntime()) return Fragment;
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('expo-share-intent') as {

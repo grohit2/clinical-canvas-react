@@ -5,6 +5,18 @@ const fs = require('fs');
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
 const appNodeModules = path.resolve(projectRoot, 'node_modules');
+const resolvePkgRoot = (pkgName) =>
+  fs.realpathSync(
+    path.dirname(
+      require.resolve(`${pkgName}/package.json`, {
+        paths: [projectRoot, workspaceRoot],
+      }),
+    ),
+  );
+const resolveFromApp = (specifier) =>
+  require.resolve(specifier, {
+    paths: [projectRoot],
+  });
 
 const config = getDefaultConfig(projectRoot);
 
@@ -27,10 +39,12 @@ config.resolver.nodeModulesPaths = [
 // Prevent duplicate React instances across workspace imports (invalid hook call).
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
-  react: fs.realpathSync(path.resolve(projectRoot, 'node_modules/react')),
-  'react/jsx-runtime': fs.realpathSync(path.resolve(projectRoot, 'node_modules/react/jsx-runtime.js')),
-  'react/jsx-dev-runtime': fs.realpathSync(path.resolve(projectRoot, 'node_modules/react/jsx-dev-runtime.js')),
-  'react-native': fs.realpathSync(path.resolve(projectRoot, 'node_modules/react-native')),
+  react: resolvePkgRoot('react'),
+  'react/jsx-runtime': fs.realpathSync(path.resolve(resolvePkgRoot('react'), 'jsx-runtime.js')),
+  'react/jsx-dev-runtime': fs.realpathSync(path.resolve(resolvePkgRoot('react'), 'jsx-dev-runtime.js')),
+  'react-native': resolvePkgRoot('react-native'),
+  '@tanstack/react-query': resolvePkgRoot('@tanstack/react-query'),
+  '@tanstack/query-core': resolvePkgRoot('@tanstack/query-core'),
 };
 
 // Keep hierarchical lookup enabled for Expo dependencies that rely on nested resolution.
@@ -40,6 +54,15 @@ config.resolver.disableHierarchicalLookup = false;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'react-native' || moduleName.startsWith('react-native/')) {
     return context.resolveRequest(context, path.join(appNodeModules, moduleName), platform);
+  }
+
+  if (
+    moduleName === '@tanstack/react-query' ||
+    moduleName.startsWith('@tanstack/react-query/') ||
+    moduleName === '@tanstack/query-core' ||
+    moduleName.startsWith('@tanstack/query-core/')
+  ) {
+    return context.resolveRequest(context, resolveFromApp(moduleName), platform);
   }
 
   return context.resolveRequest(context, moduleName, platform);

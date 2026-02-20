@@ -1,15 +1,23 @@
 import { Tabs } from 'expo-router';
 import { Home, Users, ClipboardList, User } from 'lucide-react-native';
-import { TAB_BAR_HIDDEN_STYLE, TAB_BAR_VISIBLE_STYLE } from '../../src/navigation/tabBarStyle';
+import { useMemo } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../src/navigation/tabBarStyle';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarVisibleStyle = useMemo(
+    () => getTabBarVisibleStyle(insets.bottom),
+    [insets.bottom],
+  );
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: '#6b7280',
-        tabBarStyle: TAB_BAR_VISIBLE_STYLE,
+        tabBarStyle: tabBarVisibleStyle,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',

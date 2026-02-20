@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -12,7 +12,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FileText } from 'lucide-react-native';
 import { usePatient } from '../../../../src/hooks/usePatients';
-import { TAB_BAR_HIDDEN_STYLE, TAB_BAR_VISIBLE_STYLE } from '../../../../src/navigation/tabBarStyle';
+import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../../../src/navigation/tabBarStyle';
 
 const SCROLL_DELTA_THRESHOLD = 10;
 const SCROLL_TOP_RESET_OFFSET = 8;
@@ -29,18 +29,22 @@ export default function PatientDetailRoute() {
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
   const [isTabBarHidden, setIsTabBarHidden] = useState(false);
   const lastScrollOffsetRef = useRef(0);
+  const tabBarVisibleStyle = useMemo(
+    () => getTabBarVisibleStyle(insets.bottom),
+    [insets.bottom],
+  );
 
   useEffect(() => {
     navigation.setOptions({
-      tabBarStyle: isTabBarHidden ? TAB_BAR_HIDDEN_STYLE : TAB_BAR_VISIBLE_STYLE,
+      tabBarStyle: isTabBarHidden ? TAB_BAR_HIDDEN_STYLE : tabBarVisibleStyle,
     });
-  }, [isTabBarHidden, navigation]);
+  }, [isTabBarHidden, navigation, tabBarVisibleStyle]);
 
   useEffect(() => {
     return () => {
-      navigation.setOptions({ tabBarStyle: TAB_BAR_VISIBLE_STYLE });
+      navigation.setOptions({ tabBarStyle: tabBarVisibleStyle });
     };
-  }, [navigation]);
+  }, [navigation, tabBarVisibleStyle]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {

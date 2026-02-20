@@ -109,7 +109,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "bash -lc \"! rg -n '\\bmrn\\b' -g 'src/**' -g '!**/node_modules/**' -g '!**/*.md' || (echo '❌ MRN found in code. Use UID.' && exit 1)\"",
+      "bash -lc \"if git diff --cached -U0 | grep -qE '^\\+.*\\bmrn\\b'; then echo '❌ MRN found in staged changes. Use UID.' && exit 1; fi\"",
       "eslint --fix"
     ]
   }

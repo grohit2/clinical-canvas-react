@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
-import * as FileSystem from 'expo-file-system/legacy';
+import { fetch as expoFetch } from 'expo/fetch';
+import { File } from 'expo-file-system';
 import { v4 as uuidv4 } from 'uuid';
 import type { DocCategory, DocumentItem } from '../core/types';
 import { mapAllDocumentsFromApi } from '../core/mapFromApi';
@@ -107,9 +108,10 @@ async function uploadToPresignedUrl(args: {
   contentType: string;
   headers?: Record<string, string>;
 }): Promise<void> {
-  await FileSystem.uploadAsync(args.uploadUrl, args.localUri, {
-    httpMethod: 'PUT',
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  const file = new File(args.localUri);
+  await expoFetch(args.uploadUrl, {
+    method: 'PUT',
+    body: file,
     headers: {
       'Content-Type': args.contentType,
       ...(args.headers || {}),

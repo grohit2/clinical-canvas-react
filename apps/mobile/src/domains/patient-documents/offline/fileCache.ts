@@ -1,25 +1,21 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { File, Directory, Paths } from 'expo-file-system';
 
 export type CachedVariant = 'full' | 'thumb';
 
-const DOC_CACHE_ROOT = `${FileSystem.documentDirectory || ''}patient-docs/`;
+const DOC_CACHE_DIR = new Directory(Paths.document, 'patient-docs');
 
 function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]+/g, '_');
 }
 
-async function ensureDirectory(path: string): Promise<void> {
-  await FileSystem.makeDirectoryAsync(path, { intermediates: true });
-}
-
 export function getPatientCacheDirectory(patientId: string): string {
-  return `${DOC_CACHE_ROOT}${patientId}/`;
+  return new Directory(DOC_CACHE_DIR, patientId).uri;
 }
 
 export async function ensurePatientCacheDirectory(patientId: string): Promise<string> {
-  const dir = getPatientCacheDirectory(patientId);
-  await ensureDirectory(dir);
-  return dir;
+  const dir = new Directory(DOC_CACHE_DIR, patientId);
+  dir.create();
+  return dir.uri;
 }
 
 export function getDocLocalPath(args: {
@@ -28,19 +24,17 @@ export function getDocLocalPath(args: {
   name: string;
   variant: CachedVariant;
 }): string {
-  const dir = getPatientCacheDirectory(args.patientId);
   const safe = sanitizeFileName(args.name || 'file');
-  return `${dir}${args.docId}__${args.variant}__${safe}`;
+  const filename = `${args.docId}__${args.variant}__${safe}`;
+  return new File(new Directory(DOC_CACHE_DIR, args.patientId), filename).uri;
 }
 
 export async function fileExists(uri: string): Promise<boolean> {
-  const info = await FileSystem.getInfoAsync(uri);
-  return !!info.exists;
+  return new File(uri).exists;
 }
 
 export async function getLocalUriIfExists(uri: string): Promise<string | null> {
-  const exists = await fileExists(uri);
-  return exists ? uri : null;
+  return new File(uri).exists ? uri : null;
 }
 
 export async function copyIntoCache(args: {
@@ -52,7 +46,7 @@ export async function copyIntoCache(args: {
 }): Promise<string> {
   await ensurePatientCacheDirectory(args.patientId);
   const target = getDocLocalPath(args);
-  await FileSystem.copyAsync({ from: args.fromUri, to: target });
+  new File(args.fromUri).copy(new File(target));
   return target;
 }
 
@@ -66,12 +60,15 @@ export async function ensureDownloaded(args: {
   await ensurePatientCacheDirectory(args.patientId);
   const target = getDocLocalPath(args);
 
-  if (await fileExists(target)) {
+  if (new File(target).exists) {
     return target;
   }
 
-  const result = await FileSystem.downloadAsync(args.remoteUrl, target);
-  return result.uri;
+  const tempDir = new Directory(Paths.cache, 'doc-download-tmp');
+  tempDir.create();
+  const downloaded = await File.downloadFileAsync(args.remoteUrl, tempDir);
+  downloaded.move(new File(target));
+  return target;
 }
 
 export async function prefetchMany(
@@ -111,7 +108,7 @@ export async function prefetchMany(
 
 export async function removeCachedFile(uri?: string): Promise<void> {
   if (!uri) return;
-  const exists = await fileExists(uri);
-  if (!exists) return;
-  await FileSystem.deleteAsync(uri, { idempotent: true });
+  const file = new File(uri);
+  if (!file.exists) return;
+  file.delete();
 }

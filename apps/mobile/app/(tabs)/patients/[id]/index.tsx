@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -45,6 +46,17 @@ export default function PatientDetailRoute() {
       navigation.setOptions({ tabBarStyle: tabBarVisibleStyle });
     };
   }, [navigation, tabBarVisibleStyle]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/patients' as never);
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {

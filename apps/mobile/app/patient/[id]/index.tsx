@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -51,6 +52,17 @@ export default function PatientDetailScreen() {
     },
     [isTopChromeCollapsed],
   );
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/patients' as never);
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   if (!patientId) {
     return null;

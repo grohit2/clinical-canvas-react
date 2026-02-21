@@ -1,11 +1,13 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { usePatient } from "@entities/patient";
 import { Header } from "@shared/components/layout/Header";
 import { BottomBar } from "@shared/components/layout/BottomBar";
+import { paths } from "@app/navigation";
 import { PatientSummaryHeader } from "./PatientSummaryHeader";
 import { PatientCaseSheetTabs } from "./PatientCaseSheetTabs";
 
 export function PatientDetailPage() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: patient, isLoading, error } = usePatient(id);
 
@@ -27,7 +29,11 @@ export function PatientDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <Header title="Patient Detail" />
+      <Header
+        title="Patient Detail"
+        showBack
+        onBack={() => navigate(paths.patients())}
+      />
       <main className="p-4 space-y-4">
         <PatientSummaryHeader
           id={patient.id}

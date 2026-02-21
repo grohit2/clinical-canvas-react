@@ -5,6 +5,15 @@ export type CachedVariant = 'full' | 'thumb';
 
 const DOC_CACHE_DIR = new Directory(Paths.document, 'patient-docs');
 
+function toSafeDocKey(docId: string): string {
+  const normalized = sanitizeFileName(docId || 'doc').slice(0, 48) || 'doc';
+  let hash = 0;
+  for (let i = 0; i < docId.length; i += 1) {
+    hash = (hash * 31 + docId.charCodeAt(i)) >>> 0;
+  }
+  return `${normalized}_${hash.toString(16)}`;
+}
+
 // ------------------------------------------------------------------------------
 // Path helpers
 // ------------------------------------------------------------------------------
@@ -13,7 +22,30 @@ export function getPatientCacheDirectory(patientId: string): string {
   return new Directory(DOC_CACHE_DIR, patientId).uri;
 }
 
+function ensureDocCacheRootDirectory(): string {
+  try {
+    DOC_CACHE_DIR.create({ idempotent: true, intermediates: true });
+    return DOC_CACHE_DIR.uri;
+  } catch (error) {
+    // If a file somehow exists at the cache root path, remove it and recreate as a directory.
+    try {
+      const rootFile = new File(Paths.document, 'patient-docs');
+      if (rootFile.exists) {
+        rootFile.delete();
+        DOC_CACHE_DIR.create({ idempotent: true, intermediates: true });
+        return DOC_CACHE_DIR.uri;
+      }
+    } catch {
+      // Ignore fallback errors and throw the original context below.
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not create document cache root: ${message}`);
+  }
+}
+
 export function ensurePatientCacheDirectory(patientId: string): string {
+  ensureDocCacheRootDirectory();
   const dir = new Directory(DOC_CACHE_DIR, patientId);
   dir.create({ idempotent: true, intermediates: true });
   return dir.uri;
@@ -25,8 +57,9 @@ export function getDocLocalPath(args: {
   name: string;
   variant: CachedVariant;
 }): string {
-  const safe = sanitizeFileName(args.name || 'file');
-  const filename = `${args.docId}__${args.variant}__${safe}`;
+  const safeDoc = toSafeDocKey(args.docId);
+  const safeName = sanitizeFileName(args.name || 'file').slice(0, 80) || 'file';
+  const filename = `${safeDoc}__${args.variant}__${safeName}`;
   return new File(new Directory(DOC_CACHE_DIR, args.patientId), filename).uri;
 }
 
@@ -80,23 +113,48 @@ export async function ensureDownloaded(args: {
 }): Promise<string> {
   ensurePatientCacheDirectory(args.patientId);
   const target = getDocLocalPath(args);
+  const targetFile = new File(target);
 
   // Already cached - skip download.
-  const existing = new File(target);
-  if (existing.exists && existing.size > 0) {
+  if (targetFile.exists && targetFile.size > 0) {
     return target;
   }
 
-  // Use a unique temp directory per download to avoid filename collisions
-  // when File.downloadFileAsync names the output based on the server response.
-  const uniqueTmpName = `dl-${args.docId}-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
-  const tempDir = new Directory(Paths.cache, uniqueTmpName);
-  tempDir.create({ idempotent: true, intermediates: true });
+  // Remove any stale empty file before writing the new download.
+  if (targetFile.exists && targetFile.size === 0) {
+    try {
+      targetFile.delete();
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
 
   try {
-    const downloaded = await File.downloadFileAsync(args.remoteUrl, tempDir);
+    // Download directly to the final target file path to avoid move/path issues.
+    let downloaded: File;
+    try {
+      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+        idempotent: true,
+      });
+    } catch (firstError) {
+      const firstMessage = firstError instanceof Error ? firstError.message : String(firstError);
+      if (!/destination path does not exist/i.test(firstMessage)) {
+        throw firstError;
+      }
+
+      // Android occasionally reports missing destination path during concurrent
+      // writes; recreate the cache path and retry once.
+      ensurePatientCacheDirectory(args.patientId);
+      try {
+        targetFile.create({ overwrite: true, intermediates: true });
+      } catch {
+        // Best-effort bootstrap before retry.
+      }
+
+      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+        idempotent: true,
+      });
+    }
 
     // Validate the downloaded file exists and has content.
     if (!downloaded.exists) {
@@ -112,17 +170,30 @@ export async function ensureDownloaded(args: {
       );
     }
 
-    // Move from temp into cache.
-    downloaded.move(new File(target));
-
-    // Final sanity check after move.
+    // Final sanity check.
     const final = new File(target);
-    if (!final.exists) {
-      throw new Error(`File move failed: target ${target} does not exist after move`);
+    if (!final.exists || final.size === 0) {
+      throw new Error(`File placement failed: target ${target} missing or empty after download`);
     }
 
     return target;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    let remoteHost = 'unknown';
+    try {
+      remoteHost = new URL(args.remoteUrl).host;
+    } catch {
+      // Ignore URL parsing errors in diagnostics.
+    }
+
+    console.warn('[fileCache] ensureDownloaded failed', {
+      docId: args.docId,
+      name: args.name,
+      target,
+      remoteHost,
+      error: errorMessage,
+    });
+
     // Clean up partial/corrupt downloads.
     try {
       const targetFile = new File(target);
@@ -135,18 +206,12 @@ export async function ensureDownloaded(args: {
 
     // Re-throw with context so callers can log meaningful errors.
     if (error instanceof Error) {
-      throw error;
+      if (error.message.startsWith('Download produced') || error.message.startsWith('File placement failed')) {
+        throw error;
+      }
+      throw new Error(`Download failed for ${args.name}: ${error.message}`);
     }
     throw new Error(`Download failed for ${args.name}: ${String(error)}`);
-  } finally {
-    // Always clean up the unique temp directory.
-    try {
-      if (tempDir.exists) {
-        tempDir.delete();
-      }
-    } catch {
-      // Best-effort cleanup.
-    }
   }
 }
 

@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckCircle2, Circle, Trash2 } from 'lucide-react-native';
-import { useDeleteTask, useUpdateTask } from '../../api/useUpdateTask';
-import type { TaskBoardRow, TaskBoardSection } from '../../board/types';
+import { useDeleteTask, useUpdateTask } from '../../hooks/useUpdateTask';
+import type { TaskBoardRow, TaskBoardSection } from '../../models/types';
 import {
   PersonAvatarCell,
   PriorityCell,

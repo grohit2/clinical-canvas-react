@@ -1,18 +1,13 @@
 // Screens
-export { TasksPage } from './screens/TasksScreen';
-export { TasksDuePage } from './screens/TasksDueScreen';
-export { UrgentAlertsPage } from './screens/UrgentAlertsScreen';
-export { CompletedTodayPage } from './screens/CompletedTodayScreen';
-export { AddTaskPage } from './screens/AddTaskScreen';
-export { EditTaskPage } from './screens/EditTaskScreen';
+export { TaskBoardScreen } from './screens/web/TaskBoardScreen';
+export { AddTaskPage } from './screens/web/AddTaskScreen';
+export { EditTaskPage } from './screens/web/EditTaskScreen';
 
 // Backwards-compatible aliases
-export { TasksPage as TasksScreen } from './screens/TasksScreen';
-export { TasksDuePage as TasksDueScreen } from './screens/TasksDueScreen';
-export { UrgentAlertsPage as UrgentAlertsScreen } from './screens/UrgentAlertsScreen';
-export { CompletedTodayPage as CompletedTodayScreen } from './screens/CompletedTodayScreen';
-export { AddTaskPage as AddTaskScreen } from './screens/AddTaskScreen';
-export { EditTaskPage as EditTaskScreen } from './screens/EditTaskScreen';
+export { TaskBoardScreen as TasksPage } from './screens/web/TaskBoardScreen';
+export { TaskBoardScreen as TasksScreen } from './screens/web/TaskBoardScreen';
+export { AddTaskPage as AddTaskScreen } from './screens/web/AddTaskScreen';
+export { EditTaskPage as EditTaskScreen } from './screens/web/EditTaskScreen';
 
 // Types
 export type {
@@ -25,21 +20,42 @@ export type {
   TaskGroup,
 } from './core/types';
 
-// API hooks
-export { useTasks, useTask, useTasksByPatient, useTasksByDepartment } from './api/useTasks';
-export { useCreateTask } from './api/useCreateTask';
-export { useUpdateTask, useCompleteTask, useDeleteTask } from './api/useUpdateTask';
-export { useUndo } from './api/useUndo';
+// Hooks
+export { useTasks, useTask, useTasksByPatient, useTasksByDepartment } from './hooks/useTasks';
+export { useCreateTask } from './hooks/useCreateTask';
+export { useUpdateTask, useCompleteTask, useDeleteTask } from './hooks/useUpdateTask';
+export { useUndo } from './hooks/useUndo';
 export {
   useMyActionsToday,
   useMyActionCountToday,
   useTaskActivity,
-} from './api/useMyActivity';
-
-// Hooks
+} from './hooks/useMyActivity';
+export { usePatientTasks } from './hooks/usePatientTasks';
 export { useTaskFilters } from './hooks/useTaskFilters';
 
 // Core utilities
+export {
+  TASK_BOARD_FILTERS,
+  TASK_BOARD_TABS,
+  DOCTORS,
+  NURSES,
+  GROUP_COLORS,
+  TASK_TYPES,
+  PLACES,
+  RECURRENCE,
+  DAYS,
+} from './core/constants';
+
+export {
+  TASK_STATUS_TONES,
+  PRIORITY_TONES,
+  mapBoardStatusToTaskStatus,
+  mapBoardPriorityToTaskPriority,
+  mapTaskStatusToBoardStatus,
+  mapTaskPriorityToBoardPriority,
+  toIsoFromBoardSchedule,
+} from './core/statuses';
+
 export {
   getPriorityConfig,
   getPriorityColor,
@@ -67,8 +83,25 @@ export {
   getCompletedTodayTasks,
 } from './core/filters';
 
+// Models
+export { buildTaskBoardModel, deriveTaskBoardMetrics, buildAuditRows } from './models/boardModel';
+export {
+  BOARD_VIEW_OPTIONS,
+  buildViewSections,
+  buildPatientViewSections,
+} from './models/boardViews';
+export { buildPatientLookup } from './models/patientLookup';
+export type {
+  TaskBoardTab,
+  TaskBoardFilter,
+  TaskBoardRow,
+  TaskBoardSection,
+  TaskBoardMetrics,
+  TaskBoardAuditRow,
+} from './models/types';
+
 // Components
-export { TaskCard } from './components/TaskCard';
-export { TaskList } from './components/TaskList';
-export { TaskForm } from './components/TaskForm';
-export { PriorityBadge } from './components/PriorityBadge';
+export { TaskCard } from './components/shared/TaskCard';
+export { TaskList } from './components/shared/TaskList';
+export { PriorityBadge } from './components/shared/PriorityBadge';
+export { TaskBottomNav } from './components/web/TaskBottomNav';

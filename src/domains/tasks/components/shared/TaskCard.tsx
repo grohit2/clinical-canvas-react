@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import type { Task } from '../core/types';
+import type { Task } from '../../core/types';
 import { PriorityBadge } from './PriorityBadge';
-import { isOverdue, isDueToday } from '../core/filters';
+import { isOverdue, isDueToday } from '../../core/filters';
 // TODO: Update imports after theme migration
 // import { useTheme } from '@/theme';
 

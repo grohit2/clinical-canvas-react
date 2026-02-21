@@ -1,10 +1,11 @@
 // Native entrypoint for Expo / React Native.
 // Keeps web-only screens/components out of the native bundle graph.
 
-export { TaskBoardMobileScreen } from './screens/TaskBoardMobileScreen.native';
+export { TaskBoardScreenNative } from './screens/native/TaskBoardScreen.native';
+export { TaskBoardScreenNative as TaskBoardMobileScreen } from './screens/native/TaskBoardScreen.native';
 
 // Native UI
-export { TaskBottomNavNative } from './components/TaskBottomNav.native';
+export { TaskBottomNavNative } from './components/native/TaskBottomNav.native';
 
 // Types
 export type {
@@ -17,17 +18,37 @@ export type {
   TaskGroup,
 } from './core/types';
 
-// API hooks
-export { useTasks, useTask, useTasksByPatient, useTasksByDepartment } from './api/useTasks';
-export { useCreateTask } from './api/useCreateTask';
-export { useUpdateTask, useCompleteTask, useDeleteTask } from './api/useUpdateTask';
-export { useUndo } from './api/useUndo';
-export { useMyActionsToday, useMyActionCountToday, useTaskActivity } from './api/useMyActivity';
-
 // Hooks
+export { useTasks, useTask, useTasksByPatient, useTasksByDepartment } from './hooks/useTasks';
+export { useCreateTask } from './hooks/useCreateTask';
+export { useUpdateTask, useCompleteTask, useDeleteTask } from './hooks/useUpdateTask';
+export { useUndo } from './hooks/useUndo';
+export { useMyActionsToday, useMyActionCountToday, useTaskActivity } from './hooks/useMyActivity';
 export { useTaskFilters } from './hooks/useTaskFilters';
 
 // Core utilities
+export {
+  TASK_BOARD_FILTERS,
+  TASK_BOARD_TABS,
+  DOCTORS,
+  NURSES,
+  GROUP_COLORS,
+  TASK_TYPES,
+  PLACES,
+  RECURRENCE,
+  DAYS,
+} from './core/constants';
+
+export {
+  TASK_STATUS_TONES,
+  PRIORITY_TONES,
+  mapBoardStatusToTaskStatus,
+  mapBoardPriorityToTaskPriority,
+  mapTaskStatusToBoardStatus,
+  mapTaskPriorityToBoardPriority,
+  toIsoFromBoardSchedule,
+} from './core/statuses';
+
 export {
   getPriorityConfig,
   getPriorityColor,

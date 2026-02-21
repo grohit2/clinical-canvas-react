@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../core/types';
-import { buildAuditRows, buildTaskBoardModel, deriveTaskBoardMetrics } from './selectors';
+import { buildAuditRows, buildTaskBoardModel, deriveTaskBoardMetrics } from './boardModel';
 
 const BASE_TASK: Task = {
   id: 't1',

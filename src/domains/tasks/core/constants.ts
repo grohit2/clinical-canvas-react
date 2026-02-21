@@ -1,4 +1,5 @@
-import type { TaskPriority, TaskStatus } from '../core/types';
+import type { TaskBoardFilter, TaskBoardPerson, TaskBoardTab } from '../models/types';
+import type { TaskPriority, TaskStatus } from './types';
 
 export interface HospitalDoctor {
   name: string;
@@ -450,3 +451,34 @@ export function initialsFromName(name: string): string {
 
   return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
 }
+
+export const TASK_BOARD_TABS: Array<{ id: TaskBoardTab; label: string }> = [
+  { id: 'back', label: 'Back' },
+  { id: 'home', label: 'Home' },
+  { id: 'board', label: 'Task Board' },
+  { id: 'ledger', label: 'Ledger' },
+  { id: 'reminders', label: 'Reminders' },
+  { id: 'audit', label: 'Audit Log' },
+];
+
+export const TASK_BOARD_FILTERS: Array<{ id: TaskBoardFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'urgent', label: 'Urgent' },
+  { id: 'in_progress', label: 'In Progress' },
+  { id: 'scheduled', label: 'Scheduled' },
+  { id: 'completed', label: 'Completed' },
+];
+
+export const DUMMY_DOCTORS: TaskBoardPerson[] = DOCTORS.map((doctor) => ({
+  name: doctor.name,
+  initials: doctor.initials,
+  color: doctor.color,
+}));
+
+export const DUMMY_NURSES: TaskBoardPerson[] = NURSES.map((nurse) => ({
+  name: nurse.name,
+  initials: nurse.initials,
+  color: nurse.color,
+}));
+
+export const SECTION_COLORS = GROUP_COLORS;

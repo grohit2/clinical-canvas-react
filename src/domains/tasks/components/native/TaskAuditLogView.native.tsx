@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { TaskBoardAuditRow } from '../../board/types';
+import type { TaskBoardAuditRow } from '../../models/types';
 
 export interface TaskAuditLogViewNativeProps {
   rows: TaskBoardAuditRow[];

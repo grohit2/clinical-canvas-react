@@ -1,12 +1,10 @@
 import type { Task } from '../core/types';
+import { DOCTORS, GROUP_COLORS, NURSES } from '../core/constants';
 import {
-  DOCTORS,
-  GROUP_COLORS,
-  NURSES,
   initialsFromName,
   mapTaskPriorityToBoardPriority,
   mapTaskStatusToBoardStatus,
-} from '../hospital-board/constants';
+} from '../core/statuses';
 import type {
   ActivityLike,
   BuildTaskBoardOptions,
@@ -31,6 +29,7 @@ function resolveSectionTitle(task: Task): string {
   if (task.departmentId && task.departmentId.trim().length > 0) {
     return task.departmentId.trim();
   }
+
   return 'General Ward';
 }
 
@@ -176,6 +175,7 @@ function dueTime(value: string | null): number {
   if (!value) {
     return Number.MAX_SAFE_INTEGER;
   }
+
   const at = new Date(value).getTime();
   return Number.isNaN(at) ? Number.MAX_SAFE_INTEGER : at;
 }
@@ -236,29 +236,32 @@ function applySort(rows: TaskBoardRow[], sortMode: BuildTaskBoardOptions['sortMo
 
   if (sortMode === 'priority') {
     return copy.sort((a, b) => {
-      const p = priorityRank(a.priority) - priorityRank(b.priority);
-      if (p !== 0) {
-        return p;
+      const priorityDiff = priorityRank(a.priority) - priorityRank(b.priority);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
       }
+
       return dueTime(a.dueDate) - dueTime(b.dueDate);
     });
   }
 
   if (sortMode === 'time') {
     return copy.sort((a, b) => {
-      const t = dueTime(a.dueDate) - dueTime(b.dueDate);
-      if (t !== 0) {
-        return t;
+      const timeDiff = dueTime(a.dueDate) - dueTime(b.dueDate);
+      if (timeDiff !== 0) {
+        return timeDiff;
       }
+
       return a.title.localeCompare(b.title);
     });
   }
 
   return copy.sort((a, b) => {
-    const s = statusRank(a.status) - statusRank(b.status);
-    if (s !== 0) {
-      return s;
+    const statusDiff = statusRank(a.status) - statusRank(b.status);
+    if (statusDiff !== 0) {
+      return statusDiff;
     }
+
     return dueTime(a.dueDate) - dueTime(b.dueDate);
   });
 }
@@ -272,24 +275,21 @@ function buildSections(rows: TaskBoardRow[], sectionOrder: Map<string, number>):
     grouped.set(row.sectionId, arr);
   }
 
-  const sections: TaskBoardSection[] = [];
   const keys = [...grouped.keys()].sort(
     (a, b) => (sectionOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (sectionOrder.get(b) ?? Number.MAX_SAFE_INTEGER),
   );
 
-  keys.forEach((key, index) => {
+  return keys.map((key, index) => {
     const sectionRows = grouped.get(key) ?? [];
-    sections.push({
+    return {
       id: key,
       title: sectionRows[0]?.sectionTitle ?? 'General Ward',
       color: GROUP_COLORS[index % GROUP_COLORS.length],
       rows: sectionRows,
       urgentCount: sectionRows.filter((row) => row.urgent).length,
       total: sectionRows.length,
-    });
+    };
   });
-
-  return sections;
 }
 
 export function deriveTaskBoardMetrics(tasks: Task[]): TaskBoardMetrics {
@@ -318,10 +318,12 @@ function splitReminders(rows: TaskBoardRow[], now: Date) {
     if (!row.dueDate) {
       continue;
     }
+
     const due = new Date(row.dueDate);
     if (Number.isNaN(due.getTime()) || row.status === 'completed') {
       continue;
     }
+
     if (isSameDay(due, now)) {
       today.push(row);
     } else if (due.getTime() > now.getTime()) {
@@ -374,6 +376,7 @@ function compactPatch(raw: string): string {
     if (entries.length === 0) {
       return 'No field changes';
     }
+
     return entries
       .slice(0, 3)
       .map(([key, value]) => `${key}: ${String(value)}`)
@@ -400,100 +403,4 @@ export function buildAuditRows(
         actorId: op.actorId,
       };
     });
-}
-
-// Patient-centric board view
-export interface PatientEntry {
-  id: string;
-  name: string;
-}
-
-/**
- * Creates a TableGroupNative-compatible section for every patient,
- * even those with zero tasks. Pinned patients sort to the top.
- *
- * Match order:
- *  1. task.source.patientId === patient.id
- *  2. task.patientName === patient.name (fallback for demo-seed data)
- */
-export function buildPatientViewSections(
-  rows: TaskBoardRow[],
-  patients: readonly PatientEntry[],
-  pinnedPatientIds: readonly string[],
-): TaskBoardSection[] {
-  const pinnedSet = new Set(pinnedPatientIds);
-
-  const nameToId = new Map<string, string>();
-  for (const patient of patients) {
-    const key = patient.name.trim().toLowerCase();
-    if (!nameToId.has(key)) {
-      nameToId.set(key, patient.id);
-    }
-  }
-
-  const bucketById = new Map<string, TaskBoardRow[]>();
-  const unmatched: TaskBoardRow[] = [];
-
-  for (const row of rows) {
-    const resolvedId =
-      row.source.patientId || nameToId.get(row.patientName.trim().toLowerCase()) || null;
-
-    if (resolvedId) {
-      const bucket = bucketById.get(resolvedId) ?? [];
-      bucket.push(row);
-      bucketById.set(resolvedId, bucket);
-    } else {
-      unmatched.push(row);
-    }
-  }
-
-  const sortedPatients = [...patients].sort((left, right) => {
-    const leftPinned = pinnedSet.has(left.id);
-    const rightPinned = pinnedSet.has(right.id);
-    if (leftPinned !== rightPinned) {
-      return leftPinned ? -1 : 1;
-    }
-    return left.name.localeCompare(right.name);
-  });
-
-  const sections: TaskBoardSection[] = [];
-
-  sortedPatients.forEach((patient, index) => {
-    const sectionRows = bucketById.get(patient.id) ?? [];
-    const isPinned = pinnedSet.has(patient.id);
-
-    sections.push({
-      id: `patient_${patient.id}`,
-      title: isPinned ? `⭐ ${patient.name}` : patient.name,
-      color: isPinned ? '#3b82f6' : GROUP_COLORS[index % GROUP_COLORS.length],
-      rows: sectionRows,
-      urgentCount: sectionRows.filter((row) => row.urgent).length,
-      total: sectionRows.length,
-    });
-  });
-
-  if (unmatched.length > 0) {
-    const unmatchedGrouped = new Map<string, TaskBoardRow[]>();
-    for (const row of unmatched) {
-      const key = row.patientName || 'Unassigned Patient';
-      const bucket = unmatchedGrouped.get(key) ?? [];
-      bucket.push(row);
-      unmatchedGrouped.set(key, bucket);
-    }
-
-    [...unmatchedGrouped.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .forEach(([name, sectionRows], index) => {
-        sections.push({
-          id: `patient_unmatched_${index}`,
-          title: name,
-          color: GROUP_COLORS[(sections.length + index) % GROUP_COLORS.length],
-          rows: sectionRows,
-          urgentCount: sectionRows.filter((row) => row.urgent).length,
-          total: sectionRows.length,
-        });
-      });
-  }
-
-  return sections;
 }

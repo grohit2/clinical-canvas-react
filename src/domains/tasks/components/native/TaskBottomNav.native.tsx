@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { TaskBoardTab } from '../board/types';
+import type { TaskBoardTab } from '../../models/types';
 
 export interface TaskNavTabNative {
   id: TaskBoardTab;

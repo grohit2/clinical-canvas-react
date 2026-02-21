@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TaskBoardTab } from '../board/types';
+import type { TaskBoardTab } from '../../models/types';
 
 export interface TaskNavTab {
   id: TaskBoardTab;

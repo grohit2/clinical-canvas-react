@@ -8,7 +8,7 @@ const updateMutate = vi.fn();
 const updateMutateAsync = vi.fn(async () => ({}));
 const deleteMutate = vi.fn();
 
-vi.mock('../api/useTasks', () => ({
+vi.mock('../hooks/useTasks', () => ({
   useTasks: vi.fn(() => ({
     data: [
       {
@@ -32,21 +32,21 @@ vi.mock('../api/useTasks', () => ({
   })),
 }));
 
-vi.mock('../api/useCreateTask', () => ({
+vi.mock('../hooks/useCreateTask', () => ({
   useCreateTask: vi.fn(() => ({
     mutateAsync: createMutateAsync,
     isPending: false,
   })),
 }));
 
-vi.mock('../api/useUndo', () => ({
+vi.mock('../hooks/useUndo', () => ({
   useUndo: vi.fn(() => ({
     mutate: undoMutate,
     isPending: false,
   })),
 }));
 
-vi.mock('../api/useUpdateTask', () => ({
+vi.mock('../hooks/useUpdateTask', () => ({
   useUpdateTask: vi.fn(() => ({
     mutate: updateMutate,
     mutateAsync: updateMutateAsync,
@@ -58,7 +58,7 @@ vi.mock('../api/useUpdateTask', () => ({
   })),
 }));
 
-vi.mock('../api/useMyActivity', () => ({
+vi.mock('../hooks/useMyActivity', () => ({
   useMyActionsToday: vi.fn(() => ({
     data: [
       {
@@ -84,7 +84,7 @@ vi.mock('../local-ledger/utils/device', () => ({
   getActiveActorId: vi.fn(() => 'actor_1'),
 }));
 
-describe('TasksPage integration', () => {
+describe('TaskBoardScreen integration', () => {
   beforeEach(() => {
     createMutateAsync.mockClear();
     undoMutate.mockClear();
@@ -94,11 +94,11 @@ describe('TasksPage integration', () => {
   });
 
   it('creates, updates, opens task detail modal, undoes, and switches tabs', async () => {
-    const { TasksPage } = await import('./TasksScreen');
+    const { TaskBoardScreen } = await import('./web/TaskBoardScreen');
 
     render(
       <MemoryRouter>
-        <TasksPage />
+        <TaskBoardScreen />
       </MemoryRouter>,
     );
 

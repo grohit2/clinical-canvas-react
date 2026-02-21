@@ -5,8 +5,8 @@ import {
   initialsFromName,
   mapTaskPriorityToBoardPriority,
   mapTaskStatusToBoardStatus,
-} from '../constants';
-import type { TaskBoardPerson } from '../../board/types';
+} from '../../core/statuses';
+import type { TaskBoardPerson } from '../../models/types';
 import type { TaskPriority, TaskStatus } from '../../core/types';
 
 export function PersonAvatarCell({

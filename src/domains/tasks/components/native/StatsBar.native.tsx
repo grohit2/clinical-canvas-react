@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { TaskBoardMetrics } from '../../board/types';
+import type { TaskBoardMetrics } from '../../models/types';
 
 export interface StatsBarNativeProps {
   metrics: TaskBoardMetrics;

@@ -12,20 +12,21 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useCreateTask } from '../api/useCreateTask';
-import { useMyActionsToday } from '../api/useMyActivity';
-import { useTasks } from '../api/useTasks';
-import { useUndo } from '../api/useUndo';
-import { useDeleteTask, useUpdateTask } from '../api/useUpdateTask';
-import { TASK_BOARD_FILTERS } from '../board/constants';
-import { buildPatientLookup } from '../board/patientLookup';
-import { buildAuditRows, buildTaskBoardModel } from '../board/selectors';
-import type { ActivityLike, TaskBoardFilter, TaskBoardRow, TaskBoardTab } from '../board/types';
-import type { TaskPriority, TaskStatus } from '../core/types';
-import { getActiveActorId } from '../local-ledger/utils/device';
-import { TaskBottomNav } from '../components/TaskBottomNav';
-import { usePatients } from '../../patient-list/api/usePatients';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { TASK_BOARD_FILTERS } from '../../core/constants';
+import { isCompletedToday, isDueToday, isUrgent } from '../../core/filters';
+import type { TaskPriority, TaskStatus } from '../../core/types';
+import { useCreateTask } from '../../hooks/useCreateTask';
+import { useMyActionsToday } from '../../hooks/useMyActivity';
+import { useTasks } from '../../hooks/useTasks';
+import { useUndo } from '../../hooks/useUndo';
+import { useDeleteTask, useUpdateTask } from '../../hooks/useUpdateTask';
+import { getActiveActorId } from '../../local-ledger/utils/device';
+import { buildAuditRows, buildTaskBoardModel } from '../../models/boardModel';
+import { buildPatientLookup } from '../../models/patientLookup';
+import type { ActivityLike, TaskBoardFilter, TaskBoardRow, TaskBoardTab } from '../../models/types';
+import { TaskBottomNav } from '../../components/web/TaskBottomNav';
+import { usePatients } from '../../../patient-list/api/usePatients';
 
 function statusLabel(status: TaskBoardRow['status']): string {
   if (status === 'in_progress') return 'In Progress';
@@ -310,9 +311,21 @@ function BoardRow({
   );
 }
 
-export function TasksPage() {
+type TaskPreset = 'all' | 'due-today' | 'urgent' | 'completed-today';
+
+function toTaskPreset(value: string | null): TaskPreset {
+  if (value === 'due-today' || value === 'urgent' || value === 'completed-today') {
+    return value;
+  }
+
+  return 'all';
+}
+
+export function TaskBoardScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const actorId = getActiveActorId() ?? 'anon';
+  const preset = toTaskPreset(searchParams.get('preset'));
 
   const { data: tasks = [], isLoading } = useTasks();
   const { data: patients = [] } = usePatients();
@@ -327,10 +340,45 @@ export function TasksPage() {
   const [titleInput, setTitleInput] = useState('');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (preset === 'urgent') {
+      setActiveFilter('urgent');
+      return;
+    }
+
+    if (preset === 'completed-today') {
+      setActiveFilter('completed');
+      return;
+    }
+
+    if (preset === 'due-today') {
+      setActiveFilter('scheduled');
+      return;
+    }
+
+    setActiveFilter('all');
+  }, [preset]);
+
+  const presetTasks = useMemo(() => {
+    if (preset === 'due-today') {
+      return tasks.filter(isDueToday);
+    }
+
+    if (preset === 'urgent') {
+      return tasks.filter(isUrgent);
+    }
+
+    if (preset === 'completed-today') {
+      return tasks.filter(isCompletedToday);
+    }
+
+    return tasks;
+  }, [preset, tasks]);
+
   const patientLookup = useMemo(() => buildPatientLookup(patients as unknown[]), [patients]);
   const model = useMemo(
-    () => buildTaskBoardModel(tasks, patientLookup, { filter: activeFilter }),
-    [tasks, patientLookup, activeFilter],
+    () => buildTaskBoardModel(presetTasks, patientLookup, { filter: activeFilter }),
+    [presetTasks, patientLookup, activeFilter],
   );
 
   const auditRows = useMemo(() => {
@@ -588,4 +636,4 @@ export function TasksPage() {
   );
 }
 
-export default TasksPage;
+export default TaskBoardScreen;

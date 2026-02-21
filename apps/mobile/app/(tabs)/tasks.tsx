@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TaskBoardMobileScreen } from '@/domains/tasks/screens/TaskBoardMobileScreen';
+import { TaskBoardScreenNative } from '@/domains/tasks/screens/native/TaskBoardScreen.native';
 import { usePatients } from '../../src/hooks/usePatients';
 import { usePinnedPatients } from '../../src/hooks/usePinnedPatients';
 
@@ -13,5 +13,5 @@ export default function TasksTabRoute() {
       .map((patient) => patient.id as string);
   }, [patients, isPinned]);
 
-  return <TaskBoardMobileScreen patients={patients as unknown[]} pinnedPatientIds={pinnedPatientIds} />;
+  return <TaskBoardScreenNative patients={patients as unknown[]} pinnedPatientIds={pinnedPatientIds} />;
 }

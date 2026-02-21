@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { View, Text, FlatList } from 'react-native';
-import type { Task } from '../core/types';
+import type { Task } from '../../core/types';
 import { TaskCard } from './TaskCard';
 // TODO: Update imports after shared migration
 // import { Skeleton } from '@/shared/ui/Skeleton';

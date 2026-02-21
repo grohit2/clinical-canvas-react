@@ -7,20 +7,18 @@ assignment, prioritization, filtering, and completion tracking.
 ## Screens
 | Screen | Route | Description |
 |--------|-------|-------------|
-| TasksScreen | `/(app)/tasks` | Main task list with filters |
-| TasksDueScreen | `/(app)/tasks/due` | Tasks due today/tomorrow |
-| UrgentAlertsScreen | `/(app)/tasks/urgent` | Urgent priority tasks |
-| CompletedTodayScreen | `/(app)/tasks/completed` | Tasks completed today |
-| AddTaskScreen | `/(app)/patient/[id]/tasks/new` | Create task for patient |
-| EditTaskScreen | `/(app)/tasks/[id]/edit` | Edit existing task |
+| TaskBoardScreen (web) | `/tasks` | Main task board with status filters |
+| TaskBoardScreen (native) | native app | Multi-view task board (ward/patient/doctor/etc.) |
+| AddTaskScreen | `/patients/:id/add-task` | Create task for a patient (REST API) |
+| EditTaskScreen | `/patients/:id/tasks/:taskId/edit` | Edit existing patient task (REST API) |
 
 ## Components
 | Component | Description |
 |-----------|-------------|
 | TaskCard | Single task display with priority badge |
 | TaskList | List container with empty state |
-| TaskForm | Create/edit task form |
 | PriorityBadge | Visual priority indicator |
+| TaskBottomNav | Bottom tab nav used by task board screens |
 
 ## Core Logic (Pure TypeScript)
 | File | Purpose |
@@ -39,10 +37,9 @@ assignment, prioritization, filtering, and completion tracking.
 | Low | Green | Can be deferred |
 
 ## Filter Presets
-- **Due Today** — Tasks with due date = today
-- **Overdue** — Past due date, not completed
-- **Urgent Alerts** — Priority = urgent, not completed
-- **Completed Today** — Completed within last 24h
+- **Due Today** — `/tasks?preset=due-today`
+- **Urgent Alerts** — `/tasks?preset=urgent`
+- **Completed Today** — `/tasks?preset=completed-today`
 
 ## Cross-Domain Consumers
 - `patient-detail/TasksTab` — Shows patient-specific tasks

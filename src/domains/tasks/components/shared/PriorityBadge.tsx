@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import type { TaskPriority } from '../core/types';
-import { getPriorityConfig } from '../core/priorities';
+import type { TaskPriority } from '../../core/types';
+import { getPriorityConfig } from '../../core/priorities';
 // TODO: Update imports after theme migration
 // import { useTheme } from '@/theme';
 

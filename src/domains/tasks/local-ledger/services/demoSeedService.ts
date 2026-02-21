@@ -1,9 +1,11 @@
 import {
   HOSPITAL_DEMO_GROUPS,
+} from '../../core/constants';
+import {
   mapBoardPriorityToTaskPriority,
   mapBoardStatusToTaskStatus,
   toIsoFromBoardSchedule,
-} from '../../hospital-board/constants';
+} from '../../core/statuses';
 import { listTasks } from '../queries/tasks.read';
 import { getDeviceId } from '../utils/device';
 import { applyOp } from './commandService';

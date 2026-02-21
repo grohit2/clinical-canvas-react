@@ -12,9 +12,9 @@ export const paths = {
   patients: () => "/patients",
   patientsAdd: () => "/patients/add",
   tasks: () => "/tasks",
-  tasksDue: () => "/tasks-due",
-  urgentAlerts: () => "/urgent-alerts",
-  completedToday: () => "/completed-today",
+  tasksDue: () => "/tasks?preset=due-today",
+  urgentAlerts: () => "/tasks?preset=urgent",
+  completedToday: () => "/tasks?preset=completed-today",
   profile: () => "/profile",
   qr: (id: string) => `/qr/${id}`,
 

@@ -17,7 +17,7 @@ import { PatientRegistrationPage, AddMrnPage } from "@features/patient-registrat
 import { AddNotePage, EditNotePage, NoteDetailPage } from "@features/patient-notes";
 import { AddMedicationPage, EditMedicationPage } from "@features/patient-medications";
 import { AddTaskPage, EditTaskPage } from "@features/patient-tasks";
-import { TasksPage, TasksDuePage, UrgentAlertsPage, CompletedTodayPage } from "@features/tasks";
+import { TasksPage } from "@features/tasks";
 import { ProfilePage } from "@features/profile";
 import { ReferralsPage } from "@features/referrals";
 import {
@@ -89,9 +89,6 @@ const App = () => (
             <Route path="/patients/:id/post-op" element={<PostOpPage />} />
             <Route path="/patients/:id/discharge" element={<DischargePage />} />
             <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/tasks-due" element={<TasksDuePage />} />
-            <Route path="/urgent-alerts" element={<UrgentAlertsPage />} />
-            <Route path="/completed-today" element={<CompletedTodayPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/referrals" element={<ReferralsPage />} />
           </Route>

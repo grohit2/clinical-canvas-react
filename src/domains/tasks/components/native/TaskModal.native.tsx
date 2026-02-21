@@ -9,23 +9,25 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useUpdateTask } from '../../api/useUpdateTask';
-import type { TaskBoardRow } from '../../board/types';
+import { useUpdateTask } from '../../hooks/useUpdateTask';
+import type { TaskBoardRow } from '../../models/types';
 import {
   DAYS,
   DOCTORS,
   NURSES,
   PLACES,
-  PRIORITY_TONES,
   RECURRENCE,
-  TASK_STATUS_TONES,
   TASK_TYPES,
+} from '../../core/constants';
+import {
+  PRIORITY_TONES,
+  TASK_STATUS_TONES,
   mapBoardPriorityToTaskPriority,
   mapBoardStatusToTaskStatus,
   mapTaskPriorityToBoardPriority,
   mapTaskStatusToBoardStatus,
   toIsoFromBoardSchedule,
-} from '../constants';
+} from '../../core/statuses';
 
 const STATUS_OPTIONS = Object.keys(TASK_STATUS_TONES).filter(Boolean);
 const PRIORITY_OPTIONS = Object.keys(PRIORITY_TONES).filter(Boolean);

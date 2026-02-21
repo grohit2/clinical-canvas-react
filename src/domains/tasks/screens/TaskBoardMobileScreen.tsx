@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 interface TaskBoardMobileScreenProps {
   patients?: unknown[];
+  pinnedPatientIds?: string[];
 }
 
 export function TaskBoardMobileScreen(_props: TaskBoardMobileScreenProps) {

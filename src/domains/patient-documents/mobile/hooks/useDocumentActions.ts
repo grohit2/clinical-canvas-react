@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
@@ -6,11 +6,13 @@ import type { DocumentsApi } from '../../api/documentsApi';
 import { DOC_CATEGORIES } from '../../core/categories';
 import type { DocCategory, DocumentItem } from '../../core/types';
 import { enqueueSyncAction, listPatientDocuments, patchDocument } from '../offline/db';
+import type { PrefetchProgress } from '../offline/fileCache';
 import {
   ensureLocalFileForViewing,
   prefetchOfflineForDocuments,
   queueDeleteDocument,
   runSyncQueueOnce,
+  type OfflineDownloadResult,
 } from '../offline/sync';
 import { getDocumentFoldersKey } from './useDocumentFolders';
 import { getCategoryDocumentsKey } from './useCategoryDocuments';
@@ -22,12 +24,34 @@ function invalidateAll(queryClient: ReturnType<typeof useQueryClient>, patientId
   });
 }
 
+export interface DownloadProgress {
+  /** true while the batch download is active */
+  isDownloading: boolean;
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  /** Name of the file currently being downloaded */
+  currentName?: string;
+}
+
+const IDLE_PROGRESS: DownloadProgress = {
+  isDownloading: false,
+  total: 0,
+  completed: 0,
+  succeeded: 0,
+  failed: 0,
+};
+
 export function useDocumentActions(
   patientId: string,
   documentsApi: DocumentsApi,
   category?: DocCategory
 ) {
   const queryClient = useQueryClient();
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>(IDLE_PROGRESS);
+
+  // -- Share ---------------------------------------------------------------
 
   const shareDocument = useCallback(
     async (document: DocumentItem) => {
@@ -37,19 +61,23 @@ export function useDocumentActions(
         return;
       }
 
-      const localUri = await ensureLocalFileForViewing(document, documentsApi);
+      try {
+        const localUri = await ensureLocalFileForViewing(document, documentsApi);
 
-      // Lightweight audit log hook point.
-      console.log('audit.external_share', {
-        patientId: document.patientId,
-        docId: document.id,
-        timestamp: new Date().toISOString(),
-      });
+        console.log('audit.external_share', {
+          patientId: document.patientId,
+          docId: document.id,
+          timestamp: new Date().toISOString(),
+        });
 
-      await Sharing.shareAsync(localUri, {
-        mimeType: document.contentType,
-        dialogTitle: 'Share document',
-      });
+        await Sharing.shareAsync(localUri, {
+          mimeType: document.contentType,
+          dialogTitle: 'Share document',
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        Alert.alert('Share failed', message);
+      }
     },
     [documentsApi]
   );
@@ -57,7 +85,6 @@ export function useDocumentActions(
   const shareDocuments = useCallback(
     async (documents: DocumentItem[]) => {
       if (!documents.length) return;
-      // Native share sheet supports one URI per invocation on most platforms.
       await shareDocument(documents[0]);
       if (documents.length > 1) {
         Alert.alert('Shared first file', 'Share selected files one by one from the action bar.');
@@ -65,6 +92,8 @@ export function useDocumentActions(
     },
     [shareDocument]
   );
+
+  // -- Delete --------------------------------------------------------------
 
   const deleteDocuments = useCallback(
     async (documents: DocumentItem[]) => {
@@ -81,19 +110,94 @@ export function useDocumentActions(
     [documentsApi, patientId, queryClient]
   );
 
-  const downloadForOffline = useCallback(
-    async (documents: DocumentItem[]) => {
-      const result = await prefetchOfflineForDocuments(documents, documentsApi);
-      invalidateAll(queryClient, patientId);
+  // -- Download for offline -----------------------------------------------
 
-      if (result.failed > 0) {
-        Alert.alert('Offline download complete', `${result.succeeded} downloaded, ${result.failed} failed.`);
+  const downloadForOffline = useCallback(
+    async (documents: DocumentItem[]): Promise<OfflineDownloadResult> => {
+      if (!documents.length) {
+        return { succeeded: 0, failed: 0, skipped: 0, errors: [] };
       }
 
-      return result;
+      setDownloadProgress({
+        isDownloading: true,
+        total: documents.length,
+        completed: 0,
+        succeeded: 0,
+        failed: 0,
+      });
+
+      try {
+        const onProgress = (progress: PrefetchProgress) => {
+          setDownloadProgress({
+            isDownloading: true,
+            total: progress.total,
+            completed: progress.completed,
+            succeeded: progress.succeeded,
+            failed: progress.failed,
+            currentName: progress.currentName,
+          });
+        };
+
+        const result = await prefetchOfflineForDocuments(documents, documentsApi, onProgress);
+
+        invalidateAll(queryClient, patientId);
+
+        // Show appropriate feedback.
+        if (result.failed > 0 && result.succeeded > 0) {
+          Alert.alert(
+            'Offline download partially complete',
+            `${result.succeeded} downloaded, ${result.failed} failed${result.skipped ? `, ${result.skipped} already cached` : ''}.`,
+            [
+              {
+                text: 'View errors',
+                onPress: () => {
+                  const details = result.errors
+                    .slice(0, 5)
+                    .map((e) => `- ${e.name}: ${e.error}`)
+                    .join('\n');
+                  const suffix = result.errors.length > 5
+                    ? `\n...and ${result.errors.length - 5} more`
+                    : '';
+                  Alert.alert('Download errors', details + suffix);
+                },
+              },
+              { text: 'OK' },
+            ]
+          );
+        } else if (result.failed > 0 && result.succeeded === 0) {
+          Alert.alert(
+            'Download failed',
+            result.errors[0]?.error || 'Could not download files. Check your network connection.',
+          );
+        } else if (result.succeeded > 0) {
+          Alert.alert(
+            'Downloads complete',
+            `${result.succeeded} file${result.succeeded > 1 ? 's' : ''} saved for offline use${result.skipped ? ` (${result.skipped} already cached)` : ''}.`
+          );
+        } else if (result.skipped > 0) {
+          // Everything was already cached.
+          Alert.alert('Already available', 'All documents are already saved for offline use.');
+        }
+
+        return result;
+      } catch (error) {
+        // Network-level failure (offline check, etc.)
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        Alert.alert('Download failed', message);
+        return {
+          succeeded: 0,
+          failed: documents.length,
+          skipped: 0,
+          errors: [{ docId: '', name: '', error: message }],
+        };
+      } finally {
+        setDownloadProgress(IDLE_PROGRESS);
+      }
     },
     [documentsApi, patientId, queryClient]
   );
+
+  // -- Retry failed uploads -----------------------------------------------
 
   const retryFailedUploads = useCallback(async () => {
     const docs = await listPatientDocuments(patientId);
@@ -117,6 +221,8 @@ export function useDocumentActions(
     return failed.length;
   }, [documentsApi, patientId, queryClient]);
 
+  // -- Refresh ------------------------------------------------------------
+
   const refreshCategory = useCallback(() => {
     if (!category) return;
     queryClient.invalidateQueries({ queryKey: getCategoryDocumentsKey(patientId, category) });
@@ -128,6 +234,7 @@ export function useDocumentActions(
     shareDocuments,
     deleteDocuments,
     downloadForOffline,
+    downloadProgress,
     retryFailedUploads,
     refreshCategory,
   };

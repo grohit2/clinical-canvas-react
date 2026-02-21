@@ -41,13 +41,22 @@ export function TableGroupNative(props: TableGroupNativeProps) {
   return (
     <View style={styles.groupWrap}>
       <View style={styles.groupHeaderRow}>
-        <Pressable style={styles.chevronButton} onPress={onToggleCollapsed}>
-          <Text style={[styles.chevron, collapsed && styles.chevronCollapsed]}>▾</Text>
-        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.headerToggleArea, pressed && styles.headerToggleAreaPressed]}
+          onPress={onToggleCollapsed}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`${collapsed ? 'Expand' : 'Collapse'} ${section.title}`}
+          accessibilityState={{ expanded: !collapsed }}
+        >
+          <View style={styles.chevronButton}>
+            <Text style={[styles.chevron, collapsed && styles.chevronCollapsed]}>▾</Text>
+          </View>
 
-        <Text style={[styles.groupTitle, { color: section.color }]} numberOfLines={1}>
-          {section.title}
-        </Text>
+          <Text style={[styles.groupTitle, { color: section.color }]} numberOfLines={1}>
+            {section.title}
+          </Text>
+        </Pressable>
 
         <Text style={styles.groupMeta}>{section.total} tasks</Text>
 
@@ -220,18 +229,35 @@ const styles = StyleSheet.create({
   groupHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
     paddingHorizontal: 6,
     paddingBottom: 6,
   },
+  headerToggleArea: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingLeft: 2,
+    paddingRight: 6,
+  },
+  headerToggleAreaPressed: {
+    backgroundColor: '#eff6ff',
+  },
   chevronButton: {
-    width: 20,
-    height: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   chevron: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#64748b',
     transform: [{ rotate: '90deg' }],
   },
@@ -247,6 +273,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94a3b8',
     fontWeight: '600',
+    marginLeft: 2,
   },
   urgentBadge: {
     marginLeft: 'auto',

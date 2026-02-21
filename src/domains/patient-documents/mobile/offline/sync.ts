@@ -22,12 +22,29 @@ import {
   copyIntoCache,
   ensureDownloaded,
   getDocLocalPath,
+  prefetchMany,
   removeCachedFile,
+  type OnPrefetchProgress,
 } from './fileCache';
 import { mergeServerDocuments } from './merge';
 
 const MAX_RETRY_COUNT = 5;
 let isSyncRunning = false;
+
+// ------------------------------------------------------------------------------
+// Network check helper
+// ------------------------------------------------------------------------------
+
+async function assertOnline(): Promise<void> {
+  const state = await NetInfo.fetch();
+  if (!state.isConnected) {
+    throw new Error('Device is offline - cannot download files');
+  }
+}
+
+// ------------------------------------------------------------------------------
+// Server sync: pull latest from backend
+// ------------------------------------------------------------------------------
 
 export async function refreshPatientDocuments(
   patientId: string,
@@ -51,6 +68,10 @@ export async function refreshPatientDocuments(
   const serverDocs = mapAllDocumentsFromApi(patientId, profile, localState);
   return mergeServerDocuments(patientId, serverDocs);
 }
+
+// ------------------------------------------------------------------------------
+// Local document creation (camera/gallery capture)
+// ------------------------------------------------------------------------------
 
 export async function createLocalDocument(args: {
   patientId: string;
@@ -95,6 +116,216 @@ export async function createLocalDocument(args: {
   return item;
 }
 
+// ------------------------------------------------------------------------------
+// Resolve a downloadable URL for a document
+//
+// Strategy:
+//   1. Try the CDN URL (doc.fileUrl) if available.
+//   2. If CDN fails or is missing, fall back to a fresh presigned URL.
+//   3. If neither is available, throw.
+// ------------------------------------------------------------------------------
+
+async function resolveDownloadUrl(
+  doc: DocumentItem,
+  documentsApi: DocumentsApi
+): Promise<string> {
+  // Attempt 1: CDN URL (fast, no extra API call)
+  if (doc.fileUrl) {
+    try {
+      // Do a lightweight HEAD request to verify the URL is still valid.
+      const headResponse = await fetch(doc.fileUrl, { method: 'HEAD' });
+      if (headResponse.ok) {
+        return doc.fileUrl;
+      }
+      console.warn(
+        `[sync] CDN URL returned ${headResponse.status} for doc ${doc.id}, falling back to presign`
+      );
+    } catch (error) {
+      console.warn(
+        `[sync] CDN URL unreachable for doc ${doc.id}, falling back to presign:`,
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
+
+  // Attempt 2: Get a fresh presigned URL from the backend.
+  if (doc.remoteKey) {
+    const presigned = await documentsApi.presignDownload(doc.patientId, doc.remoteKey);
+    return presigned.url;
+  }
+
+  throw new Error(`No downloadable URL for document "${doc.name}" (no CDN URL or remote key)`);
+}
+
+// ------------------------------------------------------------------------------
+// Single-document download (for viewing / sharing)
+// ------------------------------------------------------------------------------
+
+/**
+ * Ensures a document has a local file. Downloads if missing.
+ * Returns the local URI.
+ * Throws a descriptive error if download fails.
+ */
+export async function ensureLocalFileForViewing(
+  doc: DocumentItem,
+  documentsApi: DocumentsApi
+): Promise<string> {
+  // Already have a local copy.
+  if (doc.localUri) {
+    // Verify it still exists on disk (user may have cleared app data).
+    const { fileExists } = await import('./fileCache');
+    if (fileExists(doc.localUri)) {
+      return doc.localUri;
+    }
+    // Local file is gone - clear stale reference and re-download.
+    console.warn(`[sync] Stale localUri for doc ${doc.id}, re-downloading`);
+  }
+
+  const remoteUrl = await resolveDownloadUrl(doc, documentsApi);
+
+  const localUri = await ensureDownloaded({
+    patientId: doc.patientId,
+    docId: doc.id,
+    name: doc.name || 'document',
+    remoteUrl,
+    variant: 'full',
+  });
+
+  // Update SQLite with the new local path.
+  await patchDocument(doc.id, {
+    localUri,
+    offlineState: 'available_offline',
+    // Also mark backup state since the file exists both locally and remotely.
+    ...(doc.remoteKey ? { backupState: 'backed_up' as const } : {}),
+  });
+
+  return localUri;
+}
+
+// ------------------------------------------------------------------------------
+// Batch offline download (the "Download Offline" button)
+//
+// Uses prefetchMany for concurrent downloads + progress reporting.
+// ------------------------------------------------------------------------------
+
+export interface OfflineDownloadResult {
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  errors: Array<{ docId: string; name: string; error: string }>;
+}
+
+/**
+ * Downloads multiple documents for offline use.
+ *
+ * @param documents    - Documents to download.
+ * @param documentsApi - API client for presigned URLs.
+ * @param onProgress   - Optional progress callback for UI updates.
+ * @returns Detailed result with per-item error information.
+ */
+export async function prefetchOfflineForDocuments(
+  documents: DocumentItem[],
+  documentsApi: DocumentsApi,
+  onProgress?: OnPrefetchProgress
+): Promise<OfflineDownloadResult> {
+  if (!documents.length) {
+    return { succeeded: 0, failed: 0, skipped: 0, errors: [] };
+  }
+
+  // Check network before starting.
+  await assertOnline();
+
+  // Filter out documents that are already available offline.
+  const needsDownload: DocumentItem[] = [];
+  let skipped = 0;
+
+  for (const doc of documents) {
+    if (doc.localUri) {
+      const { fileExists } = await import('./fileCache');
+      if (fileExists(doc.localUri)) {
+        skipped += 1;
+        continue;
+      }
+    }
+    needsDownload.push(doc);
+  }
+
+  if (!needsDownload.length) {
+    return { succeeded: 0, failed: 0, skipped, errors: [] };
+  }
+
+  // Resolve downloadable URLs for all documents upfront.
+  // This way we get fresh presigned URLs in bulk before starting downloads,
+  // avoiding the TTL race condition where later URLs expire.
+  const downloadItems: Array<{
+    doc: DocumentItem;
+    patientId: string;
+    docId: string;
+    name: string;
+    remoteUrl: string;
+    variant: 'full';
+  }> = [];
+  const resolveErrors: Array<{ docId: string; name: string; error: string }> = [];
+
+  await Promise.all(
+    needsDownload.map(async (doc) => {
+      try {
+        const remoteUrl = await resolveDownloadUrl(doc, documentsApi);
+        downloadItems.push({
+          doc,
+          patientId: doc.patientId,
+          docId: doc.id,
+          name: doc.name || 'document',
+          remoteUrl,
+          variant: 'full',
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        resolveErrors.push({ docId: doc.id, name: doc.name, error: message });
+        console.warn(`[sync] Could not resolve URL for ${doc.name}:`, message);
+      }
+    })
+  );
+
+  // Download all resolved items concurrently.
+  const result = await prefetchMany(
+    downloadItems,
+    onProgress,
+    3 // concurrency
+  );
+
+  // Update SQLite for successfully downloaded files.
+  for (const item of downloadItems) {
+    // Check if this item succeeded (not in errors list).
+    const didFail = result.errors.some((e) => e.docId === item.docId);
+    if (didFail) continue;
+
+    const localUri = getDocLocalPath({
+      patientId: item.patientId,
+      docId: item.docId,
+      name: item.name,
+      variant: 'full',
+    });
+
+    await patchDocument(item.docId, {
+      localUri,
+      offlineState: 'available_offline',
+      ...(item.doc.remoteKey ? { backupState: 'backed_up' as const } : {}),
+    });
+  }
+
+  return {
+    succeeded: result.succeeded,
+    failed: result.failed + resolveErrors.length,
+    skipped,
+    errors: [...resolveErrors, ...result.errors],
+  };
+}
+
+// ------------------------------------------------------------------------------
+// Upload to presigned URL
+// ------------------------------------------------------------------------------
+
 async function uploadToPresignedUrl(args: {
   uploadUrl: string;
   localUri: string;
@@ -102,6 +333,10 @@ async function uploadToPresignedUrl(args: {
   headers?: Record<string, string>;
 }): Promise<void> {
   const file = new File(args.localUri);
+  if (!file.exists) {
+    throw new Error(`Upload source file missing: ${args.localUri}`);
+  }
+
   await expoFetch(args.uploadUrl, {
     method: 'PUT',
     body: file,
@@ -112,56 +347,9 @@ async function uploadToPresignedUrl(args: {
   });
 }
 
-export async function ensureLocalFileForViewing(
-  doc: DocumentItem,
-  documentsApi: DocumentsApi
-): Promise<string> {
-  if (doc.localUri) return doc.localUri;
-
-  let remoteUrl = doc.fileUrl;
-  if (!remoteUrl && doc.remoteKey) {
-    const presigned = await documentsApi.presignDownload(doc.patientId, doc.remoteKey);
-    remoteUrl = presigned.url;
-  }
-
-  if (!remoteUrl) {
-    throw new Error('No local or remote file available');
-  }
-
-  const localUri = await ensureDownloaded({
-    patientId: doc.patientId,
-    docId: doc.id,
-    name: doc.name || 'document',
-    remoteUrl,
-    variant: 'full',
-  });
-
-  await patchDocument(doc.id, {
-    localUri,
-    offlineState: 'available_offline',
-  });
-
-  return localUri;
-}
-
-export async function prefetchOfflineForDocuments(
-  documents: DocumentItem[],
-  documentsApi: DocumentsApi
-): Promise<{ succeeded: number; failed: number }> {
-  let succeeded = 0;
-  let failed = 0;
-
-  for (const doc of documents) {
-    try {
-      await ensureLocalFileForViewing(doc, documentsApi);
-      succeeded += 1;
-    } catch {
-      failed += 1;
-    }
-  }
-
-  return { succeeded, failed };
-}
+// ------------------------------------------------------------------------------
+// Sync queue processing
+// ------------------------------------------------------------------------------
 
 async function processUploadAction(
   item: {
@@ -274,7 +462,6 @@ export async function runSyncQueueOnce(
       if (!item) break;
 
       if (item.retryCount >= MAX_RETRY_COUNT) {
-        // Remove permanently failed item to avoid blocking the queue forever.
         await removeSyncAction(item.qid);
         continue;
       }
@@ -296,6 +483,7 @@ export async function runSyncQueueOnce(
           lastError: message,
         });
 
+        console.error(`[sync] Queue item ${item.qid} failed:`, message);
         return { processed, failed: true };
       }
     }
@@ -331,12 +519,6 @@ export async function rebuildFolderFromServer(
   patientId: string,
   documentsApi: DocumentsApi
 ): Promise<void> {
-  const localDocs = await listPatientDocuments(patientId);
-  if (!localDocs.length) {
-    await refreshPatientDocuments(patientId, documentsApi);
-    return;
-  }
-
   await refreshPatientDocuments(patientId, documentsApi);
 }
 

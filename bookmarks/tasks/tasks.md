@@ -51,6 +51,7 @@ src/domains/tasks/screens/AddTaskScreen.tsx
 src/domains/tasks/screens/CompletedTodayScreen.tsx
 src/domains/tasks/screens/EditTaskScreen.tsx
 src/domains/tasks/screens/TaskBoardMobileScreen.native.tsx
+src/domains/tasks/screens/TaskBoardMobileScreen.tsx
 src/domains/tasks/screens/TasksDueScreen.tsx
 src/domains/tasks/screens/TasksScreen.tsx
 src/domains/tasks/screens/UrgentAlertsScreen.tsx
@@ -77,3 +78,4 @@ src/shared/types/api.ts
 src/shared/components/layout/Header.tsx
 src/shared/components/layout/BottomBar.tsx
 apps/mobile/src/hooks/usePatients.ts
+apps/mobile/src/hooks/usePinnedPatients.ts

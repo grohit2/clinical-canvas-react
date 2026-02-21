@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Download, RefreshCcw, Share2, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Download, RefreshCcw, Share2, Trash2, Wifi, WifiOff } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
 import type { DocCategory, DocumentItem } from '../../core/types';
 import { CATEGORY_CONFIG } from '../categoryConfig.native';
@@ -37,6 +37,103 @@ function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): 
   return selected;
 }
 
+// -- Download progress bar component ------------------------------------------
+
+function DownloadProgressBar({
+  total,
+  completed,
+  succeeded,
+  failed,
+  currentName,
+}: {
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  currentName?: string;
+}) {
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return (
+    <View style={progressStyles.container}>
+      <View style={progressStyles.header}>
+        <Text style={progressStyles.title}>
+          Downloading for offline...
+        </Text>
+        <Text style={progressStyles.count}>
+          {completed}/{total}
+        </Text>
+      </View>
+
+      <View style={progressStyles.trackOuter}>
+        <View style={[progressStyles.trackFill, { width: `${pct}%` }]} />
+      </View>
+
+      {currentName ? (
+        <Text style={progressStyles.currentFile} numberOfLines={1}>
+          {currentName}
+        </Text>
+      ) : null}
+
+      {failed > 0 ? (
+        <Text style={progressStyles.failedText}>
+          {failed} failed
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+const progressStyles = StyleSheet.create({
+  container: {
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    gap: 6,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e40af',
+  },
+  count: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  trackOuter: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#dbeafe',
+    overflow: 'hidden',
+  },
+  trackFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2563eb',
+  },
+  currentFile: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  failedText: {
+    fontSize: 11,
+    color: '#dc2626',
+    fontWeight: '600',
+  },
+});
+
+// -- Main screen --------------------------------------------------------------
+
 export function DocumentsFolderScreen({
   patientId,
   category,
@@ -49,8 +146,14 @@ export function DocumentsFolderScreen({
   const router = useRouter();
   const docsQuery = useCategoryDocuments(patientId, category);
   const { syncNow, isOnline } = useDocumentSync(patientId, documentsApi);
-  const { shareDocument, shareDocuments, deleteDocuments, downloadForOffline, retryFailedUploads } =
-    useDocumentActions(patientId, documentsApi, category);
+  const {
+    shareDocument,
+    shareDocuments,
+    deleteDocuments,
+    downloadForOffline,
+    downloadProgress,
+    retryFailedUploads,
+  } = useDocumentActions(patientId, documentsApi, category);
   const { captureFromCamera, pickFromGallery } = usePhotoCapture(patientId, category, documentsApi);
 
   const documents = useMemo(() => docsQuery.data || [], [docsQuery.data]);
@@ -68,53 +171,40 @@ export function DocumentsFolderScreen({
   const config = CATEGORY_CONFIG[category];
 
   useEffect(() => {
-    if (!selectionMode) {
-      return;
-    }
+    if (!selectionMode) return;
     setIsTopChromeCollapsed(false);
   }, [selectionMode]);
 
   const handleGridScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (selectionMode) {
-        return;
-      }
+      if (selectionMode) return;
 
       const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
       const delta = offsetY - lastScrollOffsetRef.current;
 
       if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
+        if (isTopChromeCollapsed) setIsTopChromeCollapsed(false);
         lastScrollOffsetRef.current = offsetY;
         return;
       }
 
       if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
-        if (!isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(true);
-        }
+        if (!isTopChromeCollapsed) setIsTopChromeCollapsed(true);
       } else if (delta < -SCROLL_DELTA_THRESHOLD) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
+        if (isTopChromeCollapsed) setIsTopChromeCollapsed(false);
       }
 
       lastScrollOffsetRef.current = offsetY;
     },
-    [isTopChromeCollapsed, selectionMode],
+    [isTopChromeCollapsed, selectionMode]
   );
 
   const toggleSelected = (docId: string) => {
     setSelectionMode(true);
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(docId)) {
-        next.delete(docId);
-      } else {
-        next.add(docId);
-      }
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
       return next;
     });
   };
@@ -155,19 +245,22 @@ export function DocumentsFolderScreen({
     let nextIndex = index;
 
     if (!doc.localUri) {
-      const result = await downloadForOffline([doc]);
-      if (result.failed > 0 && !doc.fileUrl) {
-        Alert.alert('Preview unavailable', 'Could not download this image for viewing.');
+      try {
+        const result = await downloadForOffline([doc]);
+        if (result.failed > 0 && !doc.fileUrl) {
+          // Alert already shown by downloadForOffline.
+          return;
+        }
+      } catch {
+        // Alert already shown by downloadForOffline.
         return;
       }
 
-      if (result.succeeded > 0) {
-        const refreshed = await docsQuery.refetch();
-        const refreshedDocs = refreshed.data || [];
-        const refreshedIndex = refreshedDocs.findIndex((item) => item.id === doc.id);
-        if (refreshedIndex >= 0) {
-          nextIndex = refreshedIndex;
-        }
+      const refreshed = await docsQuery.refetch();
+      const refreshedDocs = refreshed.data || [];
+      const refreshedIndex = refreshedDocs.findIndex((item) => item.id === doc.id);
+      if (refreshedIndex >= 0) {
+        nextIndex = refreshedIndex;
       }
     }
 
@@ -175,9 +268,11 @@ export function DocumentsFolderScreen({
   };
 
   const failedCount = documents.filter((item) => item.backupState === 'error').length;
+  const offlineCount = documents.filter((item) => item.offlineState === 'available_offline').length;
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* -- Header --------------------------------------------------------- */}
       <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={20} color="#334155" />
@@ -185,35 +280,45 @@ export function DocumentsFolderScreen({
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>{config.title}</Text>
           {!isTopChromeCollapsed ? (
-            <Text style={styles.subtitle}>
-              {documents.length} documents • {isOnline ? 'Online' : 'Offline'}
-            </Text>
+            <View style={styles.subtitleRow}>
+              <Text style={styles.subtitle}>
+                {documents.length} documents
+              </Text>
+              <View style={[styles.onlineDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
+              <Text style={styles.subtitle}>
+                {isOnline ? 'Online' : 'Offline'}
+              </Text>
+              {offlineCount > 0 ? (
+                <Text style={styles.offlineCount}>
+                  - {offlineCount} cached
+                </Text>
+              ) : null}
+            </View>
           ) : null}
         </View>
         <Pressable
           style={styles.selectButton}
           onPress={() => {
-            if (selectionMode) {
-              clearSelection();
-            } else {
-              setSelectionMode(true);
-            }
+            if (selectionMode) clearSelection();
+            else setSelectionMode(true);
           }}
         >
           <Text style={styles.selectButtonText}>{selectionMode ? 'Done' : 'Select'}</Text>
         </Pressable>
       </View>
 
+      {/* -- Action row ----------------------------------------------------- */}
       {!isTopChromeCollapsed ? (
         <View style={styles.actionRow}>
           <Pressable
-            style={styles.actionButton}
-            onPress={async () => {
-              await downloadForOffline(documents);
-            }}
+            style={[styles.actionButton, downloadProgress.isDownloading && styles.actionButtonDisabled]}
+            disabled={downloadProgress.isDownloading}
+            onPress={() => downloadForOffline(documents)}
           >
-            <Download size={16} color="#334155" />
-            <Text style={styles.actionText}>Download Offline</Text>
+            <Download size={16} color={downloadProgress.isDownloading ? '#94a3b8' : '#334155'} />
+            <Text style={[styles.actionText, downloadProgress.isDownloading && styles.actionTextDisabled]}>
+              {downloadProgress.isDownloading ? 'Downloading...' : 'Download Offline'}
+            </Text>
           </Pressable>
 
           <Pressable style={styles.actionButton} onPress={syncNow}>
@@ -237,6 +342,18 @@ export function DocumentsFolderScreen({
         </View>
       ) : null}
 
+      {/* -- Download progress ---------------------------------------------- */}
+      {downloadProgress.isDownloading ? (
+        <DownloadProgressBar
+          total={downloadProgress.total}
+          completed={downloadProgress.completed}
+          succeeded={downloadProgress.succeeded}
+          failed={downloadProgress.failed}
+          currentName={downloadProgress.currentName}
+        />
+      ) : null}
+
+      {/* -- Selection bar -------------------------------------------------- */}
       {selectionMode ? (
         <View style={styles.selectionBar}>
           <Text style={styles.selectionCount}>{selectedDocs.length} selected</Text>
@@ -261,10 +378,12 @@ export function DocumentsFolderScreen({
         </View>
       ) : null}
 
+      {/* -- Upload controls ------------------------------------------------ */}
       {!isTopChromeCollapsed ? (
         <PhotoUploader onCamera={captureFromCamera} onGallery={pickFromGallery} />
       ) : null}
 
+      {/* -- Document grid -------------------------------------------------- */}
       {docsQuery.isLoading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -282,6 +401,7 @@ export function DocumentsFolderScreen({
         />
       )}
 
+      {/* -- Lightbox ------------------------------------------------------- */}
       <DocumentLightbox
         visible={lightboxIndex !== null}
         document={lightboxIndex !== null ? documents[lightboxIndex] : null}
@@ -301,6 +421,8 @@ export function DocumentsFolderScreen({
     </SafeAreaView>
   );
 }
+
+// -- Styles --------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   container: {
@@ -334,10 +456,32 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0f172a',
   },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   subtitle: {
     fontSize: 12,
     color: '#64748b',
-    marginTop: 2,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: 2,
+  },
+  dotOnline: {
+    backgroundColor: '#22c55e',
+  },
+  dotOffline: {
+    backgroundColor: '#ef4444',
+  },
+  offlineCount: {
+    fontSize: 12,
+    color: '#2563eb',
+    marginLeft: 2,
   },
   selectButton: {
     borderRadius: 10,
@@ -368,10 +512,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
   actionText: {
     color: '#334155',
     fontWeight: '700',
     fontSize: 12,
+  },
+  actionTextDisabled: {
+    color: '#94a3b8',
   },
   warnText: {
     color: '#b45309',

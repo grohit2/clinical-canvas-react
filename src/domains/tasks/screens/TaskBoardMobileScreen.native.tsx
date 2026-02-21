@@ -20,7 +20,8 @@ import { useMyActionsToday } from '../api/useMyActivity';
 import { useTasks } from '../api/useTasks';
 import { useUndo } from '../api/useUndo';
 import { buildPatientLookup } from '../board/patientLookup';
-import { buildAuditRows, buildTaskBoardModel } from '../board/selectors';
+import { buildAuditRows, buildPatientViewSections, buildTaskBoardModel } from '../board/selectors';
+import type { PatientEntry } from '../board/selectors';
 import type {
   ActivityLike,
   TaskBoardRow,
@@ -46,6 +47,7 @@ import { getActiveActorId } from '../local-ledger/utils/device';
 
 interface TaskBoardMobileScreenProps {
   patients?: unknown[];
+  pinnedPatientIds?: string[];
 }
 
 type BoardViewMode = 'ward' | 'patient' | 'doctor' | 'place' | 'day' | 'priority' | 'type';
@@ -135,7 +137,7 @@ function buildViewSections(rows: TaskBoardRow[], viewMode: BoardViewMode): TaskB
 }
 
 export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
-  const { patients = [] } = props;
+  const { patients = [], pinnedPatientIds = [] } = props;
   const router = useRouter();
   const queryClient = useQueryClient();
   const actorId = getActiveActorId() ?? 'anon';
@@ -178,15 +180,39 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
   }, [actorId, queryClient]);
 
   const patientLookup = useMemo(() => buildPatientLookup(patients), [patients]);
+  const patientEntries = useMemo<PatientEntry[]>(() => {
+    const result: PatientEntry[] = [];
+    for (const patient of patients) {
+      const row = typeof patient === 'object' && patient !== null ? (patient as Record<string, unknown>) : {};
+      const id = typeof row.id === 'string' ? row.id.trim() : '';
+      const name =
+        typeof row.name === 'string'
+          ? row.name.trim()
+          : typeof row.fullName === 'string'
+            ? row.fullName.trim()
+            : '';
+
+      if (id && name) {
+        result.push({ id, name });
+      }
+    }
+    return result;
+  }, [patients]);
+
   const model = useMemo(
     () => buildTaskBoardModel(tasks, patientLookup, { filter: 'all' }),
     [tasks, patientLookup],
   );
 
-  const boardSections = useMemo(
-    () => (activeViewMode === 'ward' ? model.sections : buildViewSections(model.allRows, activeViewMode)),
-    [activeViewMode, model.allRows, model.sections],
-  );
+  const boardSections = useMemo(() => {
+    if (activeViewMode === 'ward') {
+      return model.sections;
+    }
+    if (activeViewMode === 'patient') {
+      return buildPatientViewSections(model.allRows, patientEntries, pinnedPatientIds);
+    }
+    return buildViewSections(model.allRows, activeViewMode);
+  }, [activeViewMode, model.allRows, model.sections, patientEntries, pinnedPatientIds]);
 
   const auditRows = useMemo(() => {
     const tasksById = Object.fromEntries(model.allRows.map((row) => [row.id, { title: row.title }]));
@@ -360,6 +386,20 @@ export function TaskBoardMobileScreen(props: TaskBoardMobileScreenProps) {
                   setActiveDetailRow(row);
                 }}
                 onAddTask={async (nextSection) => {
+                  if (activeViewMode === 'patient') {
+                    const patientName = nextSection.title.replace(/^⭐\s*/, '');
+                    const patientId = nextSection.id.startsWith('patient_')
+                      ? nextSection.id.slice('patient_'.length)
+                      : undefined;
+
+                    await addQuickTask({
+                      title: 'New task',
+                      patientName,
+                      patientId: patientId && !patientId.startsWith('unmatched_') ? patientId : undefined,
+                    });
+                    return;
+                  }
+
                   const targetDepartment =
                     activeViewMode === 'ward'
                       ? nextSection.title

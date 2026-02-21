@@ -401,3 +401,99 @@ export function buildAuditRows(
       };
     });
 }
+
+// Patient-centric board view
+export interface PatientEntry {
+  id: string;
+  name: string;
+}
+
+/**
+ * Creates a TableGroupNative-compatible section for every patient,
+ * even those with zero tasks. Pinned patients sort to the top.
+ *
+ * Match order:
+ *  1. task.source.patientId === patient.id
+ *  2. task.patientName === patient.name (fallback for demo-seed data)
+ */
+export function buildPatientViewSections(
+  rows: TaskBoardRow[],
+  patients: readonly PatientEntry[],
+  pinnedPatientIds: readonly string[],
+): TaskBoardSection[] {
+  const pinnedSet = new Set(pinnedPatientIds);
+
+  const nameToId = new Map<string, string>();
+  for (const patient of patients) {
+    const key = patient.name.trim().toLowerCase();
+    if (!nameToId.has(key)) {
+      nameToId.set(key, patient.id);
+    }
+  }
+
+  const bucketById = new Map<string, TaskBoardRow[]>();
+  const unmatched: TaskBoardRow[] = [];
+
+  for (const row of rows) {
+    const resolvedId =
+      row.source.patientId || nameToId.get(row.patientName.trim().toLowerCase()) || null;
+
+    if (resolvedId) {
+      const bucket = bucketById.get(resolvedId) ?? [];
+      bucket.push(row);
+      bucketById.set(resolvedId, bucket);
+    } else {
+      unmatched.push(row);
+    }
+  }
+
+  const sortedPatients = [...patients].sort((left, right) => {
+    const leftPinned = pinnedSet.has(left.id);
+    const rightPinned = pinnedSet.has(right.id);
+    if (leftPinned !== rightPinned) {
+      return leftPinned ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+
+  const sections: TaskBoardSection[] = [];
+
+  sortedPatients.forEach((patient, index) => {
+    const sectionRows = bucketById.get(patient.id) ?? [];
+    const isPinned = pinnedSet.has(patient.id);
+
+    sections.push({
+      id: `patient_${patient.id}`,
+      title: isPinned ? `⭐ ${patient.name}` : patient.name,
+      color: isPinned ? '#3b82f6' : GROUP_COLORS[index % GROUP_COLORS.length],
+      rows: sectionRows,
+      urgentCount: sectionRows.filter((row) => row.urgent).length,
+      total: sectionRows.length,
+    });
+  });
+
+  if (unmatched.length > 0) {
+    const unmatchedGrouped = new Map<string, TaskBoardRow[]>();
+    for (const row of unmatched) {
+      const key = row.patientName || 'Unassigned Patient';
+      const bucket = unmatchedGrouped.get(key) ?? [];
+      bucket.push(row);
+      unmatchedGrouped.set(key, bucket);
+    }
+
+    [...unmatchedGrouped.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .forEach(([name, sectionRows], index) => {
+        sections.push({
+          id: `patient_unmatched_${index}`,
+          title: name,
+          color: GROUP_COLORS[(sections.length + index) % GROUP_COLORS.length],
+          rows: sectionRows,
+          urgentCount: sectionRows.filter((row) => row.urgent).length,
+          total: sectionRows.length,
+        });
+      });
+  }
+
+  return sections;
+}

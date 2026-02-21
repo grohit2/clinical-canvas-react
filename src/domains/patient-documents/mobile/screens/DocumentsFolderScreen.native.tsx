@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Download, RefreshCcw, Share2, Trash2, Wifi, WifiOff } from 'lucide-react-native';
+import { ArrowLeft, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
 import type { DocCategory, DocumentItem } from '../../core/types';
 import { CATEGORY_CONFIG } from '../categoryConfig.native';
@@ -162,6 +162,7 @@ export function DocumentsFolderScreen({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
   const lastScrollOffsetRef = useRef(0);
+  const hasTriggeredInitialImageDownloadRef = useRef(false);
 
   const selectedDocs = useMemo(
     () => computeSelection(documents, selectedIds),
@@ -174,6 +175,18 @@ export function DocumentsFolderScreen({
     if (!selectionMode) return;
     setIsTopChromeCollapsed(false);
   }, [selectionMode]);
+
+  useEffect(() => {
+    if (hasTriggeredInitialImageDownloadRef.current) return;
+    if (docsQuery.isLoading) return;
+
+    hasTriggeredInitialImageDownloadRef.current = true;
+
+    const imageDocs = documents.filter((doc) => doc.isImage);
+    if (!imageDocs.length) return;
+
+    void downloadForOffline(imageDocs, { silent: true });
+  }, [documents, docsQuery.isLoading, downloadForOffline]);
 
   const handleGridScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -308,37 +321,19 @@ export function DocumentsFolderScreen({
       </View>
 
       {/* -- Action row ----------------------------------------------------- */}
-      {!isTopChromeCollapsed ? (
+      {!isTopChromeCollapsed && failedCount > 0 ? (
         <View style={styles.actionRow}>
           <Pressable
-            style={[styles.actionButton, downloadProgress.isDownloading && styles.actionButtonDisabled]}
-            disabled={downloadProgress.isDownloading}
-            onPress={() => downloadForOffline(documents)}
+            style={styles.actionButton}
+            onPress={async () => {
+              const retried = await retryFailedUploads();
+              if (retried > 0) {
+                Alert.alert('Retry started', `Queued ${retried} failed items for retry.`);
+              }
+            }}
           >
-            <Download size={16} color={downloadProgress.isDownloading ? '#94a3b8' : '#334155'} />
-            <Text style={[styles.actionText, downloadProgress.isDownloading && styles.actionTextDisabled]}>
-              {downloadProgress.isDownloading ? 'Downloading...' : 'Download Offline'}
-            </Text>
+            <Text style={[styles.actionText, styles.warnText]}>Retry Failed ({failedCount})</Text>
           </Pressable>
-
-          <Pressable style={styles.actionButton} onPress={syncNow}>
-            <RefreshCcw size={16} color="#334155" />
-            <Text style={styles.actionText}>Sync</Text>
-          </Pressable>
-
-          {failedCount > 0 ? (
-            <Pressable
-              style={styles.actionButton}
-              onPress={async () => {
-                const retried = await retryFailedUploads();
-                if (retried > 0) {
-                  Alert.alert('Retry started', `Queued ${retried} failed items for retry.`);
-                }
-              }}
-            >
-              <Text style={[styles.actionText, styles.warnText]}>Retry Failed ({failedCount})</Text>
-            </Pressable>
-          ) : null}
         </View>
       ) : null}
 

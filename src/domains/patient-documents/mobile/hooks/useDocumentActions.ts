@@ -35,6 +35,11 @@ export interface DownloadProgress {
   currentName?: string;
 }
 
+export interface DownloadForOfflineOptions {
+  /** Suppresses user alerts; intended for automatic background prefetch. */
+  silent?: boolean;
+}
+
 const IDLE_PROGRESS: DownloadProgress = {
   isDownloading: false,
   total: 0,
@@ -113,7 +118,10 @@ export function useDocumentActions(
   // -- Download for offline -----------------------------------------------
 
   const downloadForOffline = useCallback(
-    async (documents: DocumentItem[]): Promise<OfflineDownloadResult> => {
+    async (
+      documents: DocumentItem[],
+      options?: DownloadForOfflineOptions
+    ): Promise<OfflineDownloadResult> => {
       if (!documents.length) {
         return { succeeded: 0, failed: 0, skipped: 0, errors: [] };
       }
@@ -140,50 +148,56 @@ export function useDocumentActions(
 
         const result = await prefetchOfflineForDocuments(documents, documentsApi, onProgress);
 
-        invalidateAll(queryClient, patientId);
+        if (result.succeeded > 0 || result.failed > 0) {
+          invalidateAll(queryClient, patientId);
+        }
 
-        // Show appropriate feedback.
-        if (result.failed > 0 && result.succeeded > 0) {
-          Alert.alert(
-            'Offline download partially complete',
-            `${result.succeeded} downloaded, ${result.failed} failed${result.skipped ? `, ${result.skipped} already cached` : ''}.`,
-            [
-              {
-                text: 'View errors',
-                onPress: () => {
-                  const details = result.errors
-                    .slice(0, 5)
-                    .map((e) => `- ${e.name}: ${e.error}`)
-                    .join('\n');
-                  const suffix = result.errors.length > 5
-                    ? `\n...and ${result.errors.length - 5} more`
-                    : '';
-                  Alert.alert('Download errors', details + suffix);
+        if (!options?.silent) {
+          // Show appropriate feedback.
+          if (result.failed > 0 && result.succeeded > 0) {
+            Alert.alert(
+              'Offline download partially complete',
+              `${result.succeeded} downloaded, ${result.failed} failed${result.skipped ? `, ${result.skipped} already cached` : ''}.`,
+              [
+                {
+                  text: 'View errors',
+                  onPress: () => {
+                    const details = result.errors
+                      .slice(0, 5)
+                      .map((e) => `- ${e.name}: ${e.error}`)
+                      .join('\n');
+                    const suffix = result.errors.length > 5
+                      ? `\n...and ${result.errors.length - 5} more`
+                      : '';
+                    Alert.alert('Download errors', details + suffix);
+                  },
                 },
-              },
-              { text: 'OK' },
-            ]
-          );
-        } else if (result.failed > 0 && result.succeeded === 0) {
-          Alert.alert(
-            'Download failed',
-            result.errors[0]?.error || 'Could not download files. Check your network connection.',
-          );
-        } else if (result.succeeded > 0) {
-          Alert.alert(
-            'Downloads complete',
-            `${result.succeeded} file${result.succeeded > 1 ? 's' : ''} saved for offline use${result.skipped ? ` (${result.skipped} already cached)` : ''}.`
-          );
-        } else if (result.skipped > 0) {
-          // Everything was already cached.
-          Alert.alert('Already available', 'All documents are already saved for offline use.');
+                { text: 'OK' },
+              ]
+            );
+          } else if (result.failed > 0 && result.succeeded === 0) {
+            Alert.alert(
+              'Download failed',
+              result.errors[0]?.error || 'Could not download files. Check your network connection.',
+            );
+          } else if (result.succeeded > 0) {
+            Alert.alert(
+              'Downloads complete',
+              `${result.succeeded} file${result.succeeded > 1 ? 's' : ''} saved for offline use${result.skipped ? ` (${result.skipped} already cached)` : ''}.`
+            );
+          } else if (result.skipped > 0) {
+            // Everything was already cached.
+            Alert.alert('Already available', 'All documents are already saved for offline use.');
+          }
         }
 
         return result;
       } catch (error) {
         // Network-level failure (offline check, etc.)
         const message = error instanceof Error ? error.message : 'Unknown error';
-        Alert.alert('Download failed', message);
+        if (!options?.silent) {
+          Alert.alert('Download failed', message);
+        }
         return {
           succeeded: 0,
           failed: documents.length,

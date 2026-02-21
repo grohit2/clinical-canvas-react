@@ -104,3 +104,15 @@ changes
 what files were wouched
 src/domains/patient-documents/mobile/geotag/burnGeoMetadata.ts
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+src/domains/patient-documents/mobile/geotag/burnGeoMetadata.ts
+src/domains/patient-documents/mobile/hooks/usePhotoCapture.ts
+=========================================

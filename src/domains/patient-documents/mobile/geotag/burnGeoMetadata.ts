@@ -36,7 +36,6 @@ export async function burnGeoMetadataOnImage(
 
     let currentUri = sourceUri;
 
-    // Step 1: add mini map thumbnail at bottom-left (similar to GPS camera apps).
     try {
       currentUri = await Marker.markImage({
         backgroundImage: { src: currentUri },
@@ -59,7 +58,12 @@ export async function burnGeoMetadataOnImage(
     const lineDate = formatDateTime(geo.capturedAtIso);
     const lineNote = 'Note: Captured by Clinical Canvas';
 
-    // Step 2: add semi-transparent metadata panel lines at bottom.
+    const panelBackground = {
+      color: 'rgba(15, 23, 42, 0.62)',
+      paddingX: 10,
+      paddingY: 6,
+    };
+
     currentUri = await Marker.markText({
       backgroundImage: { src: currentUri },
       watermarkTexts: [
@@ -70,11 +74,7 @@ export async function burnGeoMetadataOnImage(
             color: '#ffffff',
             fontSize: 22,
             bold: true,
-            textBackgroundStyle: {
-              color: 'rgba(15, 23, 42, 0.62)',
-              paddingX: 10,
-              paddingY: 6,
-            },
+            textBackgroundStyle: panelBackground,
           },
         },
         {
@@ -83,11 +83,7 @@ export async function burnGeoMetadataOnImage(
           style: {
             color: '#e2e8f0',
             fontSize: 17,
-            textBackgroundStyle: {
-              color: 'rgba(15, 23, 42, 0.62)',
-              paddingX: 10,
-              paddingY: 6,
-            },
+            textBackgroundStyle: panelBackground,
           },
         },
         {
@@ -96,11 +92,7 @@ export async function burnGeoMetadataOnImage(
           style: {
             color: '#cbd5e1',
             fontSize: 16,
-            textBackgroundStyle: {
-              color: 'rgba(15, 23, 42, 0.62)',
-              paddingX: 10,
-              paddingY: 6,
-            },
+            textBackgroundStyle: panelBackground,
           },
         },
         {
@@ -109,11 +101,7 @@ export async function burnGeoMetadataOnImage(
           style: {
             color: '#cbd5e1',
             fontSize: 15,
-            textBackgroundStyle: {
-              color: 'rgba(15, 23, 42, 0.62)',
-              paddingX: 10,
-              paddingY: 6,
-            },
+            textBackgroundStyle: panelBackground,
           },
         },
       ],

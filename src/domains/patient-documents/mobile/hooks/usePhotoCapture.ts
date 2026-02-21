@@ -81,7 +81,6 @@ export function usePhotoCapture(
         mediaTypes: ['images'],
         quality: 0.9,
         allowsEditing: false,
-        exif: true,
       });
 
       if (result.canceled || !result.assets?.length) return;

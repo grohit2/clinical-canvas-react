@@ -12,7 +12,7 @@ export function PhotoUploader({
     <View style={styles.row}>
       <Pressable style={[styles.button, styles.primary]} onPress={onCamera}>
         <Camera size={18} color="#ffffff" />
-        <Text style={styles.primaryText}>Camera</Text>
+        <Text style={styles.primaryText}>Geo Camera</Text>
       </Pressable>
       <Pressable style={[styles.button, styles.secondary]} onPress={onGallery}>
         <Images size={18} color="#334155" />

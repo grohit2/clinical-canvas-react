@@ -10,6 +10,13 @@ export type DocCategory =
 export type BackupState = 'backed_up' | 'device_only' | 'pending_backup' | 'error';
 export type OfflineState = 'available_offline' | 'online_only';
 
+export interface DocumentGeoMeta {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  capturedAt?: string;
+}
+
 export interface DocumentItem {
   id: string;
   patientId: string;
@@ -31,6 +38,8 @@ export interface DocumentItem {
   backupState: BackupState;
   offlineState: OfflineState;
   lastError?: string;
+
+  geo?: DocumentGeoMeta;
 
   uploaderName?: string;
   isShared?: boolean;

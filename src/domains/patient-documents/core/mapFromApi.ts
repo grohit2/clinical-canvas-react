@@ -6,6 +6,7 @@ import {
   type FolderSummary,
   type OfflineState,
   type SortOrder,
+  type DocumentGeoMeta,
 } from './types';
 import { filenameFromKey, isImageByMimeOrExt } from './utils';
 
@@ -71,6 +72,27 @@ const CATEGORY_PROFILE_MAP: Record<DocCategory, keyof ApiDocumentsProfile> = {
   discharge_pics: 'dischargePics',
 };
 
+
+const GEO_CAPTION_PREFIX = '__geojson:';
+
+function parseGeoFromCaption(caption?: string): DocumentGeoMeta | undefined {
+  if (!caption || !caption.startsWith(GEO_CAPTION_PREFIX)) return undefined;
+
+  try {
+    const parsed = JSON.parse(caption.slice(GEO_CAPTION_PREFIX.length)) as Partial<DocumentGeoMeta>;
+    if (!Number.isFinite(parsed.latitude) || !Number.isFinite(parsed.longitude)) return undefined;
+
+    return {
+      latitude: Number(parsed.latitude),
+      longitude: Number(parsed.longitude),
+      address: parsed.address,
+      capturedAt: parsed.capturedAt,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function sortByUploadedAt(items: DocumentItem[], sortOrder: SortOrder): DocumentItem[] {
   return [...items].sort((a, b) => {
     const ta = new Date(a.uploadedAt).getTime();
@@ -89,7 +111,8 @@ export function mapDocumentFromApi(
   const remoteKey = raw.key ?? raw.id;
   const fileUrl = raw.cdnUrl || raw.url || undefined;
   const thumbUrl = raw.thumbUrl || raw.thumbnailUrl || fileUrl;
-  const name = raw.name || raw.title || raw.caption || filenameFromKey(remoteKey);
+  const name = raw.name || raw.title || filenameFromKey(remoteKey);
+  const geo = parseGeoFromCaption(raw.caption || undefined);
   const contentType = raw.mimeType || undefined;
   const isImage = isImageByMimeOrExt(contentType, name);
   const localState = remoteKey ? localStateByRemoteKey?.[remoteKey] : undefined;
@@ -111,6 +134,7 @@ export function mapDocumentFromApi(
     backupState: localState?.backupState ?? 'backed_up',
     offlineState: localState?.offlineState ?? 'online_only',
     lastError: localState?.lastError,
+    geo,
     uploaderName: raw.uploadedBy || undefined,
     isShared: raw.isShared,
     version: raw.version,

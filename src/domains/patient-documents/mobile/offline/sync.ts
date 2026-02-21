@@ -30,6 +30,17 @@ import { mergeServerDocuments } from './merge';
 
 const MAX_RETRY_COUNT = 5;
 let isSyncRunning = false;
+const GEO_CAPTION_PREFIX = '__geojson:';
+
+function serializeGeoCaption(geo: DocumentItem['geo']): string | undefined {
+  if (!geo) return undefined;
+  return `${GEO_CAPTION_PREFIX}${JSON.stringify({
+    latitude: geo.latitude,
+    longitude: geo.longitude,
+    address: geo.address,
+    capturedAt: geo.capturedAt,
+  })}`;
+}
 
 // ------------------------------------------------------------------------------
 // Network check helper
@@ -80,6 +91,7 @@ export async function createLocalDocument(args: {
   name: string;
   contentType?: string;
   size?: number;
+  geo?: DocumentItem['geo'];
 }): Promise<DocumentItem> {
   const id = uuidv4();
   const localUri = await copyIntoCache({
@@ -103,6 +115,7 @@ export async function createLocalDocument(args: {
     localThumbUri: undefined,
     backupState: 'device_only',
     offlineState: 'available_offline',
+    geo: args.geo,
   };
 
   await upsertDocuments([item]);
@@ -401,6 +414,7 @@ async function processUploadAction(
     key: upload.key,
     mimeType: doc.contentType,
     size: doc.size,
+    caption: serializeGeoCaption(doc.geo),
   });
 
   await patchDocument(item.docId, {

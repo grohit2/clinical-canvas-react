@@ -81,7 +81,12 @@ export async function initDocumentsDb(): Promise<void> {
 
       backup_state TEXT NOT NULL,
       offline_state TEXT NOT NULL,
-      last_error TEXT
+      last_error TEXT,
+
+      geo_lat REAL,
+      geo_lng REAL,
+      geo_address TEXT,
+      geo_captured_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_documents_patient_category
@@ -107,7 +112,22 @@ export async function initDocumentsDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sync_queue_created
       ON sync_queue(created_at, qid);
   `);
+
+  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(documents)');
+  const colNames = new Set(columns.map((col) => col.name));
+
+  async function addColumnIfMissing(name: string, definition: string) {
+    if (colNames.has(name)) return;
+    await db.execAsync(`ALTER TABLE documents ADD COLUMN ${name} ${definition}`);
+    colNames.add(name);
+  }
+
+  await addColumnIfMissing('geo_lat', 'REAL');
+  await addColumnIfMissing('geo_lng', 'REAL');
+  await addColumnIfMissing('geo_address', 'TEXT');
+  await addColumnIfMissing('geo_captured_at', 'TEXT');
 }
+
 
 interface DocumentRow {
   id: string;
@@ -157,6 +177,15 @@ function rowToDocument(row: DocumentRow): DocumentItem {
     backupState: row.backup_state,
     offlineState: row.offline_state,
     lastError: row.last_error || undefined,
+    geo:
+      row.geo_lat !== null && row.geo_lng !== null
+        ? {
+            latitude: row.geo_lat,
+            longitude: row.geo_lng,
+            address: row.geo_address || undefined,
+            capturedAt: row.geo_captured_at || undefined,
+          }
+        : undefined,
   };
 }
 
@@ -374,6 +403,8 @@ function toDbKey(key: keyof Partial<DocumentItem>): string {
       return 'offline_state';
     case 'lastError':
       return 'last_error';
+    case 'geo':
+      return 'geo';
     default:
       return key;
   }
@@ -403,8 +434,9 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           content_type, is_image, size,
           remote_key, file_url, thumb_url,
           local_uri, local_thumb_uri,
-          backup_state, offline_state, last_error
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          backup_state, offline_state, last_error,
+          geo_lat, geo_lng, geo_address, geo_captured_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           patient_id = excluded.patient_id,
           category = excluded.category,
@@ -420,7 +452,11 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           local_thumb_uri = excluded.local_thumb_uri,
           backup_state = excluded.backup_state,
           offline_state = excluded.offline_state,
-          last_error = excluded.last_error`,
+          last_error = excluded.last_error,
+          geo_lat = excluded.geo_lat,
+          geo_lng = excluded.geo_lng,
+          geo_address = excluded.geo_address,
+          geo_captured_at = excluded.geo_captured_at`,
         [
           item.id,
           item.patientId,
@@ -438,6 +474,10 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           item.backupState,
           item.offlineState,
           item.lastError || null,
+          item.geo?.latitude ?? null,
+          item.geo?.longitude ?? null,
+          item.geo?.address ?? null,
+          item.geo?.capturedAt ?? null,
         ]
       );
     }
@@ -459,8 +499,23 @@ export async function patchDocument(
   }
 
   const db = await getDb();
-  const assignments = entries.map(([key]) => `${toDbKey(key)} = ?`).join(', ');
-  const values = entries.map(([key, value]) => toDbValue(key, value));
+  const normalizedEntries: Array<[string, unknown]> = [];
+
+  for (const [key, value] of entries) {
+    if (key === 'geo') {
+      const geo = value as DocumentItem['geo'];
+      normalizedEntries.push(['geo_lat', geo?.latitude ?? null]);
+      normalizedEntries.push(['geo_lng', geo?.longitude ?? null]);
+      normalizedEntries.push(['geo_address', geo?.address ?? null]);
+      normalizedEntries.push(['geo_captured_at', geo?.capturedAt ?? null]);
+      continue;
+    }
+
+    normalizedEntries.push([toDbKey(key), toDbValue(key, value)]);
+  }
+
+  const assignments = normalizedEntries.map(([key]) => `${key} = ?`).join(', ');
+  const values = normalizedEntries.map(([, value]) => value as string | number | null);
   const bindValues = [...values, docId] as Array<string | number | null>;
 
   await db.runAsync(`UPDATE documents SET ${assignments} WHERE id = ?`, bindValues);

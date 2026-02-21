@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -11,15 +12,56 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Camera, ImagePlus, MoreVertical, Search, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
-import type { DocCategory } from '../../core/types';
-import { FolderSummaryGrid } from '../components/FolderSummaryGrid.native';
+import type { DocCategory, DocumentItem } from '../../core/types';
+import { AlbumGrid } from '../components/AlbumGrid.native';
+import { AllDocumentsBanner } from '../components/AllDocumentsBanner.native';
+import { DocumentLightbox } from '../components/DocumentLightbox.native';
+import { GalleryGrid, type GallerySectionListRef } from '../components/GalleryGrid.native';
+import { QuickActions } from '../components/QuickActions.native';
+import { ScrollScrubber } from '../components/ScrollScrubber.native';
+import { useAlbumCovers } from '../hooks/useAlbumCovers';
+import { useDateGroups } from '../hooks/useDateGroups';
+import { useDocumentActions } from '../hooks/useDocumentActions';
 import { useDocumentFolders } from '../hooks/useDocumentFolders';
 import { useDocumentSync } from '../hooks/useDocumentSync';
+import { usePhotoCapture } from '../hooks/usePhotoCapture';
+import { useScrollScrubber } from '../hooks/useScrollScrubber';
 
 const SCROLL_DELTA_THRESHOLD = 10;
 const SCROLL_TOP_RESET_OFFSET = 8;
 const SCROLL_COLLAPSE_OFFSET = 40;
+
+type RootTab = 'activity' | 'collections';
+
+function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): DocumentItem[] {
+  const selected: DocumentItem[] = [];
+  for (const doc of documents) {
+    if (selectedIds.has(doc.id)) {
+      selected.push(doc);
+    }
+  }
+  return selected;
+}
+
+function resolveThumbnail(document: DocumentItem): string | undefined {
+  return document.localThumbUri || document.thumbUrl || document.localUri || document.fileUrl;
+}
+
+function triggerLightHaptic() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const haptics = require('expo-haptics') as {
+      impactAsync: (value: unknown) => Promise<void>;
+      ImpactFeedbackStyle: { Light: unknown };
+    };
+    haptics.impactAsync(haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+  } catch {
+    // Ignore haptics when unavailable.
+  }
+}
 
 export function DocumentsRootScreen({
   patientId,
@@ -32,25 +74,124 @@ export function DocumentsRootScreen({
 }) {
   const router = useRouter();
   const foldersQuery = useDocumentFolders(patientId);
-  const { syncNow, isOnline } = useDocumentSync(patientId, documentsApi);
+  const dateGroupsQuery = useDateGroups(patientId);
+  const coversQuery = useAlbumCovers(patientId);
+  const { syncNow } = useDocumentSync(patientId, documentsApi);
+  const {
+    shareDocument,
+    shareDocuments,
+    deleteDocuments,
+    downloadForOffline,
+    downloadProgress,
+  } = useDocumentActions(patientId, documentsApi);
+  const { captureFromCamera, pickFromGallery } = usePhotoCapture(patientId, 'preop_pics', documentsApi);
+
+  const documents = useMemo(() => dateGroupsQuery.documents || [], [dateGroupsQuery.documents]);
+  const sections = dateGroupsQuery.sections;
+  const years = dateGroupsQuery.years;
+
+  const [activeTab, setActiveTab] = useState<RootTab>('activity');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
+
+  const sectionListRef = useRef<GallerySectionListRef | null>(null);
   const lastScrollOffsetRef = useRef(0);
 
-  const pendingCount = useMemo(
-    () => (foldersQuery.data || []).reduce((sum, item) => sum + item.pendingBackupCount, 0),
-    [foldersQuery.data]
-  );
-  const firstPendingCategory = useMemo(
-    () => (foldersQuery.data || []).find((item) => item.pendingBackupCount > 0)?.category,
-    [foldersQuery.data]
+  const scrubber = useScrollScrubber({
+    sections,
+    years,
+    sectionListRef,
+  });
+
+  const selectedDocs = useMemo(
+    () => computeSelection(documents, selectedIds),
+    [documents, selectedIds]
   );
 
-  const openCategory = (category: DocCategory) => {
-    router.push(`/patient/${patientId}/documents/${category}` as never);
-  };
+  const totalDocCount = documents.length;
+  const offlineCount = useMemo(
+    () => documents.filter((doc) => doc.offlineState === 'available_offline').length,
+    [documents]
+  );
 
-  const handleScroll = useCallback(
+  const recentThumbs = useMemo(
+    () =>
+      documents
+        .filter((doc) => doc.isImage)
+        .map(resolveThumbnail)
+        .filter((uri): uri is string => !!uri)
+        .slice(0, 5),
+    [documents]
+  );
+
+  useEffect(() => {
+    if (activeTab !== 'activity' && selectionMode) {
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    }
+  }, [activeTab, selectionMode]);
+
+  useEffect(() => {
+    if (!selectionMode) return;
+    setIsTopChromeCollapsed(false);
+  }, [selectionMode]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    if (lightboxIndex < documents.length) return;
+    setLightboxIndex(null);
+  }, [documents.length, lightboxIndex]);
+
+  const refreshing =
+    dateGroupsQuery.isFetching ||
+    foldersQuery.isFetching ||
+    coversQuery.isFetching;
+
+  const openCategory = useCallback(
+    (category: DocCategory) => {
+      router.push(`/patient/${patientId}/documents/${category}` as never);
+    },
+    [patientId, router]
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelected = useCallback((docId: string) => {
+    setSelectionMode(true);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId);
+      else next.add(docId);
+      return next;
+    });
+  }, []);
+
+  const toggleSection = useCallback((docIds: string[]) => {
+    if (!docIds.length) return;
+    setSelectionMode(true);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = docIds.every((id) => next.has(id));
+
+      if (allSelected) {
+        docIds.forEach((id) => next.delete(id));
+      } else {
+        docIds.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  }, []);
+
+  const handleActivityScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (activeTab !== 'activity' || selectionMode) return;
+
       const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
       const delta = offsetY - lastScrollOffsetRef.current;
 
@@ -74,69 +215,280 @@ export function DocumentsRootScreen({
 
       lastScrollOffsetRef.current = offsetY;
     },
-    [isTopChromeCollapsed],
+    [activeTab, isTopChromeCollapsed, selectionMode]
   );
 
+  const handleCollectionsScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (activeTab !== 'collections' || selectionMode) return;
+
+      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const delta = offsetY - lastScrollOffsetRef.current;
+
+      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+        lastScrollOffsetRef.current = offsetY;
+        return;
+      }
+
+      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
+        if (!isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(true);
+        }
+      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
+        if (isTopChromeCollapsed) {
+          setIsTopChromeCollapsed(false);
+        }
+      }
+
+      lastScrollOffsetRef.current = offsetY;
+    },
+    [activeTab, isTopChromeCollapsed, selectionMode]
+  );
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (!selectedDocs.length) return;
+
+    Alert.alert('Delete documents', `Delete ${selectedDocs.length} selected file(s)?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteDocuments(selectedDocs);
+          clearSelection();
+        },
+      },
+    ]);
+  }, [clearSelection, deleteDocuments, selectedDocs]);
+
+  const handleShareSelected = useCallback(async () => {
+    if (!selectedDocs.length) return;
+    await shareDocuments(selectedDocs);
+    clearSelection();
+  }, [clearSelection, selectedDocs, shareDocuments]);
+
+  const handleDocPress = useCallback(
+    async (doc: DocumentItem) => {
+      if (selectionMode) {
+        toggleSelected(doc.id);
+        return;
+      }
+
+      if (!doc.isImage) {
+        await shareDocument(doc);
+        return;
+      }
+
+      if (!doc.localUri) {
+        const result = await downloadForOffline([doc]);
+        if (result.failed > 0) return;
+      }
+
+      const index = documents.findIndex((item) => item.id === doc.id);
+      if (index >= 0) {
+        setLightboxIndex(index);
+      }
+    },
+    [documents, downloadForOffline, selectionMode, shareDocument, toggleSelected]
+  );
+
+  const handleDownloadAll = useCallback(async () => {
+    const images = documents.filter((doc) => doc.isImage);
+    await downloadForOffline(images);
+  }, [documents, downloadForOffline]);
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={foldersQuery.isFetching} onRefresh={syncNow} />}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
-        <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>
-          Patient Documents
-        </Text>
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>Documents</Text>
+          <View style={styles.headerIcons}>
+            <Pressable style={styles.iconButton} onPress={() => undefined}>
+              <Search size={18} color="#0f172a" />
+            </Pressable>
+            <Pressable style={styles.iconButton} onPress={() => undefined}>
+              <MoreVertical size={18} color="#0f172a" />
+            </Pressable>
+          </View>
+        </View>
         {!isTopChromeCollapsed ? (
           <Text style={styles.subtitle}>{patientName || patientId}</Text>
         ) : null}
       </View>
 
       {!isTopChromeCollapsed ? (
-        <View style={[styles.onlineBadge, isOnline ? styles.online : styles.offline]}>
-          <Text style={styles.onlineText}>{isOnline ? 'Online' : 'Offline'}</Text>
-        </View>
-      ) : null}
-
-      {!isTopChromeCollapsed && pendingCount > 0 ? (
-        <View style={styles.pendingBanner}>
-          <Text style={styles.pendingText}>{pendingCount} items pending backup</Text>
+        <View style={styles.tabs}>
           <Pressable
-            onPress={() =>
-              router.push(
-                `/patient/${patientId}/documents/${firstPendingCategory || 'preop_pics'}` as never
-              )
-            }
+            style={styles.tab}
+            onPress={() => setActiveTab('activity')}
           >
-            <Text style={styles.pendingAction}>Open folder</Text>
+            <Text style={[styles.tabText, activeTab === 'activity' && styles.tabTextActive]}>Activity</Text>
+            {activeTab === 'activity' ? <View style={styles.tabIndicator} /> : null}
+          </Pressable>
+
+          <Pressable
+            style={styles.tab}
+            onPress={() => setActiveTab('collections')}
+          >
+            <Text style={[styles.tabText, activeTab === 'collections' && styles.tabTextActive]}>
+              Collections
+            </Text>
+            {activeTab === 'collections' ? <View style={styles.tabIndicator} /> : null}
           </Pressable>
         </View>
       ) : null}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Folders</Text>
-        <Pressable onPress={syncNow}>
-          <Text style={styles.refreshText}>Refresh</Text>
-        </Pressable>
-      </View>
+      {downloadProgress.isDownloading ? (
+        <View style={styles.downloadBanner}>
+          <Text style={styles.downloadTitle}>Downloading offline files...</Text>
+          <Text style={styles.downloadMeta}>
+            {downloadProgress.completed}/{downloadProgress.total}
+          </Text>
+        </View>
+      ) : null}
 
-      {foldersQuery.isLoading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color="#2563eb" size="large" />
+      {activeTab === 'activity' && selectionMode ? (
+        <View style={styles.selectionBar}>
+          <Text style={styles.selectionCount}>{selectedDocs.length} selected</Text>
+          <View style={styles.selectionActions}>
+            <Pressable
+              style={[styles.selectionButton, selectedDocs.length === 0 ? styles.disabled : undefined]}
+              disabled={selectedDocs.length === 0}
+              onPress={handleShareSelected}
+            >
+              <Share2 size={16} color="#ffffff" />
+              <Text style={styles.selectionButtonText}>Share</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.selectionButton,
+                styles.deleteButton,
+                selectedDocs.length === 0 ? styles.disabled : undefined,
+              ]}
+              disabled={selectedDocs.length === 0}
+              onPress={handleDeleteSelected}
+            >
+              <Trash2 size={16} color="#ffffff" />
+              <Text style={styles.selectionButtonText}>Delete</Text>
+            </Pressable>
+            <Pressable style={styles.cancelButton} onPress={clearSelection}>
+              <Text style={styles.cancelText}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {activeTab === 'activity' ? (
+        <View style={styles.activityWrap}>
+          {dateGroupsQuery.isLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+          ) : sections.length ? (
+            <GalleryGrid
+              ref={sectionListRef}
+              sections={sections}
+              years={years}
+              currentYear={scrubber.activeYear}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onPressDocument={handleDocPress}
+              onLongPressDocument={(doc) => toggleSelected(doc.id)}
+              onToggleDocument={toggleSelected}
+              onToggleSection={toggleSection}
+              onRefresh={syncNow}
+              refreshing={refreshing}
+              onScroll={handleActivityScroll}
+              onVisibleSectionChange={scrubber.handleSectionVisible}
+              onYearCardHaptic={triggerLightHaptic}
+              onCurrentYearAction={captureFromCamera}
+            />
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyIcon}>📷</Text>
+              <Text style={styles.emptyTitle}>No documents yet</Text>
+              <Text style={styles.emptySubtitle}>Capture from camera or import from gallery.</Text>
+              <View style={styles.emptyActions}>
+                <Pressable style={styles.emptyActionButton} onPress={captureFromCamera}>
+                  <Camera size={16} color="#1e293b" />
+                  <Text style={styles.emptyActionText}>Camera</Text>
+                </Pressable>
+                <Pressable style={styles.emptyActionButton} onPress={pickFromGallery}>
+                  <ImagePlus size={16} color="#1e293b" />
+                  <Text style={styles.emptyActionText}>Gallery</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          <ScrollScrubber
+            years={years}
+            activeYear={scrubber.activeYear}
+            visible={!selectionMode && sections.length > 1}
+            panGesture={scrubber.panGesture}
+            bubbleLabel={scrubber.bubbleLabel}
+            bubbleOpacity={scrubber.bubbleOpacity}
+            bubbleY={scrubber.scrubberHighlightY}
+            onYearPress={(year) => {
+              triggerLightHaptic();
+              scrubber.scrollToYear(year);
+            }}
+            onArrowPress={scrubber.scrollByOneYear}
+            onLayoutHeight={scrubber.setScrubberHeight}
+          />
         </View>
       ) : (
-        <FolderSummaryGrid summaries={foldersQuery.data || []} onOpen={openCategory} />
+        <ScrollView
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={syncNow} />}
+          contentContainerStyle={styles.collectionsContent}
+          onScroll={handleCollectionsScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          <AllDocumentsBanner
+            totalCount={totalDocCount}
+            recentThumbs={recentThumbs}
+            lastUpdatedAt={documents[0]?.uploadedAt}
+            onPress={() => setActiveTab('activity')}
+          />
+
+          <AlbumGrid
+            summaries={foldersQuery.data || []}
+            coverMap={coversQuery.data}
+            onOpen={openCategory}
+          />
+
+          <QuickActions
+            onImportShare={() =>
+              router.push(`/import-shared?patientId=${encodeURIComponent(patientId)}` as never)
+            }
+            onDownloadOffline={handleDownloadAll}
+            offlineCount={offlineCount}
+            totalCount={totalDocCount}
+          />
+        </ScrollView>
       )}
 
-      <Pressable
-        style={styles.importButton}
-        onPress={() => router.push(`/import-shared?patientId=${encodeURIComponent(patientId)}` as never)}
-      >
-        <Text style={styles.importButtonText}>Import from Share Sheet</Text>
-      </Pressable>
-    </ScrollView>
+      <DocumentLightbox
+        visible={lightboxIndex !== null}
+        document={lightboxIndex !== null ? documents[lightboxIndex] : null}
+        currentIndex={lightboxIndex || 0}
+        totalCount={documents.length}
+        canPrev={lightboxIndex !== null && lightboxIndex > 0}
+        canNext={lightboxIndex !== null && lightboxIndex < documents.length - 1}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={(direction) => {
+          setLightboxIndex((prev) => {
+            if (prev === null) return null;
+            if (direction === 'prev') return Math.max(0, prev - 1);
+            return Math.min(documents.length - 1, prev + 1);
+          });
+        }}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -145,16 +497,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 14,
-  },
   header: {
-    gap: 4,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   headerCollapsed: {
-    gap: 0,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 24,
@@ -162,76 +517,180 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   titleCollapsed: {
-    fontSize: 20,
+    fontSize: 21,
   },
   subtitle: {
     color: '#64748b',
     fontSize: 14,
+    marginTop: 4,
   },
-  onlineBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  headerIcons: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  online: {
-    backgroundColor: '#dcfce7',
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  offline: {
-    backgroundColor: '#fee2e2',
+  tabs: {
+    flexDirection: 'row',
+    marginTop: 6,
+    paddingHorizontal: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  onlineText: {
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 14,
+    position: 'relative',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  tabTextActive: {
+    color: '#0f172a',
     fontWeight: '700',
-    color: '#334155',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: '24%',
+    right: '24%',
+    height: 4,
+    backgroundColor: '#3b82f6',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  downloadBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfdbfe',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  downloadTitle: {
+    color: '#1e40af',
+    fontWeight: '700',
     fontSize: 12,
   },
-  pendingBanner: {
-    borderRadius: 12,
-    backgroundColor: '#ffedd5',
-    borderWidth: 1,
-    borderColor: '#fdba74',
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pendingText: {
-    color: '#9a3412',
-    fontWeight: '700',
-  },
-  pendingAction: {
-    color: '#7c2d12',
-    fontWeight: '700',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  refreshText: {
+  downloadMeta: {
     color: '#2563eb',
     fontWeight: '700',
+    fontSize: 12,
+  },
+  selectionBar: {
+    borderBottomWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  selectionCount: {
+    color: '#334155',
+    fontWeight: '700',
+  },
+  selectionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectionButton: {
+    borderRadius: 10,
+    backgroundColor: '#2563eb',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    flex: 1,
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
+  },
+  selectionButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  cancelButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  cancelText: {
+    color: '#334155',
+    fontWeight: '700',
+  },
+  disabled: {
+    opacity: 0.45,
+  },
+  activityWrap: {
+    flex: 1,
   },
   loadingWrap: {
-    paddingVertical: 60,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  importButton: {
-    marginTop: 8,
+  collectionsContent: {
+    paddingTop: 12,
+    paddingBottom: 24,
+  },
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 48,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  emptyActions: {
+    marginTop: 6,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  emptyActionButton: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#cbd5e1',
     backgroundColor: '#f8fafc',
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  importButtonText: {
-    color: '#334155',
+  emptyActionText: {
+    color: '#1e293b',
     fontWeight: '700',
   },
 });

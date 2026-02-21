@@ -28,20 +28,21 @@ export function DocumentCard({
     document.localThumbUri || document.thumbUrl || document.localUri || document.fileUrl;
 
   const parsedGeo = parseGeoTagFromName(document.name);
-  const geo = document.geo || parsedGeo;
+  const dbGeo = document.geo;
   const geoSummary =
-    geo && 'capturedAt' in geo
+    dbGeo
       ? formatGeoTagSummary({
-          latitude: geo.latitude,
-          longitude: geo.longitude,
-          capturedAtIso: geo.capturedAt || new Date().toISOString(),
-          locationLabel: 'locationLabel' in geo ? geo.locationLabel : geo.address,
+          latitude: dbGeo.latitude,
+          longitude: dbGeo.longitude,
+          capturedAtIso: dbGeo.capturedAt || new Date().toISOString(),
+          locationLabel: dbGeo.address,
         })
       : parsedGeo
         ? formatGeoTagSummary(parsedGeo)
         : null;
+  const geoLocationLabel = dbGeo?.address || parsedGeo?.locationLabel;
 
-  const capturedAtLabel = formatCapturedAt(document.geo?.capturedAt || parsedGeo?.capturedAtIso);
+  const capturedAtLabel = formatCapturedAt(dbGeo?.capturedAt || parsedGeo?.capturedAtIso);
 
   return (
     <Pressable
@@ -59,14 +60,14 @@ export function DocumentCard({
         </View>
       )}
 
-      {geo && geoSummary ? (
+      {geoSummary ? (
         <View style={styles.geoTagWrap}>
           <Text style={styles.geoTagText} numberOfLines={1}>
             {geoSummary}
           </Text>
-          {'address' in geo && geo.address ? (
+          {geoLocationLabel ? (
             <Text style={styles.geoTagSubText} numberOfLines={1}>
-              {geo.address}
+              {geoLocationLabel}
             </Text>
           ) : null}
           {capturedAtLabel ? (

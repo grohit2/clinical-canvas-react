@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRouter } from 'expo-router';
@@ -18,6 +19,7 @@ import { usePatients } from '../../src/hooks/usePatients';
 import { usePatientsFilters } from '../../src/hooks/usePatientsFilters';
 import { usePinnedPatients } from '../../src/hooks/usePinnedPatients';
 import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../src/navigation/tabBarStyle';
+import { debugBreadcrumb } from '@patient-documents/mobile/debug/breadcrumbs';
 import {
   parseComorbidities,
   getDaysSinceSurgery,
@@ -45,6 +47,12 @@ const borderColors: Record<string, string> = {
 const SCROLL_DELTA_THRESHOLD = 10;
 const SCROLL_TOP_RESET_OFFSET = 8;
 const SCROLL_COLLAPSE_OFFSET = 40;
+const PATIENTS_SCREEN_VARIANT = (process.env.EXPO_PUBLIC_PATIENTS_SCREEN_VARIANT || '')
+  .trim()
+  .toLowerCase();
+const USE_MINIMAL_PATIENTS_SCREEN =
+  PATIENTS_SCREEN_VARIANT === 'minimal' ||
+  (Platform.OS === 'android' && PATIENTS_SCREEN_VARIANT !== 'full');
 
 function PatientCard({
   patient,
@@ -134,7 +142,25 @@ function PatientCard({
   );
 }
 
-export default function PatientsScreen() {
+function MinimalPatientCard({
+  patient,
+  isPinned,
+  onPress,
+}: {
+  patient: Patient;
+  isPinned: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.minimalCard}>
+      <Text style={styles.minimalName}>{patient.name}</Text>
+      <Text style={styles.minimalMrn}>MRN: {patient.latestMrn ?? ''}</Text>
+      {isPinned && <Text style={styles.minimalPinned}>PIN</Text>}
+    </Pressable>
+  );
+}
+
+function PatientsScreenFull() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -161,6 +187,13 @@ export default function PatientsScreen() {
   }, [isTabBarHidden, navigation, tabBarVisibleStyle]);
 
   useEffect(() => {
+    debugBreadcrumb('patients_screen.mount');
+    return () => {
+      debugBreadcrumb('patients_screen.unmount');
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       navigation.setOptions({ tabBarStyle: tabBarVisibleStyle });
     };
@@ -183,6 +216,15 @@ export default function PatientsScreen() {
   const filteredPatients = useMemo(() => {
     return filters.filterPatients(patients as Patient[]);
   }, [patients, filters]);
+
+  useEffect(() => {
+    debugBreadcrumb('patients_screen.list_state', {
+      totalPatients: patients.length,
+      filteredPatients: filteredPatients.length,
+      isLoading,
+      isRefetching,
+    });
+  }, [filteredPatients.length, isLoading, isRefetching, patients.length]);
 
   const hasFilters = filters.activeFiltersCount > 0 || filters.searchQuery !== '';
   const listBottomPadding = isTabBarHidden
@@ -251,7 +293,11 @@ export default function PatientsScreen() {
       <PatientCard
         patient={item}
         isPinned={isPinned(item.id)}
-        onPress={() => router.push(`/patients/${item.id}` as never)}
+        onPress={() => {
+          debugBreadcrumb('patients_screen.tap_patient_card', { patientId: item.id });
+          // Use the stable standalone patient route to avoid tab-stack transition crashes.
+          router.push(`/patient/${item.id}` as never);
+        }}
       />
     </View>
   );
@@ -378,6 +424,62 @@ export default function PatientsScreen() {
       </Pressable>
     </SafeAreaView>
   );
+}
+
+function PatientsScreenMinimal() {
+  const router = useRouter();
+  const { data: patients = [], isLoading } = usePatients();
+  const { isPinned } = usePinnedPatients();
+
+  useEffect(() => {
+    debugBreadcrumb('patients_screen_MINIMAL.mount');
+    return () => {
+      debugBreadcrumb('patients_screen_MINIMAL.unmount');
+    };
+  }, []);
+
+  useEffect(() => {
+    debugBreadcrumb('patients_screen_MINIMAL.list_state', {
+      count: patients.length,
+      isLoading,
+    });
+  }, [isLoading, patients.length]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Text style={styles.minimalTitle}>Patients (Minimal)</Text>
+      <FlatList
+        data={patients as Patient[]}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <MinimalPatientCard
+            patient={item}
+            isPinned={isPinned(item.id)}
+            onPress={() => {
+              debugBreadcrumb('patients_screen_MINIMAL.tap', { patientId: item.id });
+              router.push(`/patient/${item.id}` as never);
+            }}
+          />
+        )}
+      />
+    </SafeAreaView>
+  );
+}
+
+export default function PatientsScreen() {
+  if (USE_MINIMAL_PATIENTS_SCREEN) {
+    return <PatientsScreenMinimal />;
+  }
+
+  return <PatientsScreenFull />;
 }
 
 const styles = StyleSheet.create({
@@ -642,5 +744,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  minimalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    padding: 16,
+    color: '#0f172a',
+  },
+  minimalCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  minimalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  minimalMrn: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  minimalPinned: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
   },
 });

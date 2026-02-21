@@ -2,6 +2,7 @@ import 'expo-sqlite/localStorage/install';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,6 +25,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const ANIMATION_FLAG = (process.env.EXPO_PUBLIC_DISABLE_SCREEN_ANIMATIONS || '').trim();
+const DISABLE_SCREEN_ANIMATIONS =
+  ANIMATION_FLAG === '1' ||
+  (Platform.OS === 'android' && ANIMATION_FLAG !== '0');
+
 function RootLayoutInner() {
   return (
     <SafeAreaProvider>
@@ -32,6 +38,7 @@ function RootLayoutInner() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: '#fff' },
+            animation: DISABLE_SCREEN_ANIMATIONS ? 'none' : undefined,
           }}
         >
           <Stack.Screen name="import-shared" options={{ presentation: 'modal' }} />

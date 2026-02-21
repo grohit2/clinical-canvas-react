@@ -1,4 +1,4 @@
-import { File, Directory, Paths } from 'expo-file-system';
+import { File as ExpoFile, Directory, Paths } from 'expo-file-system';
 import { sanitizeFileName } from '../../core/utils';
 
 export type CachedVariant = 'full' | 'thumb';
@@ -29,7 +29,7 @@ function ensureDocCacheRootDirectory(): string {
   } catch (error) {
     // If a file somehow exists at the cache root path, remove it and recreate as a directory.
     try {
-      const rootFile = new File(Paths.document, 'patient-docs');
+      const rootFile = new ExpoFile(Paths.document, 'patient-docs');
       if (rootFile.exists) {
         rootFile.delete();
         DOC_CACHE_DIR.create({ idempotent: true, intermediates: true });
@@ -60,12 +60,12 @@ export function getDocLocalPath(args: {
   const safeDoc = toSafeDocKey(args.docId);
   const safeName = sanitizeFileName(args.name || 'file').slice(0, 80) || 'file';
   const filename = `${safeDoc}__${args.variant}__${safeName}`;
-  return new File(new Directory(DOC_CACHE_DIR, args.patientId), filename).uri;
+  return new ExpoFile(new Directory(DOC_CACHE_DIR, args.patientId), filename).uri;
 }
 
 export function fileExists(uri: string): boolean {
   try {
-    return new File(uri).exists;
+    return new ExpoFile(uri).exists;
   } catch {
     return false;
   }
@@ -85,12 +85,12 @@ export async function copyIntoCache(args: {
   ensurePatientCacheDirectory(args.patientId);
   const target = getDocLocalPath(args);
 
-  const source = new File(args.fromUri);
+  const source = new ExpoFile(args.fromUri);
   if (!source.exists) {
     throw new Error(`Source file does not exist: ${args.fromUri}`);
   }
 
-  source.copy(new File(target));
+  source.copy(new ExpoFile(target));
   return target;
 }
 
@@ -113,7 +113,7 @@ export async function ensureDownloaded(args: {
 }): Promise<string> {
   ensurePatientCacheDirectory(args.patientId);
   const target = getDocLocalPath(args);
-  const targetFile = new File(target);
+  const targetFile = new ExpoFile(target);
 
   // Already cached - skip download.
   if (targetFile.exists && targetFile.size > 0) {
@@ -131,9 +131,9 @@ export async function ensureDownloaded(args: {
 
   try {
     // Download directly to the final target file path to avoid move/path issues.
-    let downloaded: File;
+    let downloaded: Awaited<ReturnType<typeof ExpoFile.downloadFileAsync>>;
     try {
-      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+      downloaded = await ExpoFile.downloadFileAsync(args.remoteUrl, targetFile, {
         idempotent: true,
       });
     } catch (firstError) {
@@ -151,7 +151,7 @@ export async function ensureDownloaded(args: {
         // Best-effort bootstrap before retry.
       }
 
-      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+      downloaded = await ExpoFile.downloadFileAsync(args.remoteUrl, targetFile, {
         idempotent: true,
       });
     }
@@ -171,7 +171,7 @@ export async function ensureDownloaded(args: {
     }
 
     // Final sanity check.
-    const final = new File(target);
+    const final = new ExpoFile(target);
     if (!final.exists || final.size === 0) {
       throw new Error(`File placement failed: target ${target} missing or empty after download`);
     }
@@ -196,7 +196,7 @@ export async function ensureDownloaded(args: {
 
     // Clean up partial/corrupt downloads.
     try {
-      const targetFile = new File(target);
+      const targetFile = new ExpoFile(target);
       if (targetFile.exists && targetFile.size === 0) {
         targetFile.delete();
       }
@@ -303,7 +303,7 @@ export async function prefetchMany(
 export async function removeCachedFile(uri?: string): Promise<void> {
   if (!uri) return;
   try {
-    const file = new File(uri);
+    const file = new ExpoFile(uri);
     if (file.exists) {
       file.delete();
     }

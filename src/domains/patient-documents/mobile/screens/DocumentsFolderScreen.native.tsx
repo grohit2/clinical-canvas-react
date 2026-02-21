@@ -5,12 +5,12 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
 import type { DocCategory, DocumentItem } from '../../core/types';
@@ -25,7 +25,7 @@ import { usePhotoCapture } from '../hooks/usePhotoCapture';
 
 const SCROLL_DELTA_THRESHOLD = 10;
 const SCROLL_TOP_RESET_OFFSET = 8;
-const SCROLL_COLLAPSE_OFFSET = 36;
+const SCROLL_COLLAPSE_OFFSET = 40;
 
 function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): DocumentItem[] {
   const selected: DocumentItem[] = [];
@@ -284,20 +284,19 @@ export function DocumentsFolderScreen({
   const offlineCount = documents.filter((item) => item.offlineState === 'available_offline').length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* -- Header --------------------------------------------------------- */}
       <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={20} color="#334155" />
         </Pressable>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.title}>{config.title}</Text>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>{config.title}</Text>
           {!isTopChromeCollapsed ? (
             <View style={styles.subtitleRow}>
               <Text style={styles.subtitle}>
                 {documents.length} documents
               </Text>
-              <View style={[styles.onlineDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
               <Text style={styles.subtitle}>
                 {isOnline ? 'Online' : 'Offline'}
               </Text>
@@ -427,19 +426,22 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
     paddingBottom: 8,
     gap: 8,
   },
   headerCollapsed: {
+    paddingTop: 10,
     paddingBottom: 4,
   },
   backButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -447,9 +449,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  titleCollapsed: {
+    fontSize: 21,
   },
   subtitleRow: {
     flexDirection: 'row',
@@ -461,29 +466,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
   },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 2,
-  },
-  dotOnline: {
-    backgroundColor: '#22c55e',
-  },
-  dotOffline: {
-    backgroundColor: '#ef4444',
-  },
   offlineCount: {
     fontSize: 12,
     color: '#2563eb',
     marginLeft: 2,
   },
   selectButton: {
-    borderRadius: 10,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
+    minHeight: 36,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
   },
   selectButtonText: {
     color: '#334155',

@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "clinical-canvas",
+    "jsEngine": "hermes",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -36,6 +37,12 @@
         {
           "photosPermission": "Allow Clinical Canvas to access your photos to attach patient documents.",
           "cameraPermission": "Allow Clinical Canvas to use the camera to capture patient documents."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Clinical Canvas to access location to geotag captured photos."
         }
       ],
       "expo-secure-store",

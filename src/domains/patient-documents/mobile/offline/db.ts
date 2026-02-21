@@ -146,6 +146,10 @@ interface DocumentRow {
   backup_state: BackupState;
   offline_state: OfflineState;
   last_error: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_address: string | null;
+  geo_captured_at: string | null;
 }
 
 interface SyncQueueRow {

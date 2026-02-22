@@ -16,9 +16,11 @@ import {
 } from '../offline/sync';
 import { getDocumentFoldersKey } from './useDocumentFolders';
 import { getCategoryDocumentsKey } from './useCategoryDocuments';
+import { getPatientDocumentsKey } from './useDateGroups';
 
 function invalidateAll(queryClient: ReturnType<typeof useQueryClient>, patientId: string) {
   queryClient.invalidateQueries({ queryKey: getDocumentFoldersKey(patientId) });
+  queryClient.invalidateQueries({ queryKey: getPatientDocumentsKey(patientId) });
   DOC_CATEGORIES.forEach((category) => {
     queryClient.invalidateQueries({ queryKey: getCategoryDocumentsKey(patientId, category) });
   });

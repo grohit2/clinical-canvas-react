@@ -7,9 +7,11 @@ import type { DocumentsApi } from '../../api/documentsApi';
 import { refreshPatientDocuments, runSyncQueueOnce } from '../offline/sync';
 import { getDocumentFoldersKey } from './useDocumentFolders';
 import { getCategoryDocumentsKey } from './useCategoryDocuments';
+import { getPatientDocumentsKey } from './useDateGroups';
 
 function invalidateDocumentQueries(queryClient: ReturnType<typeof useQueryClient>, patientId: string) {
   queryClient.invalidateQueries({ queryKey: getDocumentFoldersKey(patientId) });
+  queryClient.invalidateQueries({ queryKey: getPatientDocumentsKey(patientId) });
   for (const category of DOC_CATEGORIES) {
     queryClient.invalidateQueries({
       queryKey: getCategoryDocumentsKey(patientId, category),

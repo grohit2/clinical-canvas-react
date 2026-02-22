@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,20 +17,14 @@ import type { DocCategory, DocumentItem } from '../../core/types';
 import { AlbumGrid } from '../components/AlbumGrid.native';
 import { AllDocumentsBanner } from '../components/AllDocumentsBanner.native';
 import { DocumentLightbox } from '../components/DocumentLightbox.native';
-import { GalleryGrid, type GallerySectionListRef } from '../components/GalleryGrid.native';
+import { GalleryGrid } from '../components/GalleryGrid.native';
 import { QuickActions } from '../components/QuickActions.native';
-import { ScrollScrubber } from '../components/ScrollScrubber.native';
 import { useAlbumCovers } from '../hooks/useAlbumCovers';
 import { useDateGroups } from '../hooks/useDateGroups';
 import { useDocumentActions } from '../hooks/useDocumentActions';
 import { useDocumentFolders } from '../hooks/useDocumentFolders';
 import { useDocumentSync } from '../hooks/useDocumentSync';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
-import { useScrollScrubber } from '../hooks/useScrollScrubber';
-
-const SCROLL_DELTA_THRESHOLD = 10;
-const SCROLL_TOP_RESET_OFFSET = 8;
-const SCROLL_COLLAPSE_OFFSET = 40;
 
 type RootTab = 'activity' | 'collections';
 
@@ -47,20 +39,15 @@ function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): 
 }
 
 function resolveThumbnail(document: DocumentItem): string | undefined {
+  if (document.geo) {
+    return document.localUri || document.fileUrl || document.thumbUrl || document.localThumbUri;
+  }
   return document.localThumbUri || document.thumbUrl || document.localUri || document.fileUrl;
 }
 
-function triggerLightHaptic() {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const haptics = require('expo-haptics') as {
-      impactAsync: (value: unknown) => Promise<void>;
-      ImpactFeedbackStyle: { Light: unknown };
-    };
-    haptics.impactAsync(haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-  } catch {
-    // Ignore haptics when unavailable.
-  }
+function needsOfflineDownload(document: DocumentItem): boolean {
+  if (!document.localUri) return true;
+  return document.offlineState !== 'available_offline';
 }
 
 export function DocumentsRootScreen({
@@ -76,7 +63,7 @@ export function DocumentsRootScreen({
   const foldersQuery = useDocumentFolders(patientId);
   const dateGroupsQuery = useDateGroups(patientId);
   const coversQuery = useAlbumCovers(patientId);
-  const { syncNow } = useDocumentSync(patientId, documentsApi);
+  const { syncNow, isOnline } = useDocumentSync(patientId, documentsApi);
   const {
     shareDocument,
     shareDocuments,
@@ -88,22 +75,13 @@ export function DocumentsRootScreen({
 
   const documents = useMemo(() => dateGroupsQuery.documents || [], [dateGroupsQuery.documents]);
   const sections = dateGroupsQuery.sections;
-  const years = dateGroupsQuery.years;
 
   const [activeTab, setActiveTab] = useState<RootTab>('activity');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
-
-  const sectionListRef = useRef<GallerySectionListRef | null>(null);
-  const lastScrollOffsetRef = useRef(0);
-
-  const scrubber = useScrollScrubber({
-    sections,
-    years,
-    sectionListRef,
-  });
+  const isTopChromeCollapsed = false;
+  const autoDownloadAttemptedIdsRef = useRef<Set<string>>(new Set());
 
   const selectedDocs = useMemo(
     () => computeSelection(documents, selectedIds),
@@ -134,15 +112,28 @@ export function DocumentsRootScreen({
   }, [activeTab, selectionMode]);
 
   useEffect(() => {
-    if (!selectionMode) return;
-    setIsTopChromeCollapsed(false);
-  }, [selectionMode]);
-
-  useEffect(() => {
     if (lightboxIndex === null) return;
     if (lightboxIndex < documents.length) return;
     setLightboxIndex(null);
   }, [documents.length, lightboxIndex]);
+
+  useEffect(() => {
+    autoDownloadAttemptedIdsRef.current = new Set();
+  }, [patientId]);
+
+  useEffect(() => {
+    if (!isOnline) return;
+    if (downloadProgress.isDownloading) return;
+    if (!documents.length) return;
+
+    const pending = documents.filter(
+      (doc) => needsOfflineDownload(doc) && !autoDownloadAttemptedIdsRef.current.has(doc.id)
+    );
+    if (!pending.length) return;
+
+    pending.forEach((doc) => autoDownloadAttemptedIdsRef.current.add(doc.id));
+    void downloadForOffline(pending, { silent: true });
+  }, [documents, downloadForOffline, downloadProgress.isDownloading, isOnline]);
 
   const refreshing =
     dateGroupsQuery.isFetching ||
@@ -187,66 +178,6 @@ export function DocumentsRootScreen({
       return next;
     });
   }, []);
-
-  const handleActivityScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (activeTab !== 'activity' || selectionMode) return;
-
-      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
-      const delta = offsetY - lastScrollOffsetRef.current;
-
-      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
-        lastScrollOffsetRef.current = offsetY;
-        return;
-      }
-
-      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
-        if (!isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(true);
-        }
-      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
-      }
-
-      lastScrollOffsetRef.current = offsetY;
-    },
-    [activeTab, isTopChromeCollapsed, selectionMode]
-  );
-
-  const handleCollectionsScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (activeTab !== 'collections' || selectionMode) return;
-
-      const offsetY = Math.max(event.nativeEvent.contentOffset.y, 0);
-      const delta = offsetY - lastScrollOffsetRef.current;
-
-      if (offsetY <= SCROLL_TOP_RESET_OFFSET) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
-        lastScrollOffsetRef.current = offsetY;
-        return;
-      }
-
-      if (delta > SCROLL_DELTA_THRESHOLD && offsetY > SCROLL_COLLAPSE_OFFSET) {
-        if (!isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(true);
-        }
-      } else if (delta < -SCROLL_DELTA_THRESHOLD) {
-        if (isTopChromeCollapsed) {
-          setIsTopChromeCollapsed(false);
-        }
-      }
-
-      lastScrollOffsetRef.current = offsetY;
-    },
-    [activeTab, isTopChromeCollapsed, selectionMode]
-  );
 
   const handleDeleteSelected = useCallback(async () => {
     if (!selectedDocs.length) return;
@@ -296,8 +227,7 @@ export function DocumentsRootScreen({
   );
 
   const handleDownloadAll = useCallback(async () => {
-    const images = documents.filter((doc) => doc.isImage);
-    await downloadForOffline(images);
+    await downloadForOffline(documents);
   }, [documents, downloadForOffline]);
 
   return (
@@ -389,10 +319,7 @@ export function DocumentsRootScreen({
             </View>
           ) : sections.length ? (
             <GalleryGrid
-              ref={sectionListRef}
               sections={sections}
-              years={years}
-              currentYear={scrubber.activeYear}
               selectionMode={selectionMode}
               selectedIds={selectedIds}
               onPressDocument={handleDocPress}
@@ -401,10 +328,7 @@ export function DocumentsRootScreen({
               onToggleSection={toggleSection}
               onRefresh={syncNow}
               refreshing={refreshing}
-              onScroll={handleActivityScroll}
-              onVisibleSectionChange={scrubber.handleSectionVisible}
-              onYearCardHaptic={triggerLightHaptic}
-              onCurrentYearAction={captureFromCamera}
+              onCapturePress={captureFromCamera}
             />
           ) : (
             <View style={styles.emptyWrap}>
@@ -424,28 +348,14 @@ export function DocumentsRootScreen({
             </View>
           )}
 
-          <ScrollScrubber
-            years={years}
-            activeYear={scrubber.activeYear}
-            visible={!selectionMode && sections.length > 1}
-            panGesture={scrubber.panGesture}
-            bubbleLabel={scrubber.bubbleLabel}
-            bubbleOpacity={scrubber.bubbleOpacity}
-            bubbleY={scrubber.scrubberHighlightY}
-            onYearPress={(year) => {
-              triggerLightHaptic();
-              scrubber.scrollToYear(year);
-            }}
-            onArrowPress={scrubber.scrollByOneYear}
-            onLayoutHeight={scrubber.setScrubberHeight}
-          />
         </View>
       ) : (
         <ScrollView
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={syncNow} />}
           contentContainerStyle={styles.collectionsContent}
-          onScroll={handleCollectionsScroll}
-          scrollEventThrottle={16}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
           showsVerticalScrollIndicator={false}
         >
           <AllDocumentsBanner

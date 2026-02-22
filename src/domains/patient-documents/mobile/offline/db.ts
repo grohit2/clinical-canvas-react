@@ -78,6 +78,10 @@ export async function initDocumentsDb(): Promise<void> {
 
       local_uri TEXT,
       local_thumb_uri TEXT,
+      geo_lat REAL,
+      geo_lng REAL,
+      geo_address TEXT,
+      geo_captured_at TEXT,
 
       backup_state TEXT NOT NULL,
       offline_state TEXT NOT NULL,
@@ -107,6 +111,19 @@ export async function initDocumentsDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sync_queue_created
       ON sync_queue(created_at, qid);
   `);
+
+  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(documents)');
+  const existing = new Set(columns.map((column) => column.name));
+
+  const addColumnIfMissing = async (name: string, definition: string) => {
+    if (existing.has(name)) return;
+    await db.execAsync(`ALTER TABLE documents ADD COLUMN ${name} ${definition}`);
+  };
+
+  await addColumnIfMissing('geo_lat', 'REAL');
+  await addColumnIfMissing('geo_lng', 'REAL');
+  await addColumnIfMissing('geo_address', 'TEXT');
+  await addColumnIfMissing('geo_captured_at', 'TEXT');
 }
 
 interface DocumentRow {
@@ -123,6 +140,10 @@ interface DocumentRow {
   thumb_url: string | null;
   local_uri: string | null;
   local_thumb_uri: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_address: string | null;
+  geo_captured_at: string | null;
   backup_state: BackupState;
   offline_state: OfflineState;
   last_error: string | null;
@@ -154,6 +175,15 @@ function rowToDocument(row: DocumentRow): DocumentItem {
     thumbUrl: row.thumb_url || undefined,
     localUri: row.local_uri || undefined,
     localThumbUri: row.local_thumb_uri || undefined,
+    geo:
+      row.geo_lat !== null && row.geo_lng !== null
+        ? {
+            latitude: row.geo_lat,
+            longitude: row.geo_lng,
+            address: row.geo_address || undefined,
+            capturedAt: row.geo_captured_at || undefined,
+          }
+        : undefined,
     backupState: row.backup_state,
     offlineState: row.offline_state,
     lastError: row.last_error || undefined,
@@ -221,6 +251,7 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
       id: string;
       localUri?: string;
       localThumbUri?: string;
+      geo?: DocumentItem['geo'];
       backupState: BackupState;
       offlineState: OfflineState;
       lastError?: string;
@@ -234,6 +265,7 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
         id: string;
         localUri?: string;
         localThumbUri?: string;
+        geo?: DocumentItem['geo'];
         backupState: BackupState;
         offlineState: OfflineState;
         lastError?: string;
@@ -246,6 +278,7 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
         id: doc.id,
         localUri: doc.localUri,
         localThumbUri: doc.localThumbUri,
+        geo: doc.geo,
         backupState: doc.backupState,
         offlineState: doc.offlineState,
         lastError: doc.lastError,
@@ -261,11 +294,17 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
     remote_key: string;
     local_uri: string | null;
     local_thumb_uri: string | null;
+    geo_lat: number | null;
+    geo_lng: number | null;
+    geo_address: string | null;
+    geo_captured_at: string | null;
     backup_state: BackupState;
     offline_state: OfflineState;
     last_error: string | null;
   }>(
-    `SELECT id, remote_key, local_uri, local_thumb_uri, backup_state, offline_state, last_error
+    `SELECT id, remote_key, local_uri, local_thumb_uri,
+            geo_lat, geo_lng, geo_address, geo_captured_at,
+            backup_state, offline_state, last_error
      FROM documents
      WHERE patient_id = ? AND remote_key IS NOT NULL`,
     [patientId]
@@ -278,6 +317,7 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
         id: string;
         localUri?: string;
         localThumbUri?: string;
+        geo?: DocumentItem['geo'];
         backupState: BackupState;
         offlineState: OfflineState;
         lastError?: string;
@@ -288,6 +328,15 @@ export async function getLocalStateByRemoteKey(patientId: string): Promise<
       id: row.id,
       localUri: row.local_uri || undefined,
       localThumbUri: row.local_thumb_uri || undefined,
+      geo:
+        row.geo_lat !== null && row.geo_lng !== null
+          ? {
+              latitude: row.geo_lat,
+              longitude: row.geo_lng,
+              address: row.geo_address || undefined,
+              capturedAt: row.geo_captured_at || undefined,
+            }
+          : undefined,
       backupState: row.backup_state,
       offlineState: row.offline_state,
       lastError: row.last_error || undefined,
@@ -374,6 +423,8 @@ function toDbKey(key: keyof Partial<DocumentItem>): string {
       return 'offline_state';
     case 'lastError':
       return 'last_error';
+    case 'geo':
+      return 'geo';
     default:
       return key;
   }
@@ -403,8 +454,9 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           content_type, is_image, size,
           remote_key, file_url, thumb_url,
           local_uri, local_thumb_uri,
+          geo_lat, geo_lng, geo_address, geo_captured_at,
           backup_state, offline_state, last_error
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           patient_id = excluded.patient_id,
           category = excluded.category,
@@ -418,6 +470,10 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           thumb_url = excluded.thumb_url,
           local_uri = excluded.local_uri,
           local_thumb_uri = excluded.local_thumb_uri,
+          geo_lat = excluded.geo_lat,
+          geo_lng = excluded.geo_lng,
+          geo_address = excluded.geo_address,
+          geo_captured_at = excluded.geo_captured_at,
           backup_state = excluded.backup_state,
           offline_state = excluded.offline_state,
           last_error = excluded.last_error`,
@@ -435,6 +491,10 @@ export async function upsertDocuments(items: DocumentItem[]): Promise<void> {
           item.thumbUrl || null,
           item.localUri || null,
           item.localThumbUri || null,
+          item.geo?.latitude ?? null,
+          item.geo?.longitude ?? null,
+          item.geo?.address ?? null,
+          item.geo?.capturedAt ?? null,
           item.backupState,
           item.offlineState,
           item.lastError || null,
@@ -448,8 +508,8 @@ export async function patchDocument(
   docId: string,
   patch: Partial<DocumentItem>
 ): Promise<void> {
-  const entries = Object.entries(patch) as Array<[keyof DocumentItem, unknown]>;
-  if (!entries.length) return;
+  const rawEntries = Object.entries(patch) as Array<[keyof DocumentItem, unknown]>;
+  if (!rawEntries.length) return;
 
   if (Platform.OS === 'web') {
     const current = webDocs.get(docId);
@@ -458,9 +518,22 @@ export async function patchDocument(
     return;
   }
 
+  const entries: Array<[string, unknown]> = [];
+  for (const [key, value] of rawEntries) {
+    if (key === 'geo') {
+      const geo = value as DocumentItem['geo'] | undefined;
+      entries.push(['geo_lat', geo?.latitude ?? null]);
+      entries.push(['geo_lng', geo?.longitude ?? null]);
+      entries.push(['geo_address', geo?.address ?? null]);
+      entries.push(['geo_captured_at', geo?.capturedAt ?? null]);
+      continue;
+    }
+    entries.push([toDbKey(key as keyof Partial<DocumentItem>), toDbValue(key, value)]);
+  }
+
   const db = await getDb();
-  const assignments = entries.map(([key]) => `${toDbKey(key)} = ?`).join(', ');
-  const values = entries.map(([key, value]) => toDbValue(key, value));
+  const assignments = entries.map(([key]) => `${key} = ?`).join(', ');
+  const values = entries.map(([, value]) => value);
   const bindValues = [...values, docId] as Array<string | number | null>;
 
   await db.runAsync(`UPDATE documents SET ${assignments} WHERE id = ?`, bindValues);

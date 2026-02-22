@@ -7,7 +7,18 @@ import type { DocumentItem } from '../../core/types';
 const GAP = 4;
 
 function resolveThumbnailSource(document: DocumentItem): string | undefined {
+  // Geo-tagged photos already render a live label in the grid; prefer the untinted source first.
+  if (document.geo) {
+    return document.localUri || document.fileUrl || document.thumbUrl || document.localThumbUri;
+  }
   return document.localThumbUri || document.thumbUrl || document.localUri || document.fileUrl;
+}
+
+function toGeoLabel(document: DocumentItem): string | null {
+  const geo = document.geo;
+  if (!geo) return null;
+  if (geo.address?.trim()) return geo.address.trim();
+  return `${geo.latitude.toFixed(5)}, ${geo.longitude.toFixed(5)}`;
 }
 
 function ThumbnailRowImpl({
@@ -35,6 +46,7 @@ function ThumbnailRowImpl({
         const sourceUri = resolveThumbnailSource(document);
         const selected = selectedIds.has(document.id);
         const showNotBackedUp = document.isImage && document.backupState !== 'backed_up';
+        const geoLabel = toGeoLabel(document);
 
         return (
           <Pressable
@@ -71,6 +83,14 @@ function ThumbnailRowImpl({
                 </Text>
               </View>
             )}
+
+            {geoLabel ? (
+              <View style={styles.geoOverlay}>
+                <Text style={styles.geoText} numberOfLines={2}>
+                  {geoLabel}
+                </Text>
+              </View>
+            ) : null}
 
             {showNotBackedUp ? (
               <View style={styles.offlineBadge}>
@@ -158,16 +178,32 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontWeight: '600',
   },
+  geoOverlay: {
+    position: 'absolute',
+    left: 6,
+    right: 6,
+    bottom: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.38)',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  geoText: {
+    color: '#f8fafc',
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
+  },
   offlineBadge: {
     position: 'absolute',
-    left: 8,
-    bottom: 8,
+    right: 8,
+    top: 8,
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(15,23,42,0.75)',
+    backgroundColor: 'rgba(15,23,42,0.62)',
   },
   checkbox: {
     position: 'absolute',

@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { DocumentItem } from '../../core/types';
+import { GeoStampOverlay } from '../geotag/GeoStampOverlay';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -130,11 +131,21 @@ export function DocumentLightbox({
           {uri ? (
             <GestureDetector gesture={Gesture.Simultaneous(pinch, pan, doubleTap)}>
               <Animated.View style={animatedStyle}>
-                <Image
-                  source={{ uri }}
-                  style={{ width: width * 0.92, height: height * 0.74 }}
-                  contentFit="contain"
-                />
+                <View style={{ width: width * 0.92, height: height * 0.74 }}>
+                  <Image
+                    source={{ uri }}
+                    style={{ width: width * 0.92, height: height * 0.74 }}
+                    contentFit="contain"
+                  />
+                  {document?.geo ? (
+                    <GeoStampOverlay
+                      address={document.geo.address}
+                      latitude={document.geo.latitude}
+                      longitude={document.geo.longitude}
+                      capturedAtIso={document.geo.capturedAt}
+                    />
+                  ) : null}
+                </View>
               </Animated.View>
             </GestureDetector>
           ) : (

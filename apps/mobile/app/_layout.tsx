@@ -1,12 +1,17 @@
 import 'expo-sqlite/localStorage/install';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initDocumentsDb } from '@patient-documents/mobile';
+import {
+  GeoStampCapture,
+  type GeoStampCaptureHandle,
+  GeoStampCaptureProvider,
+} from '@patient-documents/mobile/geotag';
 import { SafeShareIntentProvider } from '../src/lib/shareIntent-provider';
 
 onlineManager.setEventListener((setOnline) => {
@@ -43,6 +48,18 @@ function RootLayoutInner() {
 }
 
 export default function RootLayout() {
+  const geoStampRef = useRef<GeoStampCaptureHandle | null>(null);
+
+  const captureStampedImage = useCallback<GeoStampCaptureHandle['captureStampedImage']>(
+    async (params) => {
+      if (!geoStampRef.current) {
+        throw new Error('Geo stamp capture service is not ready');
+      }
+      return geoStampRef.current.captureStampedImage(params);
+    },
+    []
+  );
+
   useEffect(() => {
     void initDocumentsDb();
   }, []);
@@ -50,7 +67,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeShareIntentProvider>
-        <RootLayoutInner />
+        <GeoStampCaptureProvider value={captureStampedImage}>
+          <RootLayoutInner />
+          <GeoStampCapture ref={geoStampRef} />
+        </GeoStampCaptureProvider>
       </SafeShareIntentProvider>
     </GestureHandlerRootView>
   );

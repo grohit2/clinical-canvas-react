@@ -13,9 +13,10 @@ import {
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
+import { groupDocumentsByDate } from '../../core';
 import type { DocCategory, DocumentItem } from '../../core/types';
 import { CATEGORY_CONFIG } from '../categoryConfig.native';
-import { DocumentGrid } from '../components/DocumentGrid.native';
+import { GalleryGrid } from '../components/GalleryGrid.native';
 import { DocumentLightbox } from '../components/DocumentLightbox.native';
 import { PhotoUploader } from '../components/PhotoUploader.native';
 import { useCategoryDocuments } from '../hooks/useCategoryDocuments';
@@ -157,6 +158,7 @@ export function DocumentsFolderScreen({
   const { captureFromCamera, pickFromGallery } = usePhotoCapture(patientId, category, documentsApi);
 
   const documents = useMemo(() => docsQuery.data || [], [docsQuery.data]);
+  const sections = useMemo(() => groupDocumentsByDate(documents), [documents]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -222,6 +224,23 @@ export function DocumentsFolderScreen({
     });
   };
 
+  const toggleSection = useCallback((docIds: string[]) => {
+    if (!docIds.length) return;
+    setSelectionMode(true);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = docIds.every((id) => next.has(id));
+
+      if (allSelected) {
+        docIds.forEach((id) => next.delete(id));
+      } else {
+        docIds.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  }, []);
+
   const clearSelection = () => {
     setSelectionMode(false);
     setSelectedIds(new Set());
@@ -249,13 +268,14 @@ export function DocumentsFolderScreen({
     clearSelection();
   };
 
-  const openDocument = async (doc: DocumentItem, index: number) => {
+  const openDocument = async (doc: DocumentItem) => {
     if (!doc.isImage) {
       await shareDocument(doc);
       return;
     }
 
-    let nextIndex = index;
+    let nextIndex = documents.findIndex((item) => item.id === doc.id);
+    if (nextIndex < 0) nextIndex = 0;
 
     if (!doc.localUri) {
       try {
@@ -384,12 +404,14 @@ export function DocumentsFolderScreen({
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
-        <DocumentGrid
-          documents={documents}
+        <GalleryGrid
+          sections={sections}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
+          onLongPressDocument={(doc) => toggleSelected(doc.id)}
           onToggleDocument={toggleSelected}
           onPressDocument={openDocument}
+          onToggleSection={toggleSection}
           onRefresh={syncNow}
           refreshing={docsQuery.isFetching}
           onScroll={handleGridScroll}

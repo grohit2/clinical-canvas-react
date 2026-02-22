@@ -46,6 +46,7 @@ export type LocalStateByRemoteKey = Record<
     id?: string;
     localUri?: string;
     localThumbUri?: string;
+    geo?: DocumentItem['geo'];
     backupState?: BackupState;
     offlineState?: OfflineState;
     lastError?: string;
@@ -108,6 +109,7 @@ export function mapDocumentFromApi(
     thumbUrl,
     localUri: localState?.localUri,
     localThumbUri: localState?.localThumbUri,
+    geo: localState?.geo,
     backupState: localState?.backupState ?? 'backed_up',
     offlineState: localState?.offlineState ?? 'online_only',
     lastError: localState?.lastError,

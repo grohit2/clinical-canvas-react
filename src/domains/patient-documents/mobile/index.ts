@@ -11,6 +11,7 @@ export * from './hooks/useDocumentSync';
 export * from './hooks/useDocumentActions';
 export * from './hooks/usePhotoCapture';
 export * from './hooks/useScrollScrubber';
+export * from './geotag';
 
 export { DocumentsRootScreen } from './screens/DocumentsRootScreen.native';
 export { DocumentsFolderScreen } from './screens/DocumentsFolderScreen.native';

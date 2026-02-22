@@ -26,12 +26,15 @@ export function YearCardsStrip({
   onCurrentYearAction?: () => void;
 }) {
   if (!years.length) return null;
+  const thisYear = new Date().getFullYear();
+  const visibleYears = years.filter((summary) => summary.year >= thisYear);
+  const cards = visibleYears.length ? visibleYears : years.slice(0, 1);
 
   return (
     <View style={styles.wrap}>
       <FlatList
         horizontal
-        data={years}
+        data={cards}
         keyExtractor={(item) => `${item.year}`}
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + CARD_GAP}

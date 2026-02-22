@@ -49,6 +49,9 @@
       "expo-file-system": [
         "./node_modules/expo-file-system"
       ],
+      "expo-location": [
+        "./node_modules/expo-location"
+      ],
       "expo/fetch": [
         "./node_modules/expo/fetch"
       ],
@@ -69,6 +72,9 @@
       ],
       "react-native-safe-area-context": [
         "./node_modules/react-native-safe-area-context"
+      ],
+      "react-native-view-shot": [
+        "./node_modules/react-native-view-shot"
       ],
       "uuid": [
         "./node_modules/uuid"

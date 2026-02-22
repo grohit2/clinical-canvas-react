@@ -1,14 +1,17 @@
-import { forwardRef, useCallback, useMemo, useRef, type MutableRefObject } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, SectionList as SectionListType, ViewToken } from 'react-native';
-import { SectionList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import type { DateSection, YearSummary } from '../../core';
+import { forwardRef, useMemo } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent, SectionList as SectionListType } from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Camera } from 'lucide-react-native';
+import type { DateSection } from '../../core';
 import type { DocumentItem } from '../../core/types';
 import { DateSectionHeader } from './DateSectionHeader.native';
 import { ThumbnailRow } from './ThumbnailRow.native';
-import { YearCardsStrip } from './YearCardsStrip.native';
 
 const TILE_GAP = 2;
 const CONTENT_HORIZONTAL_PADDING = 12;
+const CAPTURE_CARD_WIDTH = 172;
+const CAPTURE_CARD_HEIGHT = 214;
 
 function resolveColumns(width: number): 3 | 4 {
   if (width >= 1100) return 4;
@@ -47,8 +50,6 @@ function chunkIntoRows(documents: DocumentItem[], columns: number): GridRow[] {
 
 export const GalleryGrid = forwardRef<GallerySectionListRef, {
   sections: DateSection[];
-  years: YearSummary[];
-  currentYear: number;
   selectionMode: boolean;
   selectedIds: Set<string>;
   onPressDocument: (doc: DocumentItem) => void;
@@ -58,14 +59,10 @@ export const GalleryGrid = forwardRef<GallerySectionListRef, {
   onRefresh?: () => void;
   refreshing?: boolean;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
-  onVisibleSectionChange?: (sectionIndex: number) => void;
-  onYearCardHaptic?: () => void;
-  onCurrentYearAction?: () => void;
+  onCapturePress?: () => void;
 }>(function GalleryGrid(
   {
     sections,
-    years,
-    currentYear,
     selectionMode,
     selectedIds,
     onPressDocument,
@@ -75,15 +72,10 @@ export const GalleryGrid = forwardRef<GallerySectionListRef, {
     onRefresh,
     refreshing,
     onScroll,
-    onVisibleSectionChange,
-    onYearCardHaptic,
-    onCurrentYearAction,
+    onCapturePress,
   },
   ref
 ) {
-  const listRef = useRef<SectionListType<GridRow, GridSection> | null>(null) as MutableRefObject<
-    SectionListType<GridRow, GridSection> | null
-  >;
   const { width } = useWindowDimensions();
   const columns = resolveColumns(width);
   const tileSize = Math.max(
@@ -105,48 +97,6 @@ export const GalleryGrid = forwardRef<GallerySectionListRef, {
     });
   }, [columns, sections]);
 
-  const sectionIndexByKeyRef = useRef(new Map<string, number>());
-  sectionIndexByKeyRef.current = new Map(gridSections.map((section, index) => [section.key, index]));
-
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<ViewToken & { section?: GridSection }> }) => {
-      if (!onVisibleSectionChange) return;
-      const first = viewableItems.find((item) => item.section?.key);
-      if (!first?.section?.key) return;
-      const sectionIndex = sectionIndexByKeyRef.current.get(first.section.key);
-      if (typeof sectionIndex === 'number') {
-        onVisibleSectionChange(sectionIndex);
-      }
-    }
-  );
-
-  const setListRef = useCallback(
-    (node: SectionListType<GridRow, GridSection> | null) => {
-      listRef.current = node;
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref && 'current' in ref) {
-        (ref as { current: SectionListType<GridRow, GridSection> | null }).current = node;
-      }
-    },
-    [ref]
-  );
-
-  const scrollToYear = useCallback(
-    (year: number) => {
-      const summary = years.find((item) => item.year === year);
-      if (!summary || !listRef.current) return;
-      onYearCardHaptic?.();
-      listRef.current.scrollToLocation({
-        sectionIndex: summary.firstSectionIndex,
-        itemIndex: 0,
-        animated: true,
-        viewOffset: 0,
-      });
-    },
-    [onYearCardHaptic, years]
-  );
-
   if (!gridSections.length) {
     return (
       <View style={styles.emptyState}>
@@ -158,7 +108,7 @@ export const GalleryGrid = forwardRef<GallerySectionListRef, {
 
   return (
     <SectionList
-      ref={setListRef}
+      ref={ref}
       sections={gridSections}
       keyExtractor={(row) => row.rowKey}
       stickySectionHeadersEnabled
@@ -167,17 +117,35 @@ export const GalleryGrid = forwardRef<GallerySectionListRef, {
       refreshing={!!refreshing}
       onScroll={onScroll}
       scrollEventThrottle={16}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
       windowSize={5}
       removeClippedSubviews
-      onViewableItemsChanged={onViewableItemsChanged.current}
-      viewabilityConfig={{ itemVisiblePercentThreshold: 35 }}
       ListHeaderComponent={
-        <YearCardsStrip
-          years={years}
-          currentYear={currentYear}
-          onYearPress={scrollToYear}
-          onCurrentYearAction={onCurrentYearAction}
-        />
+        onCapturePress ? (
+          <View style={styles.captureWrap}>
+            <Pressable onPress={onCapturePress} style={styles.captureCardPressable}>
+              <LinearGradient
+                colors={['#4a7fb5', '#87CEEB', '#B0C4DE']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.captureCard}
+              >
+                <View style={styles.captureContent}>
+                  <View style={styles.captureIconWrap}>
+                    <Camera size={28} color="#ffffff" />
+                    <View style={styles.plusBadge}>
+                      <Text style={styles.plusText}>+</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.captureTitle}>Capture</Text>
+                  <Text style={styles.captureSubTitle}>Open camera</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        ) : null
       }
       renderSectionHeader={({ section }) => {
         const allSelected =
@@ -215,6 +183,79 @@ const styles = StyleSheet.create({
     paddingHorizontal: CONTENT_HORIZONTAL_PADDING,
     paddingTop: 6,
     paddingBottom: 32,
+  },
+  captureWrap: {
+    marginTop: 12,
+    marginBottom: 14,
+  },
+  captureCardPressable: {
+    width: CAPTURE_CARD_WIDTH,
+    height: CAPTURE_CARD_HEIGHT,
+  },
+  captureCard: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    padding: 14,
+    justifyContent: 'space-between',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+  },
+  captureContent: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  captureIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  plusBadge: {
+    position: 'absolute',
+    right: -2,
+    top: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+  },
+  plusText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
+  captureTitle: {
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 8,
+    textShadowColor: 'rgba(15,23,42,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  captureSubTitle: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 12,
+    fontWeight: '700',
   },
   emptyState: {
     flex: 1,

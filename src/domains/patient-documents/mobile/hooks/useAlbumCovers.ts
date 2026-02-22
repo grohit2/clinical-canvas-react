@@ -10,7 +10,11 @@ function resolveThumbnailUri(item: {
   thumbUrl?: string;
   localUri?: string;
   fileUrl?: string;
+  geo?: unknown;
 }) {
+  if (item.geo) {
+    return item.localUri || item.fileUrl || item.thumbUrl || item.localThumbUri;
+  }
   return item.localThumbUri || item.thumbUrl || item.localUri || item.fileUrl;
 }
 

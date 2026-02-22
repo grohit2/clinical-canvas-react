@@ -4,8 +4,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import type { DocumentsApi } from '../../api/documentsApi';
 import { DOC_CATEGORIES } from '../../core/categories';
-import type { DocCategory } from '../../core/types';
+import type { DocCategory, DocumentItem } from '../../core/types';
 import { inferFileName, inferMimeType } from '../../core/utils';
+import { debugBreadcrumbError } from '../debug/breadcrumbs';
+import { GEO_FLAGS } from '../geotag/featureFlags';
+import { formatGeoStampText, getGeoTagForPhoto, useGeoStampCapture } from '../geotag';
+import { patchDocument } from '../offline/db';
 import { createLocalDocument, runSyncQueueOnce } from '../offline/sync';
 import { getDocumentFoldersKey } from './useDocumentFolders';
 import { getCategoryDocumentsKey } from './useCategoryDocuments';
@@ -25,26 +29,56 @@ export function usePhotoCapture(
   documentsApi: DocumentsApi
 ) {
   const queryClient = useQueryClient();
+  const captureStampedImage = useGeoStampCapture();
 
   const persistAssets = useCallback(
-    async (assets: ImagePicker.ImagePickerAsset[]) => {
+    async (
+      assets: ImagePicker.ImagePickerAsset[],
+      geo: DocumentItem['geo'] | null
+    ) => {
       for (const asset of assets) {
         const fileName = asset.fileName || inferFileName(asset.uri);
-        await createLocalDocument({
+        const created = await createLocalDocument({
           patientId,
           category,
           sourceUri: asset.uri,
           name: fileName,
           contentType: asset.mimeType || inferMimeType(fileName),
           size: asset.fileSize,
+          geo: geo || undefined,
         });
+
+        if (
+          captureStampedImage &&
+          GEO_FLAGS.thumbExport &&
+          geo &&
+          created.isImage &&
+          created.localUri
+        ) {
+          try {
+            const thumbUri = await captureStampedImage({
+              imageUri: created.localUri,
+              stampText: formatGeoStampText(geo),
+              targetWidth: 720,
+              quality: 0.8,
+            });
+
+            await patchDocument(created.id, { localThumbUri: thumbUri });
+          } catch (error) {
+            debugBreadcrumbError('photo_capture.thumb_stamp_failed', error, {
+              patientId,
+              category,
+              documentId: created.id,
+            });
+          }
+        }
       }
 
       invalidateAll(queryClient, patientId);
       await runSyncQueueOnce(documentsApi);
       invalidateAll(queryClient, patientId);
     },
-    [category, documentsApi, patientId, queryClient]
+    [captureStampedImage, category, documentsApi, patientId, queryClient]
   );
 
   const captureFromCamera = useCallback(async () => {
@@ -63,12 +97,24 @@ export function usePhotoCapture(
 
       if (result.canceled || !result.assets?.length) return;
 
-      await persistAssets(result.assets);
+      let geo = null;
+      if (GEO_FLAGS.enabled) {
+        try {
+          geo = await getGeoTagForPhoto();
+        } catch (error) {
+          debugBreadcrumbError('photo_capture.camera.geotag_failed', error, {
+            patientId,
+            category,
+          });
+        }
+      }
+
+      await persistAssets(result.assets, geo);
     } catch (error) {
       console.warn('camera capture failed', error);
       Alert.alert('Upload failed', 'Could not capture photo. Please try again.');
     }
-  }, [persistAssets]);
+  }, [category, patientId, persistAssets]);
 
   const pickFromGallery = useCallback(async () => {
     try {
@@ -87,12 +133,24 @@ export function usePhotoCapture(
 
       if (result.canceled || !result.assets?.length) return;
 
-      await persistAssets(result.assets);
+      let geo = null;
+      if (GEO_FLAGS.enabled) {
+        try {
+          geo = await getGeoTagForPhoto();
+        } catch (error) {
+          debugBreadcrumbError('photo_capture.gallery.geotag_failed', error, {
+            patientId,
+            category,
+          });
+        }
+      }
+
+      await persistAssets(result.assets, geo);
     } catch (error) {
       console.warn('gallery pick failed', error);
       Alert.alert('Upload failed', 'Could not import selected photo(s). Please try again.');
     }
-  }, [persistAssets]);
+  }, [category, patientId, persistAssets]);
 
   return {
     captureFromCamera,

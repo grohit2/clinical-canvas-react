@@ -80,6 +80,7 @@ export async function createLocalDocument(args: {
   name: string;
   contentType?: string;
   size?: number;
+  geo?: DocumentItem['geo'];
 }): Promise<DocumentItem> {
   const id = uuidv4();
   const localUri = await copyIntoCache({
@@ -101,6 +102,7 @@ export async function createLocalDocument(args: {
     size: args.size,
     localUri,
     localThumbUri: undefined,
+    geo: args.geo,
     backupState: 'device_only',
     offlineState: 'available_offline',
   };

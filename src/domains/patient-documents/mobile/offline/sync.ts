@@ -1,11 +1,17 @@
 import NetInfo from '@react-native-community/netinfo';
 import { fetch as expoFetch } from 'expo/fetch';
 import { File } from 'expo-file-system';
+import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { v4 as uuidv4 } from 'uuid';
 import type { DocumentsApi } from '../../api/documentsApi';
 import { mapAllDocumentsFromApi } from '../../core/mapFromApi';
 import type { DocCategory, DocumentItem } from '../../core/types';
-import { normalizeError, sanitizeFileName } from '../../core/utils';
+import {
+  isImageByMimeOrExt,
+  isVideoByMimeOrExt,
+  normalizeError,
+  sanitizeFileName,
+} from '../../core/utils';
 import {
   dequeueNextSyncAction,
   deleteDocumentById,
@@ -40,6 +46,56 @@ async function assertOnline(): Promise<void> {
   if (!state.isConnected) {
     throw new Error('Device is offline - cannot download files');
   }
+}
+
+function thumbnailFileName(name: string): string {
+  const baseName = name.replace(/\.[^/.]+$/, '').trim() || 'video';
+  return `${baseName}.jpg`;
+}
+
+async function generateVideoThumbnailUri(args: {
+  sourceUri?: string;
+  patientId: string;
+  docId: string;
+  name: string;
+}): Promise<string | undefined> {
+  if (!args.sourceUri) return undefined;
+
+  try {
+    const thumbnail = await getThumbnailAsync(args.sourceUri, {
+      quality: 0.75,
+      time: 0,
+    });
+
+    if (!thumbnail?.uri) return undefined;
+
+    return await copyIntoCache({
+      fromUri: thumbnail.uri,
+      patientId: args.patientId,
+      docId: args.docId,
+      name: thumbnailFileName(args.name),
+      variant: 'thumb',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[sync] Failed to generate video thumbnail for ${args.docId}: ${message}`);
+    return undefined;
+  }
+}
+
+async function ensureVideoThumbnailForDocument(args: {
+  doc: Pick<DocumentItem, 'id' | 'patientId' | 'name' | 'contentType' | 'localThumbUri' | 'thumbUrl'>;
+  sourceUri?: string;
+}): Promise<string | undefined> {
+  if (!isVideoByMimeOrExt(args.doc.contentType, args.doc.name)) return undefined;
+  if (args.doc.localThumbUri || args.doc.thumbUrl) return args.doc.localThumbUri;
+
+  return generateVideoThumbnailUri({
+    sourceUri: args.sourceUri,
+    patientId: args.doc.patientId,
+    docId: args.doc.id,
+    name: args.doc.name,
+  });
 }
 
 // ------------------------------------------------------------------------------
@@ -83,6 +139,7 @@ export async function createLocalDocument(args: {
   geo?: DocumentItem['geo'];
 }): Promise<DocumentItem> {
   const id = uuidv4();
+  const isImage = isImageByMimeOrExt(args.contentType, args.name);
   const localUri = await copyIntoCache({
     fromUri: args.sourceUri,
     patientId: args.patientId,
@@ -90,6 +147,19 @@ export async function createLocalDocument(args: {
     name: args.name,
     variant: 'full',
   });
+  const localThumbUri = isImage
+    ? undefined
+    : await ensureVideoThumbnailForDocument({
+        doc: {
+          id,
+          patientId: args.patientId,
+          name: args.name,
+          contentType: args.contentType,
+          localThumbUri: undefined,
+          thumbUrl: undefined,
+        },
+        sourceUri: localUri,
+      });
 
   const item: DocumentItem = {
     id,
@@ -98,10 +168,10 @@ export async function createLocalDocument(args: {
     name: args.name,
     uploadedAt: new Date().toISOString(),
     contentType: args.contentType,
-    isImage: (args.contentType || '').startsWith('image/'),
+    isImage,
     size: args.size,
     localUri,
-    localThumbUri: undefined,
+    localThumbUri,
     geo: args.geo,
     backupState: 'device_only',
     offlineState: 'available_offline',
@@ -245,6 +315,13 @@ export async function prefetchOfflineForDocuments(
     if (doc.localUri) {
       const { fileExists } = await import('./fileCache');
       if (fileExists(doc.localUri)) {
+        const generatedThumbUri = await ensureVideoThumbnailForDocument({
+          doc,
+          sourceUri: doc.localUri,
+        });
+        if (generatedThumbUri && generatedThumbUri !== doc.localThumbUri) {
+          await patchDocument(doc.id, { localThumbUri: generatedThumbUri });
+        }
         skipped += 1;
         continue;
       }
@@ -308,9 +385,14 @@ export async function prefetchOfflineForDocuments(
       name: item.name,
       variant: 'full',
     });
+    const localThumbUri = await ensureVideoThumbnailForDocument({
+      doc: item.doc,
+      sourceUri: localUri,
+    });
 
     await patchDocument(item.docId, {
       localUri,
+      ...(localThumbUri ? { localThumbUri } : {}),
       offlineState: 'available_offline',
       ...(item.doc.remoteKey ? { backupState: 'backed_up' as const } : {}),
     });

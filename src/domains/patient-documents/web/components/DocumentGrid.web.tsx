@@ -1,6 +1,7 @@
 // Document grid component for displaying a collection of documents
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import type { DocumentItem } from "../../core/types";
+import { isVideoByMimeOrExt } from "../../core/utils";
 import { DocumentCard } from "./DocumentCard.web";
 import { DocumentLightbox } from "./DocumentLightbox.web";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,10 @@ export function DocumentGrid({
   emptyMessage = "No documents found",
 }: DocumentGridProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const previewableDocuments = useMemo(
+    () => documents.filter((doc) => doc.isImage || isVideoByMimeOrExt(doc.contentType, doc.name)),
+    [documents]
+  );
 
   const handleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -43,7 +48,7 @@ export function DocumentGrid({
 
     if (direction === "prev" && lightboxIndex > 0) {
       setLightboxIndex(lightboxIndex - 1);
-    } else if (direction === "next" && lightboxIndex < documents.length - 1) {
+    } else if (direction === "next" && lightboxIndex < previewableDocuments.length - 1) {
       setLightboxIndex(lightboxIndex + 1);
     }
   };
@@ -73,22 +78,32 @@ export function DocumentGrid({
             isSelected={selectedIds.has(doc.id)}
             selectionMode={selectionMode}
             onSelect={handleSelect}
-            onClick={() => doc.isImage && setLightboxIndex(index)}
+            onClick={() => {
+              const previewIndex = previewableDocuments.findIndex((item) => item.id === doc.id);
+              if (previewIndex >= 0) {
+                setLightboxIndex(previewIndex);
+                return;
+              }
+
+              if (doc.fileUrl) {
+                window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
+              }
+            }}
             onDelete={onDelete ? () => onDelete(doc) : undefined}
           />
         ))}
       </div>
 
       {/* Lightbox for viewing images */}
-      {lightboxIndex !== null && documents[lightboxIndex] && (
+      {lightboxIndex !== null && previewableDocuments[lightboxIndex] && (
         <DocumentLightbox
-          document={documents[lightboxIndex]}
+          document={previewableDocuments[lightboxIndex]}
           currentIndex={lightboxIndex}
-          totalCount={documents.length}
+          totalCount={previewableDocuments.length}
           onClose={() => setLightboxIndex(null)}
           onNavigate={handleLightboxNavigate}
           canNavigatePrev={lightboxIndex > 0}
-          canNavigateNext={lightboxIndex < documents.length - 1}
+          canNavigateNext={lightboxIndex < previewableDocuments.length - 1}
         />
       )}
     </>

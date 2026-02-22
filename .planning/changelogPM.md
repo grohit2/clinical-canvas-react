@@ -1,6 +1,17 @@
 ===============================
 date: 2026-02-22
 what all changes
+- Documents now support video files and show a visual video preview with a play indicator so users can quickly identify clips in gallery view.
+- Documents now support medical and office file types such as PDF, Word, spreadsheet, presentation, text, and DICOM so full patient records can stay in one workflow.
+- Non-image files now open in a direct viewing flow instead of share-only behavior so teams can review reports and attachments faster.
+- Mixed media records now appear more clearly in activity views with better file-type visibility so users can understand content type before opening.
+- Existing image browsing behavior remains stable while expanding support for more clinical document formats to reduce context switching.
+
+====================================
+
+===============================
+date: 2026-02-22
+what all changes
 - Documents folder and patient detail top bars were made visually consistent with other core pages for a cleaner and predictable experience.
 - Patient detail top bar was simplified by removing the extra back button.
 - Tasks bottom navigation now matches main app navigation in icon size, text size, and active/inactive visual behavior.

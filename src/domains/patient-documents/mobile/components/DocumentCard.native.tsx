@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { CloudOff } from 'lucide-react-native';
+import { CloudOff, Play } from 'lucide-react-native';
 import type { DocumentItem } from '../../core/types';
+import { getDocumentKind, isVideoByMimeOrExt } from '../../core/utils';
 import { BackupBadge } from './BackupBadge.native';
 
 function toGeoLabel(document: DocumentItem): string | null {
@@ -12,11 +13,29 @@ function toGeoLabel(document: DocumentItem): string | null {
 }
 
 function resolveCardImage(document: DocumentItem): string | undefined {
+  const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
+  if (isVideo) {
+    // Video previews should use generated thumbnail frames, not the raw video URI.
+    return document.localThumbUri || document.thumbUrl;
+  }
+
   // Geo-tagged photos already render a live label in card UI; prefer untinted sources first.
   if (document.geo) {
     return document.localUri || document.fileUrl || document.thumbUrl || document.localThumbUri;
   }
   return document.localThumbUri || document.thumbUrl || document.localUri || document.fileUrl;
+}
+
+function toKindLabel(document: DocumentItem): string {
+  const kind = getDocumentKind(document.contentType, document.name);
+  if (kind === 'video') return 'VIDEO';
+  if (kind === 'pdf') return 'PDF';
+  if (kind === 'word') return 'WORD';
+  if (kind === 'spreadsheet') return 'SHEET';
+  if (kind === 'presentation') return 'SLIDE';
+  if (kind === 'dicom') return 'DICOM';
+  if (kind === 'text') return 'TEXT';
+  return 'FILE';
 }
 
 export function DocumentCard({
@@ -34,7 +53,10 @@ export function DocumentCard({
 }) {
   const sourceUri = resolveCardImage(document);
   const geoLabel = toGeoLabel(document);
-  const showNotBackedUp = document.isImage && document.backupState !== 'backed_up';
+  const showNotBackedUp = document.backupState !== 'backed_up';
+  const kindLabel = toKindLabel(document);
+  const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
+  const hasVisualPreview = !!sourceUri && (document.isImage || isVideo);
 
   return (
     <Pressable
@@ -42,15 +64,22 @@ export function DocumentCard({
       onPress={onPress}
       onLongPress={onLongPress}
     >
-      {document.isImage && sourceUri ? (
+      {hasVisualPreview ? (
         <Image source={{ uri: sourceUri }} style={styles.image} contentFit="cover" />
       ) : (
         <View style={styles.fileFallback}>
+          <Text style={styles.fileType}>{kindLabel}</Text>
           <Text style={styles.fileName} numberOfLines={3}>
             {document.name}
           </Text>
         </View>
       )}
+
+      {isVideo && hasVisualPreview ? (
+        <View pointerEvents="none" style={styles.playBadge}>
+          <Play size={14} color="#ffffff" fill="#ffffff" />
+        </View>
+      ) : null}
 
       {geoLabel ? (
         <View style={styles.geoOverlay}>
@@ -103,6 +132,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
+    gap: 4,
+  },
+  fileType: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.6,
   },
   fileName: {
     fontSize: 12,
@@ -142,6 +178,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(15,23,42,0.62)',
+  },
+  playBadge: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 34,
+    height: 34,
+    marginLeft: -17,
+    marginTop: -17,
+    borderRadius: 17,
+    backgroundColor: 'rgba(15,23,42,0.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 1,
   },
   checkbox: {
     position: 'absolute',

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import type { DocumentsApi } from '../../api/documentsApi';
@@ -50,6 +50,15 @@ const IDLE_PROGRESS: DownloadProgress = {
   failed: 0,
 };
 
+async function tryOpenUrl(url: string): Promise<boolean> {
+  try {
+    await Linking.openURL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useDocumentActions(
   patientId: string,
   documentsApi: DocumentsApi,
@@ -98,6 +107,43 @@ export function useDocumentActions(
       }
     },
     [shareDocument]
+  );
+
+  // -- Open ----------------------------------------------------------------
+
+  const openDocument = useCallback(
+    async (document: DocumentItem) => {
+      let localUri: string | undefined;
+
+      try {
+        localUri = await ensureLocalFileForViewing(document, documentsApi);
+      } catch (error) {
+        // Continue: some documents can still be opened via remote URL.
+        if (!document.fileUrl) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          Alert.alert('Open failed', message);
+          return;
+        }
+      }
+
+      if (localUri) {
+        const openedLocal = await tryOpenUrl(localUri);
+        if (openedLocal) return;
+      }
+
+      if (document.fileUrl) {
+        const openedRemote = await tryOpenUrl(document.fileUrl);
+        if (openedRemote) return;
+      }
+
+      if (localUri) {
+        await shareDocument(document);
+        return;
+      }
+
+      Alert.alert('Open failed', 'No compatible viewer is available for this file.');
+    },
+    [documentsApi, shareDocument]
   );
 
   // -- Delete --------------------------------------------------------------
@@ -246,6 +292,7 @@ export function useDocumentActions(
   }, [category, patientId, queryClient]);
 
   return {
+    openDocument,
     shareDocument,
     shareDocuments,
     deleteDocuments,

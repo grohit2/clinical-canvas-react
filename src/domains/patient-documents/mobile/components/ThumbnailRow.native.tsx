@@ -1,12 +1,19 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { CloudOff } from 'lucide-react-native';
+import { CloudOff, Play } from 'lucide-react-native';
 import type { DocumentItem } from '../../core/types';
+import { getDocumentKind, isVideoByMimeOrExt } from '../../core/utils';
 
 const GAP = 4;
 
 function resolveThumbnailSource(document: DocumentItem): string | undefined {
+  const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
+  if (isVideo) {
+    // Video tiles render a frame thumbnail; avoid feeding raw video URIs to Image.
+    return document.localThumbUri || document.thumbUrl;
+  }
+
   // Geo-tagged photos already render a live label in the grid; prefer the untinted source first.
   if (document.geo) {
     return document.localUri || document.fileUrl || document.thumbUrl || document.localThumbUri;
@@ -19,6 +26,18 @@ function toGeoLabel(document: DocumentItem): string | null {
   if (!geo) return null;
   if (geo.address?.trim()) return geo.address.trim();
   return `${geo.latitude.toFixed(5)}, ${geo.longitude.toFixed(5)}`;
+}
+
+function toKindLabel(document: DocumentItem): string {
+  const kind = getDocumentKind(document.contentType, document.name);
+  if (kind === 'video') return 'VIDEO';
+  if (kind === 'pdf') return 'PDF';
+  if (kind === 'word') return 'WORD';
+  if (kind === 'spreadsheet') return 'SHEET';
+  if (kind === 'presentation') return 'SLIDE';
+  if (kind === 'dicom') return 'DICOM';
+  if (kind === 'text') return 'TEXT';
+  return 'FILE';
 }
 
 function ThumbnailRowImpl({
@@ -45,8 +64,11 @@ function ThumbnailRowImpl({
       {items.map((document) => {
         const sourceUri = resolveThumbnailSource(document);
         const selected = selectedIds.has(document.id);
-        const showNotBackedUp = document.isImage && document.backupState !== 'backed_up';
+        const showNotBackedUp = document.backupState !== 'backed_up';
         const geoLabel = toGeoLabel(document);
+        const kindLabel = toKindLabel(document);
+        const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
+        const hasVisualPreview = !!sourceUri && (document.isImage || isVideo);
 
         return (
           <Pressable
@@ -68,7 +90,7 @@ function ThumbnailRowImpl({
               selected && styles.tileSelected,
             ]}
           >
-            {document.isImage && sourceUri ? (
+            {hasVisualPreview ? (
               <Image
                 source={{ uri: sourceUri }}
                 style={styles.image}
@@ -78,11 +100,18 @@ function ThumbnailRowImpl({
               />
             ) : (
               <View style={styles.fileFallback}>
+                <Text style={styles.fileType}>{kindLabel}</Text>
                 <Text style={styles.fileName} numberOfLines={3}>
                   {document.name}
                 </Text>
               </View>
             )}
+
+            {isVideo && hasVisualPreview ? (
+              <View pointerEvents="none" style={styles.playBadge}>
+                <Play size={14} color="#ffffff" fill="#ffffff" />
+              </View>
+            ) : null}
 
             {geoLabel ? (
               <View style={styles.geoOverlay}>
@@ -171,6 +200,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#e2e8f0',
+    gap: 4,
+  },
+  fileType: {
+    fontSize: 9,
+    color: '#475569',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   fileName: {
     fontSize: 11,
@@ -204,6 +240,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(15,23,42,0.62)',
+  },
+  playBadge: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 34,
+    height: 34,
+    marginLeft: -17,
+    marginTop: -17,
+    borderRadius: 17,
+    backgroundColor: 'rgba(15,23,42,0.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 1,
   },
   checkbox: {
     position: 'absolute',

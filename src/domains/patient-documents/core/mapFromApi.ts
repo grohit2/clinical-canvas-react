@@ -89,10 +89,10 @@ export function mapDocumentFromApi(
   const uploadedAt = normalizeUploadedAt(raw);
   const remoteKey = raw.key ?? raw.id;
   const fileUrl = raw.cdnUrl || raw.url || undefined;
-  const thumbUrl = raw.thumbUrl || raw.thumbnailUrl || fileUrl;
   const name = raw.name || raw.title || raw.caption || filenameFromKey(remoteKey);
   const contentType = raw.mimeType || undefined;
   const isImage = isImageByMimeOrExt(contentType, name);
+  const thumbUrl = raw.thumbUrl || raw.thumbnailUrl || (isImage ? fileUrl : undefined);
   const localState = remoteKey ? localStateByRemoteKey?.[remoteKey] : undefined;
 
   return {

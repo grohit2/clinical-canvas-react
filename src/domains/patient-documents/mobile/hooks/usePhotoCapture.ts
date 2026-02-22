@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import type { DocumentsApi } from '../../api/documentsApi';
 import { DOC_CATEGORIES } from '../../core/categories';
 import type { DocCategory, DocumentItem } from '../../core/types';
-import { inferFileName, inferMimeType } from '../../core/utils';
+import { inferFileName, inferMimeType, isImageByMimeOrExt } from '../../core/utils';
 import { debugBreadcrumbError } from '../debug/breadcrumbs';
 import { GEO_FLAGS } from '../geotag/featureFlags';
 import { formatGeoStampText, getGeoTagForPhoto, useGeoStampCapture } from '../geotag';
@@ -38,14 +38,19 @@ export function usePhotoCapture(
     ) => {
       for (const asset of assets) {
         const fileName = asset.fileName || inferFileName(asset.uri);
+        const contentType = inferMimeType(
+          fileName,
+          asset.mimeType || (asset.type === 'image' ? 'image/jpeg' : asset.type === 'video' ? 'video/mp4' : undefined)
+        );
+        const isImageAsset = isImageByMimeOrExt(contentType, fileName);
         const created = await createLocalDocument({
           patientId,
           category,
           sourceUri: asset.uri,
           name: fileName,
-          contentType: asset.mimeType || inferMimeType(fileName),
+          contentType,
           size: asset.fileSize,
-          geo: geo || undefined,
+          geo: isImageAsset ? geo || undefined : undefined,
         });
 
         if (
@@ -90,7 +95,7 @@ export function usePhotoCapture(
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images', 'videos'],
         quality: 0.9,
         allowsEditing: false,
       });
@@ -125,7 +130,7 @@ export function usePhotoCapture(
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images', 'videos'],
         quality: 0.9,
         allowsMultipleSelection: true,
         selectionLimit: 8,
@@ -148,7 +153,7 @@ export function usePhotoCapture(
       await persistAssets(result.assets, geo);
     } catch (error) {
       console.warn('gallery pick failed', error);
-      Alert.alert('Upload failed', 'Could not import selected photo(s). Please try again.');
+      Alert.alert('Upload failed', 'Could not import selected file(s). Please try again.');
     }
   }, [category, patientId, persistAssets]);
 

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ImagePlus, MoreVertical, Search, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
 import type { DocCategory, DocumentItem } from '../../core/types';
+import { isVideoByMimeOrExt } from '../../core/utils';
 import { AlbumGrid } from '../components/AlbumGrid.native';
 import { AllDocumentsBanner } from '../components/AllDocumentsBanner.native';
 import { DocumentLightbox } from '../components/DocumentLightbox.native';
@@ -47,6 +48,13 @@ function resolveThumbnail(document: DocumentItem): string | undefined {
 
 function needsOfflineDownload(document: DocumentItem): boolean {
   if (!document.localUri) return true;
+  if (
+    isVideoByMimeOrExt(document.contentType, document.name) &&
+    !document.localThumbUri &&
+    !document.thumbUrl
+  ) {
+    return true;
+  }
   return document.offlineState !== 'available_offline';
 }
 
@@ -65,7 +73,7 @@ export function DocumentsRootScreen({
   const coversQuery = useAlbumCovers(patientId);
   const { syncNow, isOnline } = useDocumentSync(patientId, documentsApi);
   const {
-    shareDocument,
+    openDocument: openExternalDocument,
     shareDocuments,
     deleteDocuments,
     downloadForOffline,
@@ -74,6 +82,10 @@ export function DocumentsRootScreen({
   const { captureFromCamera, pickFromGallery } = usePhotoCapture(patientId, 'preop_pics', documentsApi);
 
   const documents = useMemo(() => dateGroupsQuery.documents || [], [dateGroupsQuery.documents]);
+  const imageDocuments = useMemo(
+    () => documents.filter((doc) => doc.isImage),
+    [documents]
+  );
   const sections = dateGroupsQuery.sections;
 
   const [activeTab, setActiveTab] = useState<RootTab>('activity');
@@ -113,9 +125,9 @@ export function DocumentsRootScreen({
 
   useEffect(() => {
     if (lightboxIndex === null) return;
-    if (lightboxIndex < documents.length) return;
+    if (lightboxIndex < imageDocuments.length) return;
     setLightboxIndex(null);
-  }, [documents.length, lightboxIndex]);
+  }, [imageDocuments.length, lightboxIndex]);
 
   useEffect(() => {
     autoDownloadAttemptedIdsRef.current = new Set();
@@ -209,7 +221,7 @@ export function DocumentsRootScreen({
       }
 
       if (!doc.isImage) {
-        await shareDocument(doc);
+        await openExternalDocument(doc);
         return;
       }
 
@@ -218,12 +230,12 @@ export function DocumentsRootScreen({
         if (result.failed > 0) return;
       }
 
-      const index = documents.findIndex((item) => item.id === doc.id);
+      const index = imageDocuments.findIndex((item) => item.id === doc.id);
       if (index >= 0) {
         setLightboxIndex(index);
       }
     },
-    [documents, downloadForOffline, selectionMode, shareDocument, toggleSelected]
+    [downloadForOffline, imageDocuments, openExternalDocument, selectionMode, toggleSelected]
   );
 
   const handleDownloadAll = useCallback(async () => {
@@ -384,17 +396,17 @@ export function DocumentsRootScreen({
 
       <DocumentLightbox
         visible={lightboxIndex !== null}
-        document={lightboxIndex !== null ? documents[lightboxIndex] : null}
+        document={lightboxIndex !== null ? imageDocuments[lightboxIndex] : null}
         currentIndex={lightboxIndex || 0}
-        totalCount={documents.length}
+        totalCount={imageDocuments.length}
         canPrev={lightboxIndex !== null && lightboxIndex > 0}
-        canNext={lightboxIndex !== null && lightboxIndex < documents.length - 1}
+        canNext={lightboxIndex !== null && lightboxIndex < imageDocuments.length - 1}
         onClose={() => setLightboxIndex(null)}
         onNavigate={(direction) => {
           setLightboxIndex((prev) => {
             if (prev === null) return null;
             if (direction === 'prev') return Math.max(0, prev - 1);
-            return Math.min(documents.length - 1, prev + 1);
+            return Math.min(imageDocuments.length - 1, prev + 1);
           });
         }}
       />

@@ -1,6 +1,7 @@
 // Full-screen document lightbox with zoom and pan support
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import type { DocumentItem } from "../../core/types";
+import { isVideoByMimeOrExt } from "../../core/utils";
 
 interface DocumentLightboxProps {
   document: DocumentItem;
@@ -31,12 +32,14 @@ export function DocumentLightbox({
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastPan = useRef<{ x: number; y: number } | null>(null);
   const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
   const lastTap = useRef<number>(0);
   const movedRef = useRef(false);
   const swipeRef = useRef<{ x: number; y: number } | null>(null);
+  const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
 
   // Reset zoom when document changes
   useEffect(() => {
@@ -60,12 +63,14 @@ export function DocumentLightbox({
 
   // Swipe detection
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (isVideo) return;
     swipeRef.current = { x: e.clientX, y: e.clientY };
     movedRef.current = false;
-  }, []);
+  }, [isVideo]);
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
+      if (isVideo) return;
       if (swipeRef.current == null) return;
       const dx = e.clientX - swipeRef.current.x;
       const dy = e.clientY - swipeRef.current.y;
@@ -78,19 +83,21 @@ export function DocumentLightbox({
         else if (dx > 0 && canNavigatePrev) onNavigate("prev");
       }
     },
-    [scale, canNavigateNext, canNavigatePrev, onNavigate]
+    [scale, canNavigateNext, canNavigatePrev, isVideo, onNavigate]
   );
 
   // Zoom with wheel (ctrl/cmd + wheel)
   const onWheel = useCallback((e: React.WheelEvent) => {
+    if (isVideo) return;
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     setScale((s) => clamp(s + (e.deltaY > 0 ? -0.1 : 0.1), MIN_SCALE, MAX_SCALE));
-  }, []);
+  }, [isVideo]);
 
   // Pan and pinch handlers
   const onLbPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      if (isVideo) return;
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -104,10 +111,11 @@ export function DocumentLightbox({
         lastPan.current = null;
       }
     },
-    [scale]
+    [isVideo, scale]
   );
 
   const onLbPointerMove = useCallback((e: React.PointerEvent) => {
+    if (isVideo) return;
     if (!activePointers.current.has(e.pointerId)) return;
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -137,23 +145,25 @@ export function DocumentLightbox({
         return currentScale;
       });
     }
-  }, []);
+  }, [isVideo]);
 
   const onLbPointerUp = useCallback((e: React.PointerEvent) => {
+    if (isVideo) return;
     (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     activePointers.current.delete(e.pointerId);
     if (activePointers.current.size < 2) pinchStart.current = null;
     if (activePointers.current.size === 0) lastPan.current = null;
-  }, []);
+  }, [isVideo]);
 
   const onDoubleClick = useCallback(() => {
+    if (isVideo) return;
     if (scale === 1) {
       setScale(2);
     } else {
       setScale(1);
       setOffset({ x: 0, y: 0 });
     }
-  }, [scale]);
+  }, [isVideo, scale]);
 
   const onClick = useCallback(
     (e: React.MouseEvent) => {
@@ -176,6 +186,7 @@ export function DocumentLightbox({
           ? e.nativeEvent.composedPath()
           : [];
       if (imgRef.current && path.includes(imgRef.current)) return;
+      if (videoRef.current && path.includes(videoRef.current)) return;
       onClose();
     },
     [onClose, onDoubleClick]
@@ -197,7 +208,7 @@ export function DocumentLightbox({
         onLbPointerUp(e);
       }}
       onWheel={onWheel}
-      style={{ touchAction: "none" }}
+      style={{ touchAction: isVideo ? "auto" : "none" }}
     >
       {/* Close button */}
       <button
@@ -241,19 +252,29 @@ export function DocumentLightbox({
       {/* Image container */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden select-none">
         {document.fileUrl ? (
-          <img
-            src={document.fileUrl}
-            alt={document.name}
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-            draggable={false}
-            onDoubleClick={onDoubleClick}
-            ref={imgRef}
-            style={{
-              transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-              transformOrigin: "center center",
-              transition: activePointers.current.size ? "none" : "transform 120ms ease",
-            }}
-          />
+          isVideo ? (
+            <video
+              src={document.fileUrl}
+              controls
+              playsInline
+              className="max-h-[90vh] max-w-[90vw] object-contain"
+              ref={videoRef}
+            />
+          ) : (
+            <img
+              src={document.fileUrl}
+              alt={document.name}
+              className="max-h-[90vh] max-w-[90vw] object-contain"
+              draggable={false}
+              onDoubleClick={onDoubleClick}
+              ref={imgRef}
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                transformOrigin: "center center",
+                transition: activePointers.current.size ? "none" : "transform 120ms ease",
+              }}
+            />
+          )
         ) : (
           <div className="text-sm opacity-80">Preview not available</div>
         )}

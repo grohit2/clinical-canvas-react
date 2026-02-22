@@ -2,6 +2,7 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DocumentItem } from "../../core/types";
+import { getDocumentKind, isVideoByMimeOrExt } from "../../core/utils";
 import { cn } from "@/lib/utils";
 
 interface DocumentCardProps {
@@ -31,6 +32,25 @@ export function DocumentCard({
       onClick();
     }
   };
+
+  const kind = getDocumentKind(document.contentType, document.name);
+  const isVideo = isVideoByMimeOrExt(document.contentType, document.name);
+  const kindLabel =
+    kind === "video"
+      ? "VIDEO"
+      : kind === "pdf"
+        ? "PDF"
+        : kind === "word"
+          ? "WORD"
+          : kind === "spreadsheet"
+            ? "SHEET"
+            : kind === "presentation"
+              ? "SLIDE"
+              : kind === "dicom"
+                ? "DICOM"
+                : kind === "text"
+                  ? "TEXT"
+                  : "FILE";
 
   return (
     <div
@@ -70,8 +90,41 @@ export function DocumentCard({
                 }
               }}
             />
+          ) : isVideo ? (
+            <div className="relative h-full bg-gray-100">
+              <video
+                src={document.fileUrl}
+                poster={document.thumbUrl}
+                className="w-full h-full object-cover relative z-10"
+                preload="metadata"
+                muted
+                playsInline
+                onLoadedData={(e) => {
+                  const skeleton = e.currentTarget.parentElement?.previousElementSibling;
+                  if (skeleton instanceof HTMLElement) {
+                    skeleton.style.display = "none";
+                  }
+                }}
+                onError={(e) => {
+                  const video = e.currentTarget as HTMLVideoElement;
+                  video.style.display = "none";
+                  const parent = video.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `<div class="flex items-center justify-center h-full bg-gray-100 text-xs p-2 text-center"><span>Video unavailable</span></div>`;
+                  }
+                }}
+              />
+              <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                <div className="h-10 w-10 rounded-full bg-black/55 text-white flex items-center justify-center text-sm font-bold">
+                  ▶
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-full bg-gray-50 text-xs p-2 text-center relative z-10">
+            <div className="flex flex-col items-center justify-center h-full bg-gray-50 text-xs p-2 text-center relative z-10 gap-2">
+              <span className="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 tracking-wide">
+                {kindLabel}
+              </span>
               <span className="break-all">{document.name}</span>
             </div>
           )}

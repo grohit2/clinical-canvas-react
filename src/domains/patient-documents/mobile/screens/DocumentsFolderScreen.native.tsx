@@ -148,7 +148,7 @@ export function DocumentsFolderScreen({
   const docsQuery = useCategoryDocuments(patientId, category);
   const { syncNow, isOnline } = useDocumentSync(patientId, documentsApi);
   const {
-    shareDocument,
+    openDocument: openExternalDocument,
     shareDocuments,
     deleteDocuments,
     downloadForOffline,
@@ -158,13 +158,17 @@ export function DocumentsFolderScreen({
   const { captureFromCamera, pickFromGallery } = usePhotoCapture(patientId, category, documentsApi);
 
   const documents = useMemo(() => docsQuery.data || [], [docsQuery.data]);
+  const imageDocuments = useMemo(
+    () => documents.filter((doc) => doc.isImage),
+    [documents]
+  );
   const sections = useMemo(() => groupDocumentsByDate(documents), [documents]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
   const lastScrollOffsetRef = useRef(0);
-  const hasTriggeredInitialImageDownloadRef = useRef(false);
+  const hasTriggeredInitialPrefetchRef = useRef(false);
 
   const selectedDocs = useMemo(
     () => computeSelection(documents, selectedIds),
@@ -179,15 +183,18 @@ export function DocumentsFolderScreen({
   }, [selectionMode]);
 
   useEffect(() => {
-    if (hasTriggeredInitialImageDownloadRef.current) return;
+    if (lightboxIndex === null) return;
+    if (lightboxIndex < imageDocuments.length) return;
+    setLightboxIndex(null);
+  }, [imageDocuments.length, lightboxIndex]);
+
+  useEffect(() => {
+    if (hasTriggeredInitialPrefetchRef.current) return;
     if (docsQuery.isLoading) return;
 
-    hasTriggeredInitialImageDownloadRef.current = true;
-
-    const imageDocs = documents.filter((doc) => doc.isImage);
-    if (!imageDocs.length) return;
-
-    void downloadForOffline(imageDocs, { silent: true });
+    hasTriggeredInitialPrefetchRef.current = true;
+    if (!documents.length) return;
+    void downloadForOffline(documents, { silent: true });
   }, [documents, docsQuery.isLoading, downloadForOffline]);
 
   const handleGridScroll = useCallback(
@@ -268,13 +275,13 @@ export function DocumentsFolderScreen({
     clearSelection();
   };
 
-  const openDocument = async (doc: DocumentItem) => {
+  const handleDocumentPress = async (doc: DocumentItem) => {
     if (!doc.isImage) {
-      await shareDocument(doc);
+      await openExternalDocument(doc);
       return;
     }
 
-    let nextIndex = documents.findIndex((item) => item.id === doc.id);
+    let nextIndex = imageDocuments.findIndex((item) => item.id === doc.id);
     if (nextIndex < 0) nextIndex = 0;
 
     if (!doc.localUri) {
@@ -290,7 +297,7 @@ export function DocumentsFolderScreen({
       }
 
       const refreshed = await docsQuery.refetch();
-      const refreshedDocs = refreshed.data || [];
+      const refreshedDocs = (refreshed.data || []).filter((item) => item.isImage);
       const refreshedIndex = refreshedDocs.findIndex((item) => item.id === doc.id);
       if (refreshedIndex >= 0) {
         nextIndex = refreshedIndex;
@@ -409,7 +416,7 @@ export function DocumentsFolderScreen({
           selectedIds={selectedIds}
           onLongPressDocument={(doc) => toggleSelected(doc.id)}
           onToggleDocument={toggleSelected}
-          onPressDocument={openDocument}
+          onPressDocument={handleDocumentPress}
           onToggleSection={toggleSection}
           onRefresh={syncNow}
           refreshing={docsQuery.isFetching}
@@ -420,17 +427,17 @@ export function DocumentsFolderScreen({
       {/* -- Lightbox ------------------------------------------------------- */}
       <DocumentLightbox
         visible={lightboxIndex !== null}
-        document={lightboxIndex !== null ? documents[lightboxIndex] : null}
+        document={lightboxIndex !== null ? imageDocuments[lightboxIndex] : null}
         currentIndex={lightboxIndex || 0}
-        totalCount={documents.length}
+        totalCount={imageDocuments.length}
         canPrev={lightboxIndex !== null && lightboxIndex > 0}
-        canNext={lightboxIndex !== null && lightboxIndex < documents.length - 1}
+        canNext={lightboxIndex !== null && lightboxIndex < imageDocuments.length - 1}
         onClose={() => setLightboxIndex(null)}
         onNavigate={(direction) => {
           setLightboxIndex((prev) => {
             if (prev === null) return null;
             if (direction === 'prev') return Math.max(0, prev - 1);
-            return Math.min(documents.length - 1, prev + 1);
+            return Math.min(imageDocuments.length - 1, prev + 1);
           });
         }}
       />

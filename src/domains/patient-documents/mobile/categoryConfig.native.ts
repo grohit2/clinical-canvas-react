@@ -8,15 +8,13 @@ import {
   Scissors,
   Stethoscope,
 } from 'lucide-react-native';
-import type { ComponentType } from 'react';
-import type { ColorValue } from 'react-native';
 import { CATEGORY_META } from '../core/categoryMeta';
 import type { DocCategory } from '../core/types';
 
 export interface CategoryConfigItem {
   title: string;
   shortLabel: string;
-  icon: ComponentType<{ size?: string | number; color?: ColorValue }>;
+  icon: typeof Camera;
   gradient: [string, string];
 }
 

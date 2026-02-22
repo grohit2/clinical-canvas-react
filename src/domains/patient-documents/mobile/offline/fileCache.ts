@@ -131,9 +131,8 @@ export async function ensureDownloaded(args: {
 
   try {
     // Download directly to the final target file path to avoid move/path issues.
-    let downloaded: File;
     try {
-      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+      await File.downloadFileAsync(args.remoteUrl, targetFile, {
         idempotent: true,
       });
     } catch (firstError) {
@@ -151,20 +150,20 @@ export async function ensureDownloaded(args: {
         // Best-effort bootstrap before retry.
       }
 
-      downloaded = await File.downloadFileAsync(args.remoteUrl, targetFile, {
+      await File.downloadFileAsync(args.remoteUrl, targetFile, {
         idempotent: true,
       });
     }
 
     // Validate the downloaded file exists and has content.
-    if (!downloaded.exists) {
+    if (!targetFile.exists) {
       throw new Error(
         `Download produced no file for ${args.name} (URL may have returned an error page)`
       );
     }
 
-    if (downloaded.size === 0) {
-      downloaded.delete();
+    if (targetFile.size === 0) {
+      targetFile.delete();
       throw new Error(
         `Download produced a 0-byte file for ${args.name} (URL may be expired or access denied)`
       );

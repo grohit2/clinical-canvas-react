@@ -4,7 +4,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePatient } from '../../../src/hooks/usePatients';
 
 const SCROLL_DELTA_THRESHOLD = 10;
@@ -69,7 +69,17 @@ export default function PatientDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]} numberOfLines={1}>
+            {patient?.name || 'Patient'}
+          </Text>
+        </View>
+        {!isTopChromeCollapsed ? (
+          <Text style={styles.subtitle}>ID: {patientId}</Text>
+        ) : null}
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -77,15 +87,6 @@ export default function PatientDetailScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
-          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>
-            {patient?.name || 'Patient'}
-          </Text>
-          {!isTopChromeCollapsed ? (
-            <Text style={styles.subtitle}>ID: {patientId}</Text>
-          ) : null}
-        </View>
-
         <Pressable
           style={styles.card}
           onPress={() => router.push(`/patient/${patientId}/documents` as never)}
@@ -116,12 +117,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   header: {
-    marginTop: 12,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   headerCollapsed: {
-    marginTop: 6,
-    marginBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
@@ -134,6 +140,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: '#64748b',
+    marginTop: 4,
   },
   card: {
     borderRadius: 14,

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
   Bell,
@@ -11,14 +10,12 @@ import {
   Home,
   Layers3,
   Plus,
-  RotateCcw,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateTask } from '../../hooks/useCreateTask';
 import { useMyActionsToday } from '../../hooks/useMyActivity';
 import { useTasks } from '../../hooks/useTasks';
-import { useUndo } from '../../hooks/useUndo';
 import { getActiveActorId } from '../../local-ledger/utils/device';
 import { buildAuditRows, buildTaskBoardModel } from '../../models/boardModel';
 import {
@@ -54,6 +51,9 @@ interface TaskBoardScreenNativeProps {
 }
 
 const MY_NURSE_NAME = 'RN Sarah M.';
+const BOTTOM_NAV_ICON_SIZE = 22;
+const BOTTOM_NAV_ACTIVE_COLOR = '#2563eb';
+const BOTTOM_NAV_INACTIVE_COLOR = '#6b7280';
 
 export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
   const { patients = [], pinnedPatientIds = [] } = props;
@@ -65,7 +65,6 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
   const { data: activityRows = [] } = useMyActionsToday(actorId);
 
   const createTask = useCreateTask();
-  const undo = useUndo();
 
   const [activeTab, setActiveTab] = useState<TaskBoardTab>('board');
   const [activeViewMode, setActiveViewMode] = useState<BoardViewMode>('ward');
@@ -158,28 +157,53 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
       {
         id: 'back',
         label: 'Back',
-        icon: <ArrowLeft size={16} color={activeTab === 'back' ? '#ffffff' : '#64748b'} />,
+        icon: (
+          <ArrowLeft
+            size={BOTTOM_NAV_ICON_SIZE}
+            color={activeTab === 'back' ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR}
+          />
+        ),
       },
       {
         id: 'home',
         label: 'Home',
-        icon: <Home size={16} color={activeTab === 'home' ? '#ffffff' : '#64748b'} />,
+        icon: (
+          <Home
+            size={BOTTOM_NAV_ICON_SIZE}
+            color={activeTab === 'home' ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR}
+          />
+        ),
       },
       {
         id: 'board',
         label: 'Task Board',
-        icon: <ClipboardList size={16} color={activeTab === 'board' ? '#ffffff' : '#64748b'} />,
+        icon: (
+          <ClipboardList
+            size={BOTTOM_NAV_ICON_SIZE}
+            color={activeTab === 'board' ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR}
+          />
+        ),
       },
       {
         id: 'reminders',
         label: 'Reminders',
-        icon: <Bell size={16} color={activeTab === 'reminders' ? '#ffffff' : '#64748b'} />,
+        icon: (
+          <Bell
+            size={BOTTOM_NAV_ICON_SIZE}
+            color={activeTab === 'reminders' ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR}
+          />
+        ),
         badge: model.remindersToday.length || undefined,
       },
       {
         id: 'audit',
         label: 'Audit Log',
-        icon: <FileText size={16} color={activeTab === 'audit' ? '#ffffff' : '#64748b'} />,
+        icon: (
+          <FileText
+            size={BOTTOM_NAV_ICON_SIZE}
+            color={activeTab === 'audit' ? BOTTOM_NAV_ACTIVE_COLOR : BOTTOM_NAV_INACTIVE_COLOR}
+          />
+        ),
         dot: auditRows.length > 0,
       },
     ],
@@ -195,23 +219,16 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
     setActiveTab(tab);
   };
 
-  const headerTitle =
+  const headerTitle = 'Tasks';
+
+  const headerSubtitle =
     activeTab === 'home'
-      ? 'Task Home'
+      ? 'Home'
       : activeTab === 'reminders'
         ? 'Reminders'
         : activeTab === 'audit'
           ? 'Audit Log'
-          : 'Hospital Task Board';
-
-  const headerSubtitle =
-    activeTab === 'home'
-      ? 'Metrics plus tasks assigned to RN Sarah M.'
-      : activeTab === 'reminders'
-        ? 'Upcoming and high-priority tasks that need attention.'
-        : activeTab === 'audit'
-          ? 'Every change written to the local task ledger.'
-          : 'Local ledger powered';
+          : 'Task Board';
 
   const showFab = activeTab === 'home' || activeTab === 'reminders';
   const fabLabel = activeTab === 'reminders' ? 'Add Reminder' : 'Add Task';
@@ -263,15 +280,6 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
   const renderBoard = () => (
     <View style={styles.tabContent}>
       <View style={styles.boardActionRow}>
-        <Pressable
-          style={[styles.boardActionButton, createTask.isPending && styles.boardActionButtonDisabled]}
-          onPress={() => void addQuickTask()}
-          disabled={createTask.isPending}
-        >
-          <Plus size={16} color="#ffffff" />
-          <Text style={styles.boardActionText}>{createTask.isPending ? 'Adding...' : 'Add Task'}</Text>
-        </Pressable>
-
         <Pressable style={styles.viewButton} onPress={() => setIsViewSheetOpen(true)}>
           <Layers3 size={16} color="#334155" />
           <Text style={styles.viewButtonText}>View: {activeView}</Text>
@@ -281,7 +289,7 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
       {boardSections.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyTitle}>No tasks yet</Text>
-          <Text style={styles.emptySub}>Create one using the Add Task button.</Text>
+          <Text style={styles.emptySub}>Create one using Add Task below.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.sectionsWrap}>
@@ -413,21 +421,15 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={['#1a1d2e', '#252942']} style={styles.headerGradient}>
-        <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.headerTitle}>{headerTitle}</Text>
-            <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
-          </View>
-
-          <Pressable style={styles.undoButton} onPress={() => undo.mutate()} disabled={undo.isPending}>
-            <RotateCcw size={16} color="#334155" />
-            <Text style={styles.undoText}>Undo</Text>
-          </Pressable>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{headerTitle}</Text>
+        <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
+      </View>
+      {activeTab === 'home' ? (
+        <View style={styles.statsWrap}>
+          <StatsBarNative metrics={model.metrics} />
         </View>
-
-        {activeTab === 'home' ? <StatsBarNative metrics={model.metrics} /> : null}
-      </LinearGradient>
+      ) : null}
 
       {busy ? (
         <View style={styles.loadingWrap}>
@@ -492,44 +494,26 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eef2f7',
+    backgroundColor: '#ffffff',
   },
-  headerGradient: {
+  header: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   headerTitle: {
     fontSize: 24,
-    lineHeight: 30,
     fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: -0.3,
+    color: '#0f172a',
   },
   headerSubtitle: {
     marginTop: 4,
     fontSize: 14,
-    color: '#cbd5e1',
+    color: '#64748b',
   },
-  undoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  undoText: {
-    fontSize: 14,
-    color: '#334155',
-    fontWeight: '700',
+  statsWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   loadingWrap: {
     flex: 1,
@@ -554,25 +538,8 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
   },
-  boardActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  boardActionButtonDisabled: {
-    opacity: 0.7,
-  },
-  boardActionText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '800',
-  },
   viewButton: {
-    flex: 1,
+    width: '100%',
     minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',

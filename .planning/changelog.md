@@ -1,3 +1,18 @@
+===============================
+date: 2026-02-22
+what all changes
+- Documents folder screen top bar was refactored to match the same header system used in Patients and Dashboard so navigation feels consistent across document flows.
+- Patient detail top bar layout was normalized across both patient detail routes to avoid different behavior/styles between route entry points.
+- Patient detail top bar back button was removed to match the requested product flow and reduce duplicate navigation controls.
+- Main app bottom tab icons were pinned to a consistent size and the Tasks bottom navigation was aligned to the same text size, color system, and spacing for uniform visual behavior.
+- Tasks screen top header was redesigned from gradient/ledger style into the standard light header pattern, and undo/local-ledger messaging was removed to keep language product-focused.
+- Task table collapse interaction was simplified by removing the dedicated collapse control and using table-title tap as the single collapse/expand trigger.
+- Task table headers now include a right-side 3-dot menu button with per-table action scaffolding and working sort options (default, priority, time) to support immediate usability and future extensibility.
+- Per-table sorting now reorders only the selected table rows and keeps task selection/row actions intact to avoid cross-section side effects.
+- Task board top Add Task button was removed from the board action row to reduce visual clutter while keeping creation through existing lower add actions.
+
+====================================
+
 ============================================
 
 date  commit version
@@ -6,98 +21,13 @@ reasons
 changes
 
 what files were wouched
-=========================================
-
-============================================
-
-date  commit version
-goal
-reasons
-changes
-
-what files were wouched
-.husky/pre-commit
 .planning/changelog.md
-scripts/append-changelog-entry.sh
-=========================================
-
-============================================
-
-date  commit version
-goal
-reasons
-changes
-
-what files were wouched
-src/domains/patient-documents/mobile/categoryConfig.native.ts
-src/domains/patient-documents/mobile/offline/fileCache.ts
-=========================================
-
-============================================
-
-date  commit version
-goal
-reasons
-changes
-
-what files were wouched
-src/domains/patient-documents/core/detectStacks.ts
-src/domains/patient-documents/core/groupByDate.ts
-src/domains/patient-documents/core/index.ts
-src/domains/patient-documents/mobile/components/AlbumCard.native.tsx
-src/domains/patient-documents/mobile/components/AlbumGrid.native.tsx
-src/domains/patient-documents/mobile/components/AllDocumentsBanner.native.tsx
-src/domains/patient-documents/mobile/components/DateSectionHeader.native.tsx
-src/domains/patient-documents/mobile/components/GalleryGrid.native.tsx
-src/domains/patient-documents/mobile/components/QuickActions.native.tsx
-src/domains/patient-documents/mobile/components/ScrollScrubber.native.tsx
-src/domains/patient-documents/mobile/components/ScrubberBubble.native.tsx
-src/domains/patient-documents/mobile/components/StackBadge.native.tsx
-src/domains/patient-documents/mobile/components/ThumbnailRow.native.tsx
-src/domains/patient-documents/mobile/components/YearCardsStrip.native.tsx
-src/domains/patient-documents/mobile/debug/breadcrumbs.ts
-src/domains/patient-documents/mobile/hooks/useAlbumCovers.ts
-src/domains/patient-documents/mobile/hooks/useDateGroups.ts
-src/domains/patient-documents/mobile/hooks/useDocumentActions.ts
-src/domains/patient-documents/mobile/hooks/useDocumentSync.ts
-src/domains/patient-documents/mobile/hooks/usePhotoCapture.ts
-src/domains/patient-documents/mobile/hooks/useScrollScrubber.ts
-src/domains/patient-documents/mobile/index.ts
-src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
-=========================================
-
-============================================
-
-date  commit version
-goal
-reasons
-changes
-
-what files were wouched
-apps/mobile/app/_layout.tsx
-apps/mobile/index.js
-apps/mobile/package.json
-apps/mobile/src/lib/featureFlags.ts
-apps/mobile/tsconfig.json
-pnpm-lock.yaml
-src/domains/patient-documents/core/mapFromApi.ts
-src/domains/patient-documents/core/types.ts
-src/domains/patient-documents/mobile/components/DocumentCard.native.tsx
-src/domains/patient-documents/mobile/components/DocumentLightbox.native.tsx
-src/domains/patient-documents/mobile/components/GalleryGrid.native.tsx
-src/domains/patient-documents/mobile/components/ThumbnailRow.native.tsx
-src/domains/patient-documents/mobile/components/YearCardsStrip.native.tsx
-src/domains/patient-documents/mobile/geotag/GeoStampCapture.tsx
-src/domains/patient-documents/mobile/geotag/GeoStampCaptureContext.tsx
-src/domains/patient-documents/mobile/geotag/GeoStampOverlay.tsx
-src/domains/patient-documents/mobile/geotag/featureFlags.ts
-src/domains/patient-documents/mobile/geotag/geoTagPhoto.ts
-src/domains/patient-documents/mobile/geotag/index.ts
-src/domains/patient-documents/mobile/hooks/useAlbumCovers.ts
-src/domains/patient-documents/mobile/hooks/usePhotoCapture.ts
-src/domains/patient-documents/mobile/index.ts
-src/domains/patient-documents/mobile/offline/db.ts
-src/domains/patient-documents/mobile/offline/sync.ts
+.planning/changelogPM.md
+apps/mobile/app/(tabs)/_layout.tsx
+apps/mobile/app/(tabs)/patients/[id]/index.tsx
+apps/mobile/app/patient/[id]/index.tsx
 src/domains/patient-documents/mobile/screens/DocumentsFolderScreen.native.tsx
-src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
+src/domains/tasks/components/native/TableGroup.native.tsx
+src/domains/tasks/components/native/TaskBottomNav.native.tsx
+src/domains/tasks/screens/native/TaskBoardScreen.native.tsx
 =========================================

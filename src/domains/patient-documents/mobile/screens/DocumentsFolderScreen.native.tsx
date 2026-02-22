@@ -5,13 +5,13 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Check, Share2, Trash2 } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DocumentsApi } from '../../api/documentsApi';
 import { groupDocumentsByDate } from '../../core';
 import type { DocCategory, DocumentItem } from '../../core/types';
@@ -302,42 +302,41 @@ export function DocumentsFolderScreen({
 
   const failedCount = documents.filter((item) => item.backupState === 'error').length;
   const offlineCount = documents.filter((item) => item.offlineState === 'available_offline').length;
+  const subtitle = `${patientId} • ${documents.length} documents`;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* -- Header --------------------------------------------------------- */}
       <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={20} color="#334155" />
-        </Pressable>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.title}>{config.title}</Text>
-          {!isTopChromeCollapsed ? (
-            <View style={styles.subtitleRow}>
-              <Text style={styles.subtitle}>
-                {documents.length} documents
-              </Text>
-              <View style={[styles.onlineDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
-              <Text style={styles.subtitle}>
-                {isOnline ? 'Online' : 'Offline'}
-              </Text>
-              {offlineCount > 0 ? (
-                <Text style={styles.offlineCount}>
-                  - {offlineCount} cached
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeading}>
+            <Pressable style={styles.iconButton} onPress={() => router.back()}>
+              <ArrowLeft size={20} color="#0f172a" />
+            </Pressable>
+            <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]} numberOfLines={1}>
+              {config.title}
+            </Text>
+          </View>
+          <Pressable
+            style={[styles.selectButton, selectionMode && styles.selectButtonActive]}
+            onPress={() => {
+              if (selectionMode) clearSelection();
+              else setSelectionMode(true);
+            }}
+          >
+            <Check size={16} color={selectionMode ? '#ffffff' : '#334155'} />
+            <Text style={[styles.selectButtonText, selectionMode && styles.selectButtonTextActive]}>
+              {selectionMode ? 'Done' : 'Select'}
+            </Text>
+          </Pressable>
         </View>
-        <Pressable
-          style={styles.selectButton}
-          onPress={() => {
-            if (selectionMode) clearSelection();
-            else setSelectionMode(true);
-          }}
-        >
-          <Text style={styles.selectButtonText}>{selectionMode ? 'Done' : 'Select'}</Text>
-        </Pressable>
+        {!isTopChromeCollapsed ? (
+          <Text style={styles.subtitle}>
+            {subtitle}
+            {offlineCount > 0 ? ` • ${offlineCount} cached` : ''}
+            {isOnline ? ' • Online' : ' • Offline'}
+          </Text>
+        ) : null}
       </View>
 
       {/* -- Action row ----------------------------------------------------- */}
@@ -447,69 +446,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
     paddingBottom: 8,
-    gap: 8,
   },
   headerCollapsed: {
+    paddingTop: 10,
     paddingBottom: 4,
   },
-  backButton: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeading: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginRight: 12,
+  },
+  iconButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitleWrap: {
-    flex: 1,
-  },
   title: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
   },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+  titleCollapsed: {
+    fontSize: 21,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#64748b',
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 2,
-  },
-  dotOnline: {
-    backgroundColor: '#22c55e',
-  },
-  dotOffline: {
-    backgroundColor: '#ef4444',
-  },
-  offlineCount: {
-    fontSize: 12,
-    color: '#2563eb',
-    marginLeft: 2,
+    marginTop: 4,
   },
   selectButton: {
-    borderRadius: 10,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#dbe2ea',
+    backgroundColor: '#f8fafc',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   selectButtonText: {
     color: '#334155',
     fontWeight: '700',
+    fontSize: 13,
+  },
+  selectButtonActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#2563eb',
+  },
+  selectButtonTextActive: {
+    color: '#ffffff',
   },
   actionRow: {
     flexDirection: 'row',

@@ -32,7 +32,7 @@ function TabButton({
   const hasBadge = badgeValue > 0;
 
   return (
-    <Pressable style={[styles.tabButton, active && styles.tabButtonActive]} onPress={onPress}>
+    <Pressable style={styles.tabButton} onPress={onPress}>
       <View style={styles.iconWrap}>
         {tab.icon}
         {hasBadge ? (
@@ -42,7 +42,9 @@ function TabButton({
         ) : null}
         {!hasBadge && tab.dot ? <View style={styles.dot} /> : null}
       </View>
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+      <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
+        {tab.label}
+      </Text>
     </Pressable>
   );
 }
@@ -78,46 +80,39 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderTopWidth: 1,
-    borderTopColor: '#dbe2ea',
+    borderTopColor: '#e5e7eb',
     backgroundColor: '#ffffff',
-    minHeight: 72,
-    paddingHorizontal: 10,
+    minHeight: 60,
+    paddingHorizontal: 8,
     paddingTop: 8,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -3 },
-    elevation: 12,
   },
   tabRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
+    justifyContent: 'space-around',
+    gap: 4,
   },
   tabButton: {
     flex: 1,
-    borderRadius: 10,
-    paddingHorizontal: 4,
-    paddingVertical: 7,
+    borderRadius: 8,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-  },
-  tabButtonActive: {
-    backgroundColor: '#171d3a',
+    gap: 1,
   },
   tabLabel: {
-    fontSize: 10,
-    color: '#64748b',
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 15,
+    color: '#6b7280',
+    fontWeight: '500',
   },
   tabLabelActive: {
-    color: '#ffffff',
+    color: '#2563eb',
   },
   iconWrap: {
     position: 'relative',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   badge: {
     position: 'absolute',

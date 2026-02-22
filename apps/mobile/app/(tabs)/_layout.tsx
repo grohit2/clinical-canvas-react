@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../src/navigation/tabBarStyle';
 
+const BOTTOM_NAV_ICON_SIZE = 22;
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const tabBarVisibleStyle = useMemo(
@@ -28,22 +30,22 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color }) => <Home color={color} size={BOTTOM_NAV_ICON_SIZE} />,
         }}
       />
       <Tabs.Screen
         name="patients"
         options={{
           title: 'Patients',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+          tabBarIcon: ({ color }) => <Users color={color} size={BOTTOM_NAV_ICON_SIZE} />,
         }}
       />
       <Tabs.Screen
         name="tasks"
         options={{
           title: 'Tasks',
-          tabBarIcon: ({ color, size }) => (
-            <ClipboardList color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <ClipboardList color={color} size={BOTTOM_NAV_ICON_SIZE} />
           ),
           tabBarStyle: TAB_BAR_HIDDEN_STYLE,
         }}
@@ -52,7 +54,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({ color }) => <User color={color} size={BOTTOM_NAV_ICON_SIZE} />,
         }}
       />
       <Tabs.Screen

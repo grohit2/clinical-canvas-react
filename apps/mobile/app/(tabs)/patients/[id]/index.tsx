@@ -103,6 +103,16 @@ export default function PatientDetailRoute() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]} numberOfLines={1}>
+            {patient?.name || 'Patient'}
+          </Text>
+        </View>
+        {!isTopChromeCollapsed ? (
+          <Text style={styles.subtitle}>ID: {patientId}</Text>
+        ) : null}
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: contentBottomPadding }]}
@@ -110,15 +120,6 @@ export default function PatientDetailRoute() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, isTopChromeCollapsed && styles.headerCollapsed]}>
-          <Text style={[styles.title, isTopChromeCollapsed && styles.titleCollapsed]}>
-            {patient?.name || 'Patient'}
-          </Text>
-          {!isTopChromeCollapsed ? (
-            <Text style={styles.subtitle}>ID: {patientId}</Text>
-          ) : null}
-        </View>
-
         <Pressable style={styles.card} onPress={() => router.push(`/patients/${patientId}/edit` as never)}>
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Edit Patient</Text>
@@ -156,12 +157,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   header: {
-    marginTop: 12,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
   },
   headerCollapsed: {
-    marginTop: 6,
-    marginBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
@@ -174,6 +180,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: '#64748b',
+    marginTop: 4,
   },
   card: {
     borderRadius: 14,

@@ -13,8 +13,11 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ImagePlus, MoreVertical, Search, Share2, Trash2 } from 'lucide-react-native';
 import type { DocumentsApi } from '../../api/documentsApi';
+import type { DateSection } from '../../core';
+import { DOC_CATEGORIES } from '../../core/categories';
 import type { DocCategory, DocumentItem } from '../../core/types';
 import { isVideoByMimeOrExt } from '../../core/utils';
+import { CATEGORY_CONFIG } from '../categoryConfig.native';
 import { AlbumGrid } from '../components/AlbumGrid.native';
 import { AllDocumentsBanner } from '../components/AllDocumentsBanner.native';
 import { DocumentLightbox } from '../components/DocumentLightbox.native';
@@ -28,6 +31,16 @@ import { useDocumentSync } from '../hooks/useDocumentSync';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
 
 type RootTab = 'activity' | 'collections';
+const EMPTY_SELECTED_IDS = new Set<string>();
+
+function toUploadedAtTimestamp(value: string | undefined): number {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  if (Number.isFinite(parsed)) return parsed;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  return 0;
+}
 
 function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): DocumentItem[] {
   const selected: DocumentItem[] = [];
@@ -89,6 +102,7 @@ export function DocumentsRootScreen({
   const sections = dateGroupsQuery.sections;
 
   const [activeTab, setActiveTab] = useState<RootTab>('activity');
+  const [collectionsCategorizedView, setCollectionsCategorizedView] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -115,6 +129,39 @@ export function DocumentsRootScreen({
         .slice(0, 5),
     [documents]
   );
+  const folderSections = useMemo<DateSection[]>(() => {
+    const byCategory = new Map<DocCategory, DocumentItem[]>();
+    for (const item of imageDocuments) {
+      const existing = byCategory.get(item.category);
+      if (existing) {
+        existing.push(item);
+      } else {
+        byCategory.set(item.category, [item]);
+      }
+    }
+
+    return DOC_CATEGORIES
+      .map((category) => {
+        const categoryDocs = byCategory.get(category) || [];
+        if (!categoryDocs.length) return null;
+        const sortedDocs = [...categoryDocs].sort(
+          (a, b) => toUploadedAtTimestamp(b.uploadedAt) - toUploadedAtTimestamp(a.uploadedAt)
+        );
+        return {
+          section: {
+            key: `folder-${category}`,
+            label: CATEGORY_CONFIG[category].title,
+            year: 0,
+            month: 0,
+            documents: sortedDocs,
+          },
+          latestTimestamp: toUploadedAtTimestamp(sortedDocs[0]?.uploadedAt),
+        };
+      })
+      .filter((item): item is { section: DateSection; latestTimestamp: number } => !!item)
+      .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
+      .map((item) => item.section);
+  }, [imageDocuments]);
 
   useEffect(() => {
     if (activeTab !== 'activity' && selectionMode) {
@@ -362,36 +409,82 @@ export function DocumentsRootScreen({
 
         </View>
       ) : (
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={syncNow} />}
-          contentContainerStyle={styles.collectionsContent}
-          bounces={false}
-          alwaysBounceVertical={false}
-          overScrollMode="never"
-          showsVerticalScrollIndicator={false}
-        >
-          <AllDocumentsBanner
-            totalCount={totalDocCount}
-            recentThumbs={recentThumbs}
-            lastUpdatedAt={documents[0]?.uploadedAt}
-            onPress={() => setActiveTab('activity')}
-          />
+        <View style={styles.collectionsWrap}>
+          <View style={styles.collectionsToggleRow}>
+            <Text style={styles.collectionsToggleLabel}>Folder-wise feed</Text>
+            <Pressable
+              style={[
+                styles.collectionsToggleButton,
+                collectionsCategorizedView && styles.collectionsToggleButtonActive,
+              ]}
+              onPress={() => setCollectionsCategorizedView((prev) => !prev)}
+            >
+              <Text
+                style={[
+                  styles.collectionsToggleButtonText,
+                  collectionsCategorizedView && styles.collectionsToggleButtonTextActive,
+                ]}
+              >
+                {collectionsCategorizedView ? 'ON' : 'OFF'}
+              </Text>
+            </Pressable>
+          </View>
 
-          <AlbumGrid
-            summaries={foldersQuery.data || []}
-            coverMap={coversQuery.data}
-            onOpen={openCategory}
-          />
+          {collectionsCategorizedView ? (
+            folderSections.length ? (
+              <GalleryGrid
+                sections={folderSections}
+                selectionMode={false}
+                selectedIds={EMPTY_SELECTED_IDS}
+                onPressDocument={handleDocPress}
+                onLongPressDocument={() => undefined}
+                onToggleDocument={() => undefined}
+                onToggleSection={() => undefined}
+                onRefresh={syncNow}
+                refreshing={refreshing}
+              />
+            ) : (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyIcon}>📂</Text>
+                <Text style={styles.emptyTitle}>No collection pictures yet</Text>
+                <Text style={styles.emptySubtitle}>
+                  Add pictures from camera or gallery to see folder-wise sections here.
+                </Text>
+              </View>
+            )
+          ) : (
+            <ScrollView
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={syncNow} />}
+              contentContainerStyle={styles.collectionsContent}
+              bounces={false}
+              alwaysBounceVertical={false}
+              overScrollMode="never"
+              showsVerticalScrollIndicator={false}
+            >
+              <AllDocumentsBanner
+                totalCount={totalDocCount}
+                recentThumbs={recentThumbs}
+                lastUpdatedAt={documents[0]?.uploadedAt}
+                onPress={() => setActiveTab('activity')}
+              />
 
-          <QuickActions
-            onImportShare={() =>
-              router.push(`/import-shared?patientId=${encodeURIComponent(patientId)}` as never)
-            }
-            onDownloadOffline={handleDownloadAll}
-            offlineCount={offlineCount}
-            totalCount={totalDocCount}
-          />
-        </ScrollView>
+              <AlbumGrid
+                summaries={foldersQuery.data || []}
+                coverMap={coversQuery.data}
+                onOpen={openCategory}
+              />
+
+              <QuickActions
+                onImportShare={() =>
+                  router.push(`/import-shared?patientId=${encodeURIComponent(patientId)}` as never)
+                }
+                onDownloadOffline={handleDownloadAll}
+                offlineCount={offlineCount}
+                totalCount={totalDocCount}
+              />
+            </ScrollView>
+          )}
+        </View>
       )}
 
       <DocumentLightbox
@@ -569,6 +662,48 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  collectionsWrap: {
+    flex: 1,
+  },
+  collectionsToggleRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  collectionsToggleLabel: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  collectionsToggleButton: {
+    minWidth: 52,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collectionsToggleButtonActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#2563eb',
+  },
+  collectionsToggleButtonText: {
+    color: '#475569',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  collectionsToggleButtonTextActive: {
+    color: '#ffffff',
   },
   collectionsContent: {
     paddingTop: 12,

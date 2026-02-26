@@ -1,4 +1,14 @@
 ===============================
+date: 2026-02-26
+what all changes
+- Collections tab now includes a Folder-wise feed toggle so users can switch from album cards to a continuous categorized list.
+- When the toggle is ON, collection pictures are grouped by folder and shown one after another in a single scroll flow.
+- Folder sections are sorted by latest folder activity, and pictures inside each folder are sorted by most recent upload first.
+- Existing Collections album-card layout remains available when the toggle is OFF so no current workflow is removed.
+
+====================================
+
+===============================
 date: 2026-02-22
 what all changes
 - Documents now support video files and show a visual video preview with a play indicator so users can quickly identify clips in gallery view.

@@ -1,4 +1,15 @@
 ===============================
+date: 2026-02-26
+what all changes
+- Added a Collections tab Folder-wise feed toggle on the documents root screen so users can switch between album cards and a continuous categorized feed.
+- Implemented folder/category grouping for collection images in the root screen feed and rendered each folder as its own section in one scrollable list.
+- Applied deterministic sorting so folder sections are ordered by latest upload timestamp and each section's images are ordered newest first, matching activity-style recency behavior.
+- Reused the existing gallery section-list renderer for the categorized feed so document opening, refresh, and image lightbox entry remain consistent with activity interactions.
+- Preserved the existing album-grid Collections experience under toggle OFF so the previous navigation path is retained.
+
+====================================
+
+===============================
 date: 2026-02-22
 what all changes
 - Added broad file-kind and MIME inference for image, video, pdf, word, spreadsheet, presentation, dicom, and text so uploads and API documents are classified consistently.
@@ -61,6 +72,19 @@ changes
 what files were wouched
 .planning/changelog.md
 .planning/changelogPM.md
+src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
+=========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+.planning/changelog.md
+.planning/changelogPM.md
 apps/mobile/package.json
 package.json
 pnpm-lock.yaml
@@ -76,4 +100,17 @@ src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
 src/domains/patient-documents/web/components/DocumentCard.web.tsx
 src/domains/patient-documents/web/components/DocumentGrid.web.tsx
 src/domains/patient-documents/web/components/DocumentLightbox.web.tsx
+=========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+.planning/changelog.md
+.planning/changelogPM.md
+src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
 =========================================

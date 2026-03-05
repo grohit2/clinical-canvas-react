@@ -149,3 +149,20 @@ changes
 what files were wouched
 package-lock.json
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+src/app/layout/AppShell.tsx
+src/app/layout/index.ts
+src/domains/dashboard/screens/DashboardScreen.tsx
+src/domains/patient-list/screens/PatientListScreen.tsx
+src/domains/profile/screens/ProfileScreen.tsx
+src/shared/components/layout/PageShell.tsx
+src/shared/hooks/usePullToSearch.ts
+=========================================

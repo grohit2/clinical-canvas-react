@@ -112,11 +112,7 @@ export function PageShell({
     threshold: 80,
     maxPull: 120,
     onThresholdCross: triggerHaptic,
-    onTrigger: () => {
-      openSearch();
-      // Reset pull state after opening
-      requestAnimationFrame(() => pull.dismiss());
-    },
+    onTrigger: openSearch,
   });
 
   // Auto-focus the search input when overlay opens
@@ -270,7 +266,7 @@ export function PageShell({
           </Button>
         )}
 
-        {header.showBell !== false && (
+        {header.showBell && (
           <div className="relative">
             <Button
               variant="ghost"

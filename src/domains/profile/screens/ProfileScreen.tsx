@@ -1,4 +1,5 @@
 import { PageShell } from "@shared/components/layout/PageShell";
+import { getPriorityColorClass } from "../core/types";
 import { Card } from "@shared/components/ui/card";
 import { Button } from "@shared/components/ui/button";
 import { Badge } from "@shared/components/ui/badge";
@@ -216,15 +217,6 @@ export function ProfileScreen() {
 
   // Notifications View
   if (showNotifications) {
-    const getPriorityColor = (priority: string) => {
-      switch (priority) {
-        case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-        case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        case 'low': return 'bg-green-100 text-green-800 border-green-200';
-        default: return 'bg-gray-100 text-gray-800 border-gray-200';
-      }
-    };
 
     return (
       <PageShell header={{ title: "Notifications" }}>
@@ -242,7 +234,7 @@ export function ProfileScreen() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-sm sm:text-base truncate">{notification.patientName}</h3>
-                    <Badge className={`text-xs px-2 py-1 ${getPriorityColor(notification.priority)}`}>
+                    <Badge className={`text-xs px-2 py-1 ${getPriorityColorClass(notification.priority)}`}>
                       {notification.priority.toUpperCase()}
                     </Badge>
                   </div>

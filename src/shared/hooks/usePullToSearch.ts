@@ -3,8 +3,6 @@ import { useRef, useCallback, useEffect, useState } from "react";
 export interface PullToSearchState {
   /** 0–1 progress of the pull gesture (0 = no pull, 1 = fully extended / threshold met) */
   progress: number;
-  /** true once the user has pulled past the threshold and the search overlay should open */
-  isTriggered: boolean;
   /** true while the user is actively dragging down */
   isPulling: boolean;
   /** current visual offset in px (clamped to maxPull) */
@@ -24,13 +22,15 @@ export interface UsePullToSearchOptions {
   onTrigger?: () => void;
 }
 
+const IDLE_STATE: PullToSearchState = { progress: 0, isPulling: false, pullOffset: 0 };
+
 /**
  * Hook that implements a "pull-down-to-search" gesture on a scrollable container.
  *
  * Attach `containerRef` to the scroll parent. The hook tracks touch events and
  * exposes progress/offset values that drive the animated search indicator.
  *
- * The gesture only activates when `scrollTop === 0` (user is at the very top).
+ * The gesture only activates when the page is scrolled to the very top.
  */
 export function usePullToSearch({
   threshold = 80,
@@ -44,37 +44,31 @@ export function usePullToSearch({
   const pulling = useRef(false);
   const crossedThreshold = useRef(false);
 
-  const [state, setState] = useState<PullToSearchState>({
-    progress: 0,
-    isTriggered: false,
-    isPulling: false,
-    pullOffset: 0,
-  });
+  // Store callbacks in refs so the effect doesn't re-run when they change
+  const onThresholdCrossRef = useRef(onThresholdCross);
+  onThresholdCrossRef.current = onThresholdCross;
+  const onTriggerRef = useRef(onTrigger);
+  onTriggerRef.current = onTrigger;
+
+  const [state, setState] = useState<PullToSearchState>(IDLE_STATE);
 
   const reset = useCallback(() => {
     pulling.current = false;
     crossedThreshold.current = false;
-    setState({ progress: 0, isTriggered: false, isPulling: false, pullOffset: 0 });
+    setState(IDLE_STATE);
   }, []);
-
-  /** Dismiss the triggered search overlay – pages call this when closing search. */
-  const dismiss = useCallback(() => {
-    reset();
-  }, [reset]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !enabled) return;
 
     const onTouchStart = (e: TouchEvent) => {
-      // Only start if we're scrolled to the very top
-      const scrollTop = el.scrollTop ?? window.scrollY;
-      if (scrollTop > 0) return;
+      // Use window.scrollY since the ref is on a non-scrolling wrapper div
+      if (window.scrollY > 0) return;
 
       startY.current = e.touches[0].clientY;
       pulling.current = true;
       crossedThreshold.current = false;
-      setState((s) => ({ ...s, isPulling: true }));
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -84,7 +78,7 @@ export function usePullToSearch({
       if (dy < 0) {
         // Scrolling up – abort the gesture
         pulling.current = false;
-        setState({ progress: 0, isTriggered: false, isPulling: false, pullOffset: 0 });
+        setState(IDLE_STATE);
         return;
       }
 
@@ -94,27 +88,26 @@ export function usePullToSearch({
 
       if (progress >= 1 && !crossedThreshold.current) {
         crossedThreshold.current = true;
-        onThresholdCross?.();
+        onThresholdCrossRef.current?.();
       }
 
-      setState({ progress, isTriggered: false, isPulling: true, pullOffset: clamped });
+      setState({ progress, isPulling: true, pullOffset: clamped });
 
       // Prevent native scroll while pulling down at top
-      if (dy > 0 && (el.scrollTop ?? 0) <= 0) {
+      if (dy > 0 && window.scrollY <= 0) {
         e.preventDefault();
       }
     };
 
     const onTouchEnd = () => {
       if (!pulling.current) return;
+      pulling.current = false;
 
       if (crossedThreshold.current) {
-        setState((s) => ({ ...s, isTriggered: true, isPulling: false }));
-        onTrigger?.();
-      } else {
-        reset();
+        onTriggerRef.current?.();
       }
-      pulling.current = false;
+      // Always reset visual state on touch end – the callback handles opening search
+      setState(IDLE_STATE);
     };
 
     el.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -126,7 +119,7 @@ export function usePullToSearch({
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
     };
-  }, [enabled, threshold, maxPull, onThresholdCross, onTrigger, reset]);
+  }, [enabled, threshold, maxPull, reset]);
 
-  return { ...state, containerRef, dismiss, reset };
+  return { ...state, containerRef, reset };
 }

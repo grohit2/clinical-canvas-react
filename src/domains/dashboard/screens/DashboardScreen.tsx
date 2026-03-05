@@ -110,7 +110,7 @@ export function DashboardScreen() {
 
   return (
     <PageShell
-      header={{ title: "Dashboard", notificationCount: 5 }}
+      header={{ title: "Dashboard", showBell: true, notificationCount: 5 }}
     >
       <div className="p-4 space-y-6">
         {/* Date */}

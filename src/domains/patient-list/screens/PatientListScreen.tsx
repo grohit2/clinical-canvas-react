@@ -155,6 +155,7 @@ export function PatientsListPage() {
         title: "Patients",
         showAdd: true,
         onAdd: () => navigate(paths.patientsAdd()),
+        showBell: true,
         notificationCount: 3,
         onNotificationClick: () => setShowNotifications(true),
       }}

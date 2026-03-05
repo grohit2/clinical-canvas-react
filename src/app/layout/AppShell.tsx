@@ -98,17 +98,13 @@ export function AppShell({
 }
 
 /**
- * Minimal shell with just the bottom bar.
- * Use for pages that manage their own header.
+ * Minimal shell – just passes through to child pages.
+ * Pages use <PageShell> for header, bottom bar, and pull-to-search.
  */
 export function MinimalShell({ children }: { children?: React.ReactNode }) {
-  const location = useLocation();
-  const hideGlobalBottomBar = location.pathname === "/tasks";
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className={`flex-1 ${hideGlobalBottomBar ? "" : "pb-20"}`}>{children ?? <Outlet />}</main>
-      {!hideGlobalBottomBar ? <BottomBar /> : null}
+      <main className="flex-1">{children ?? <Outlet />}</main>
     </div>
   );
 }

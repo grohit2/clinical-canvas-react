@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Header } from "@/components/layout/Header";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -295,8 +295,9 @@ export function ReferralsScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Referrals & Consults" />
+    <PageShell
+      header={{ title: "Referrals & Consults" }}
+    >
 
       <div className="p-4 space-y-4">
         {/* Filters */}
@@ -501,6 +502,6 @@ export function ReferralsScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { KPITile } from "@/components/dashboard/KPITile";
 import { MindfulnessTile } from "@/components/dashboard/MindfulnessTile";
 import { Card } from "@/components/ui/card";
@@ -62,7 +62,7 @@ export function DashboardScreen() {
   // Compute KPI metrics from patients data
   const kpiData = useMemo(() => {
     const totalPatients = patients.length;
-    const urgentAlerts = patients.filter((p: any) => p.isUrgent).length;
+    const urgentAlerts = patients.filter((p: Record<string, unknown>) => p.isUrgent).length;
     // Tasks due would need a separate query - for now show 0 or use placeholder
     const tasksDue = 0; // TODO: Add useTasks hook if needed
     return { totalPatients, tasksDue, urgentAlerts };
@@ -71,7 +71,7 @@ export function DashboardScreen() {
   // Compute stage distribution heat map
   const stageHeatMap = useMemo((): StageEntry[] => {
     const stageCounts: Record<string, number> = {};
-    patients.forEach((p: any) => {
+    patients.forEach((p: Record<string, unknown>) => {
       const stage = p.currentState || "Unknown";
       stageCounts[stage] = (stageCounts[stage] || 0) + 1;
     });
@@ -94,7 +94,7 @@ export function DashboardScreen() {
       offsetMs;
 
     return patients
-      .map((p: any) => ({ p, sd: p.surgeryDate as string | undefined }))
+      .map((p: Record<string, unknown>) => ({ p, sd: p.surgeryDate as string | undefined }))
       .filter((x) => x.sd)
       .map(({ p, sd }) => ({ p, when: new Date(sd!) }))
       .filter(({ when }) => when.getTime() >= istMidnightUtcMs)
@@ -109,9 +109,9 @@ export function DashboardScreen() {
   }, [patients]);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Dashboard" notificationCount={5} />
-
+    <PageShell
+      header={{ title: "Dashboard", notificationCount: 5 }}
+    >
       <div className="p-4 space-y-6">
         {/* Date */}
         <div className="flex items-center justify-between">
@@ -258,6 +258,6 @@ export function DashboardScreen() {
           </div>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

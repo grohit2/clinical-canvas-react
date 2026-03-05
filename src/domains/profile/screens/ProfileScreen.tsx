@@ -1,5 +1,4 @@
-import { Header } from "@shared/components/layout/Header";
-import { BottomBar } from "@shared/components/layout/BottomBar";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { Card } from "@shared/components/ui/card";
 import { Button } from "@shared/components/ui/button";
 import { Badge } from "@shared/components/ui/badge";
@@ -228,9 +227,7 @@ export function ProfileScreen() {
     };
 
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <Header title="Notifications" />
-
+      <PageShell header={{ title: "Notifications" }}>
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-2 mb-6">
             <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)}>
@@ -271,16 +268,13 @@ export function ProfileScreen() {
             </Card>
           )}
         </div>
-
-        <BottomBar />
-      </div>
+      </PageShell>
     );
   }
 
   if (showAccountSettings) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <Header title="Account Settings" />
+      <PageShell header={{ title: "Account Settings" }}>
         
         <div className="p-4 space-y-6">
           <div className="flex items-center gap-2 mb-6">
@@ -473,15 +467,12 @@ export function ProfileScreen() {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-        
-        <BottomBar />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Profile" />
+    <PageShell header={{ title: "Profile" }}>
       
       <div className="p-4 space-y-6">
         {/* Profile Header */}
@@ -576,9 +567,7 @@ export function ProfileScreen() {
           </div>
         </Card>
       </div>
-      
-      <BottomBar />
-    </div>
+    </PageShell>
   );
 }
 

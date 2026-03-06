@@ -217,7 +217,6 @@ export function ProfileScreen() {
 
   // Notifications View
   if (showNotifications) {
-
     return (
       <PageShell header={{ title: "Notifications" }}>
         <div className="p-4 space-y-4">

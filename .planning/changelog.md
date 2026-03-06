@@ -166,3 +166,15 @@ src/domains/profile/screens/ProfileScreen.tsx
 src/shared/components/layout/PageShell.tsx
 src/shared/hooks/usePullToSearch.ts
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+src/app/layout/AppShell.tsx
+src/domains/profile/screens/ProfileScreen.tsx
+=========================================

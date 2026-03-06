@@ -69,7 +69,7 @@ export interface PageShellProps {
 
 function triggerHaptic() {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    navigator.vibrate(10);
+    navigator.vibrate(5);
   }
 }
 
@@ -305,7 +305,7 @@ export function PageShell({
   return (
     <div
       ref={pull.containerRef}
-      className="min-h-screen bg-background flex flex-col relative"
+      className="min-h-screen bg-background flex flex-col relative overscroll-y-contain"
     >
       {pullIndicator}
       {headerBar}

@@ -8,7 +8,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  RefreshControl,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +16,7 @@ import { Search, Plus, X, FileText, Pin } from 'lucide-react-native';
 import { usePatients } from '../../src/hooks/usePatients';
 import { usePatientsFilters } from '../../src/hooks/usePatientsFilters';
 import { usePinnedPatients } from '../../src/hooks/usePinnedPatients';
+import { triggerSubtleSelectionHaptic } from '../../src/lib/haptics';
 import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../src/navigation/tabBarStyle';
 import {
   parseComorbidities,
@@ -45,7 +45,6 @@ const borderColors: Record<string, string> = {
 const SCROLL_DELTA_THRESHOLD = 10;
 const SCROLL_TOP_RESET_OFFSET = 8;
 const SCROLL_COLLAPSE_OFFSET = 40;
-
 function PatientCard({
   patient,
   isPinned,
@@ -138,7 +137,7 @@ export default function PatientsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { data: patients = [], isLoading, refetch, isRefetching } = usePatients();
+  const { data: patients = [], isLoading } = usePatients();
   const filters = usePatientsFilters();
   const { isPinned } = usePinnedPatients();
   const tabBarVisibleStyle = useMemo(
@@ -208,6 +207,17 @@ export default function PatientsScreen() {
     setIsTabBarHidden(false);
     setIsSearchOpen(true);
   }, [filters, isSearchOpen]);
+
+  const handlePullToSearch = useCallback(() => {
+    if (isSearchOpen) {
+      return;
+    }
+
+    triggerSubtleSelectionHaptic();
+    setIsTopChromeCollapsed(false);
+    setIsTabBarHidden(false);
+    setIsSearchOpen(true);
+  }, [isSearchOpen]);
 
   const handleListScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -365,7 +375,8 @@ export default function PatientsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderPatient}
           ListEmptyComponent={renderEmpty}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+          onRefresh={handlePullToSearch}
+          refreshing={false}
           onScroll={handleListScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}

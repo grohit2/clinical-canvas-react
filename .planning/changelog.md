@@ -178,3 +178,35 @@ what files were wouched
 src/app/layout/AppShell.tsx
 src/domains/profile/screens/ProfileScreen.tsx
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+apps/mobile/app/(tabs)/patients.tsx
+apps/mobile/package.json
+apps/mobile/src/lib/haptics.ts
+pnpm-lock.yaml
+src/index.css
+src/shared/components/layout/PageShell.tsx
+=========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+apps/mobile/app/(tabs)/patients.tsx
+apps/mobile/package.json
+apps/mobile/src/lib/haptics.ts
+pnpm-lock.yaml
+src/index.css
+src/shared/components/layout/PageShell.tsx
+=========================================

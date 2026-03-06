@@ -127,6 +127,13 @@
     @apply border-border;
   }
 
+  /* Disable native pull-to-refresh so pull-down triggers in-app search gesture on Android */
+  html,
+  body,
+  #root {
+    overscroll-behavior-y: contain;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

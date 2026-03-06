@@ -221,3 +221,32 @@ changes
 what files were wouched
 apps/mobile/src/lib/api.ts
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+apps/mobile/app/(tabs)/index.tsx
+src/domains/referrals/DEPENDENCIES.md
+src/domains/referrals/README.md
+src/domains/referrals/screens/ReferralsScreen.tsx
+=========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+.planning/changelog.md
+apps/mobile/app/(tabs)/index.tsx
+src/domains/referrals/DEPENDENCIES.md
+src/domains/referrals/README.md
+src/domains/referrals/screens/ReferralsScreen.tsx
+=========================================

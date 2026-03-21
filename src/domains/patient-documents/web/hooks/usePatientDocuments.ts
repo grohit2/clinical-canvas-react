@@ -10,11 +10,25 @@ import type { DocCategory, SortOrder } from '../../core/types';
 
 const DOCUMENTS_QUERY_KEY = 'patient-documents';
 const defaultDocumentsApi = createDocumentsApi(import.meta.env.VITE_API_BASE_URL || '/api');
+
+export interface MoveDocumentInput {
+  fromCategory: DocCategory;
+  toCategory: DocCategory;
+  key: string;
+}
+
 type DetachErrorLike = {
   status?: number;
   message?: string;
   body?: { error?: string };
 };
+
+function invalidatePatientDocuments(queryClient: ReturnType<typeof useQueryClient>, patientId: string | undefined) {
+  if (!patientId) return;
+  queryClient.invalidateQueries({
+    queryKey: [DOCUMENTS_QUERY_KEY, patientId],
+  });
+}
 
 export function usePatientDocumentsProfile(
   patientId: string | undefined,
@@ -120,9 +134,7 @@ export function useDeleteDocument(
       throw lastError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [DOCUMENTS_QUERY_KEY, patientId],
-      });
+      invalidatePatientDocuments(queryClient, patientId);
     },
   });
 }
@@ -150,9 +162,58 @@ export function useDeleteDocuments(
       return results;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [DOCUMENTS_QUERY_KEY, patientId],
+      invalidatePatientDocuments(queryClient, patientId);
+    },
+  });
+}
+
+export function useMoveDocument(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ fromCategory, toCategory, key }: MoveDocumentInput) => {
+      if (!patientId) throw new Error('Patient ID required');
+
+      return documentsApi.moveDocument(patientId, {
+        fromCategory,
+        toCategory,
+        key,
       });
+    },
+    onSuccess: () => {
+      invalidatePatientDocuments(queryClient, patientId);
+    },
+  });
+}
+
+export function useMoveDocuments(
+  patientId: string | undefined,
+  documentsApi: DocumentsApi = defaultDocumentsApi
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: MoveDocumentInput[]) => {
+      const results = { succeeded: 0, failed: 0 };
+
+      if (!patientId) throw new Error('Patient ID required');
+
+      for (const item of items) {
+        try {
+          await documentsApi.moveDocument(patientId, item);
+          results.succeeded += 1;
+        } catch {
+          results.failed += 1;
+        }
+      }
+
+      return results;
+    },
+    onSuccess: () => {
+      invalidatePatientDocuments(queryClient, patientId);
     },
   });
 }

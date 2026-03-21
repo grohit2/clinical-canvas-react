@@ -1,6 +1,7 @@
 import type { DocCategory } from './types';
 
 export const DOC_CATEGORIES: DocCategory[] = [
+  'staging_area',
   'preop_pics',
   'lab_reports',
   'radiology',
@@ -11,6 +12,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
 ];
 
 export const CATEGORY_LABELS: Record<DocCategory, string> = {
+  staging_area: 'Staging',
   preop_pics: 'Pre-op',
   lab_reports: 'Lab Reports',
   radiology: 'Radiology',
@@ -21,6 +23,7 @@ export const CATEGORY_LABELS: Record<DocCategory, string> = {
 };
 
 export const CATEGORY_FULL_LABELS: Record<DocCategory, string> = {
+  staging_area: 'Staging Area',
   preop_pics: 'Pre-operative',
   lab_reports: 'Lab Reports',
   radiology: 'Radiology',
@@ -30,9 +33,10 @@ export const CATEGORY_FULL_LABELS: Record<DocCategory, string> = {
   discharge_pics: 'Discharge',
 };
 
-export type DocType = 'preop' | 'lab' | 'radiology' | 'intraop' | 'otnotes' | 'postop' | 'discharge';
+export type DocType = 'staging' | 'preop' | 'lab' | 'radiology' | 'intraop' | 'otnotes' | 'postop' | 'discharge';
 
 const DOC_TYPE_BY_CATEGORY: Record<DocCategory, DocType> = {
+  staging_area: 'staging',
   preop_pics: 'preop',
   lab_reports: 'lab',
   radiology: 'radiology',

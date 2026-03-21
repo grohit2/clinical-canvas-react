@@ -33,7 +33,7 @@ import {
 } from "@/domains/patient-documents/web";
 
 // Pages not yet migrated to features (will be refactored later)
-import PatientDetail from "@/pages/PatientDetail";
+import { PatientDetailPage as PatientDetail } from "@/domains/patient-detail/screens/PatientDetailScreen";
 import PatientQRView from "@/pages/PatientQRView";
 import DischargeSummaryPage from "@/pages/DischargeSummary";
 

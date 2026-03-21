@@ -52,6 +52,11 @@ export interface DetachDocumentRequest {
   key: string;
 }
 
+export interface MoveDocumentRequest extends Omit<AttachDocumentRequest, 'category'> {
+  fromCategory: DocCategory;
+  toCategory: DocCategory;
+}
+
 export interface DeleteFilesOptions {
   invalidate?: boolean;
   includeSiblings?: boolean;
@@ -89,62 +94,118 @@ async function requestWithStatus<T>(baseUrl: string, path: string, init?: Reques
 export function createDocumentsApi(baseUrl: string) {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
 
+  const getDocuments = (patientId: string): Promise<ApiDocumentsProfile> => {
+    return requestWithStatus<ApiDocumentsProfile>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/documents`
+    );
+  };
+
+  const initDocuments = (patientId: string): Promise<{ message: 'created' | 'exists'; documents: ApiDocumentsProfile }> => {
+    return requestWithStatus<{ message: 'created' | 'exists'; documents: ApiDocumentsProfile }>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/documents/init`,
+      { method: 'POST' }
+    );
+  };
+
+  const presignUpload = (patientId: string, args: PresignUploadRequest): Promise<PresignUploadResponse> => {
+    const docType: DocType = categoryToDocType(args.category);
+
+    return requestWithStatus<PresignUploadResponse>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/files/presign-upload`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: args.filename,
+          mimeType: args.mimeType,
+          target: args.target || 'optimized',
+          kind: args.kind || 'doc',
+          docType,
+          quality: args.quality,
+          maxW: args.maxW,
+          needsOptimization: args.needsOptimization,
+          label: args.label,
+        }),
+      }
+    );
+  };
+
+  const presignDownload = (patientId: string, key: string): Promise<PresignDownloadResponse> => {
+    return requestWithStatus<PresignDownloadResponse>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/files/presign-download`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      }
+    );
+  };
+
+  const attachDocument = (
+    patientId: string,
+    args: AttachDocumentRequest
+  ): Promise<{ message: string; documents: ApiDocumentsProfile }> => {
+    return requestWithStatus<{ message: string; documents: ApiDocumentsProfile }>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/documents/attach`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+      }
+    );
+  };
+
+  const detachDocument = (
+    patientId: string,
+    args: DetachDocumentRequest
+  ): Promise<{ message: string; documents: ApiDocumentsProfile }> => {
+    return requestWithStatus<{ message: string; documents: ApiDocumentsProfile }>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/documents/detach`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+      }
+    );
+  };
+
+  const deleteFiles = (
+    patientId: string,
+    keys: string[],
+    opts: DeleteFilesOptions = { invalidate: true, includeSiblings: true }
+  ): Promise<DeleteFilesResponse> => {
+    return requestWithStatus<DeleteFilesResponse>(
+      normalizedBaseUrl,
+      `/patients/${encodeURIComponent(patientId)}/files/delete`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keys,
+          invalidate: opts.invalidate !== false,
+          includeSiblings: opts.includeSiblings !== false,
+        }),
+      }
+    );
+  };
+
   return {
-    getDocuments(patientId: string): Promise<ApiDocumentsProfile> {
-      return requestWithStatus<ApiDocumentsProfile>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/documents`
-      );
-    },
-
-    initDocuments(patientId: string): Promise<{ message: 'created' | 'exists'; documents: ApiDocumentsProfile }> {
-      return requestWithStatus<{ message: 'created' | 'exists'; documents: ApiDocumentsProfile }>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/documents/init`,
-        { method: 'POST' }
-      );
-    },
-
-    presignUpload(patientId: string, args: PresignUploadRequest): Promise<PresignUploadResponse> {
-      const docType: DocType = categoryToDocType(args.category);
-
-      return requestWithStatus<PresignUploadResponse>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/files/presign-upload`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: args.filename,
-            mimeType: args.mimeType,
-            target: args.target || 'optimized',
-            kind: args.kind || 'doc',
-            docType,
-            quality: args.quality,
-            maxW: args.maxW,
-            needsOptimization: args.needsOptimization,
-            label: args.label,
-          }),
-        }
-      );
-    },
-
-    presignDownload(patientId: string, key: string): Promise<PresignDownloadResponse> {
-      return requestWithStatus<PresignDownloadResponse>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/files/presign-download`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key }),
-        }
-      );
-    },
-
-    attachDocument(patientId: string, args: AttachDocumentRequest): Promise<{ message: string; documents: ApiDocumentsProfile }> {
+    getDocuments,
+    initDocuments,
+    presignUpload,
+    presignDownload,
+    attachDocument,
+    detachDocument,
+    moveDocument(patientId: string, args: MoveDocumentRequest): Promise<{ message: string; documents: ApiDocumentsProfile }> {
       return requestWithStatus<{ message: string; documents: ApiDocumentsProfile }>(
         normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/documents/attach`,
+        `/patients/${encodeURIComponent(patientId)}/documents/move`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -152,38 +213,7 @@ export function createDocumentsApi(baseUrl: string) {
         }
       );
     },
-
-    detachDocument(patientId: string, args: DetachDocumentRequest): Promise<{ message: string; documents: ApiDocumentsProfile }> {
-      return requestWithStatus<{ message: string; documents: ApiDocumentsProfile }>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/documents/detach`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(args),
-        }
-      );
-    },
-
-    deleteFiles(
-      patientId: string,
-      keys: string[],
-      opts: DeleteFilesOptions = { invalidate: true, includeSiblings: true }
-    ): Promise<DeleteFilesResponse> {
-      return requestWithStatus<DeleteFilesResponse>(
-        normalizedBaseUrl,
-        `/patients/${encodeURIComponent(patientId)}/files/delete`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            keys,
-            invalidate: opts.invalidate !== false,
-            includeSiblings: opts.includeSiblings !== false,
-          }),
-        }
-      );
-    },
+    deleteFiles,
   };
 }
 

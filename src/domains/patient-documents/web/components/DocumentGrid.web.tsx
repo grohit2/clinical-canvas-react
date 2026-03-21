@@ -14,6 +14,7 @@ interface DocumentGridProps {
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   onDelete?: (document: DocumentItem) => void;
+  onMove?: (document: DocumentItem) => void;
   emptyMessage?: string;
 }
 
@@ -25,6 +26,7 @@ export function DocumentGrid({
   selectedIds = new Set(),
   onSelectionChange,
   onDelete,
+  onMove,
   emptyMessage = "No documents found",
 }: DocumentGridProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -90,6 +92,7 @@ export function DocumentGrid({
               }
             }}
             onDelete={onDelete ? () => onDelete(doc) : undefined}
+            onMove={onMove ? () => onMove(doc) : undefined}
           />
         ))}
       </div>

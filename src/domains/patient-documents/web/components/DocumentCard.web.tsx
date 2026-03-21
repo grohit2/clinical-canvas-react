@@ -13,6 +13,7 @@ interface DocumentCardProps {
   onSelect?: (id: string) => void;
   onClick?: () => void;
   onDelete?: () => void;
+  onMove?: () => void;
 }
 
 export function DocumentCard({
@@ -23,6 +24,7 @@ export function DocumentCard({
   onSelect,
   onClick,
   onDelete,
+  onMove,
 }: DocumentCardProps) {
   const handleClick = (e: React.MouseEvent) => {
     if (selectionMode && onSelect) {
@@ -159,7 +161,7 @@ export function DocumentCard({
           {/* Delete button (visible on hover when not in selection mode) */}
           {!selectionMode && onDelete && (
             <button
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600 z-20"
+              className="absolute top-2 right-2 z-20 rounded-full bg-red-500 p-1 text-white opacity-100 transition-opacity duration-200 hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100"
               title="Remove document"
               onClick={(e) => {
                 e.stopPropagation();
@@ -173,6 +175,19 @@ export function DocumentCard({
                   clipRule="evenodd"
                 />
               </svg>
+            </button>
+          )}
+
+          {!selectionMode && onMove && (
+            <button
+              className="absolute top-2 left-2 z-20 rounded-full bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white opacity-100 transition-opacity duration-200 hover:bg-slate-900 md:opacity-0 md:group-hover:opacity-100"
+              title="Move document"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove();
+              }}
+            >
+              Move
             </button>
           )}
         </>

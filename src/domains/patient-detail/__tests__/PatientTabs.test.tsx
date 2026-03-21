@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { PatientCaseSheetTabs } from "../PatientCaseSheetTabs";
+import { PatientCaseSheetTabs } from "../components/PatientTabs";
 
 describe("PatientCaseSheetTabs", () => {
   it("renders four tabs", () => {
-    render(<PatientCaseSheetTabs patientId="p1" />);
+    render(<PatientCaseSheetTabs />);
     expect(screen.getByText("Red")).toBeInTheDocument();
     expect(screen.getByText("Yellow")).toBeInTheDocument();
     expect(screen.getByText("Blue")).toBeInTheDocument();

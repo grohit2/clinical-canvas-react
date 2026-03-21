@@ -31,6 +31,7 @@ export interface ApiDocument {
 }
 
 export interface ApiDocumentsProfile {
+  stagingArea?: ApiDocument[];
   preopPics?: ApiDocument[];
   labReports?: ApiDocument[];
   radiology?: ApiDocument[];
@@ -63,6 +64,7 @@ function makeStableDocId(patientId: string, category: DocCategory, key?: string,
 }
 
 const CATEGORY_PROFILE_MAP: Record<DocCategory, keyof ApiDocumentsProfile> = {
+  staging_area: 'stagingArea',
   preop_pics: 'preopPics',
   lab_reports: 'labReports',
   radiology: 'radiology',

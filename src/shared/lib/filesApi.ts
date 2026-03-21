@@ -21,7 +21,7 @@ async function requestWithStatus<T>(
   return r.json();
 }
 
-export type DocType = "preop" | "lab" | "radiology" | "intraop" | "otnotes" | "postop" | "discharge";
+export type DocType = "staging" | "preop" | "lab" | "radiology" | "intraop" | "otnotes" | "postop" | "discharge";
 export type FilesScope = "optimized" | "originals" | "thumb";
 export type FilesKind = "doc" | "note" | "med" | "task";
 

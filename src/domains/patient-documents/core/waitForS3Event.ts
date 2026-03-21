@@ -5,6 +5,8 @@ export type FetchDocumentsProfile = (patientId: string) => Promise<ApiDocumentsP
 
 function listForCategory(profile: ApiDocumentsProfile, category: DocCategory) {
   switch (category) {
+    case 'staging_area':
+      return profile.stagingArea || [];
     case 'preop_pics':
       return profile.preopPics || [];
     case 'lab_reports':

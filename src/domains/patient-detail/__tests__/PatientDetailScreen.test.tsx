@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
 import { api } from "@/lib/api";
-import { PatientDetailPage } from "../PatientDetailPage";
+import { PatientDetailPage } from "../screens/PatientDetailScreen";
 
 vi.mock("@/lib/api", async (orig) => {
   const actual = await orig();
@@ -54,5 +54,6 @@ describe("PatientDetailPage", () => {
     // The summary shows "MRN: MRN-1 • Scheme: ASP • Pathway: —"
     // MRN text might appear multiple times, so use getAllByText
     expect(screen.getAllByText(/MRN: MRN-1/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /open documents/i })).toBeInTheDocument();
   });
 });

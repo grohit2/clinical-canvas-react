@@ -16,6 +16,7 @@ const DOC_SK = "DOCS#PROFILE";
 
 // categories -> Dynamo attributes
 const CATS = {
+  staging_area:   "staging_area",
   preop_pics:     "preop_pics",
   lab_reports:    "lab_reports",
   radiology:      "radiology",
@@ -24,6 +25,13 @@ const CATS = {
   postop_pics:    "postop_pics",
   discharge_pics: "discharge_pics",
 };
+
+const MOVE_CATS = {
+  ...CATS,
+  staging_area: "staging_area",
+};
+
+const ALL_MOVE_ATTRS = Object.values(MOVE_CATS);
 
 // Helper to add CDN URLs to document entries
 function enrichWithCdnUrls(entries) {
@@ -42,11 +50,45 @@ const toUiDocs = (it = {}) => ({
   otNotes:       enrichWithCdnUrls(it.ot_notes),
   postopPics:    enrichWithCdnUrls(it.postop_pics),
   dischargePics: enrichWithCdnUrls(it.discharge_pics),
+  stagingArea:   enrichWithCdnUrls(it.staging_area),
   createdAt: it.created_at,
   updatedAt: it.updated_at,
 });
 
 function safeUid(u) { return String(u || "").replace(/[^a-zA-Z0-9._-]+/g, "_"); }
+
+function normalizeMoveCategory(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const lower = value.toLowerCase();
+  if (lower === "stagingarea" || lower === "staging_area" || lower === "staging-area") {
+    return "staging_area";
+  }
+  return MOVE_CATS[lower] || null;
+}
+
+function cloneDocLists(docs = {}) {
+  return {
+    preop_pics: Array.isArray(docs.preop_pics) ? [...docs.preop_pics] : [],
+    lab_reports: Array.isArray(docs.lab_reports) ? [...docs.lab_reports] : [],
+    radiology: Array.isArray(docs.radiology) ? [...docs.radiology] : [],
+    intraop_pics: Array.isArray(docs.intraop_pics) ? [...docs.intraop_pics] : [],
+    ot_notes: Array.isArray(docs.ot_notes) ? [...docs.ot_notes] : [],
+    postop_pics: Array.isArray(docs.postop_pics) ? [...docs.postop_pics] : [],
+    discharge_pics: Array.isArray(docs.discharge_pics) ? [...docs.discharge_pics] : [],
+    staging_area: Array.isArray(docs.staging_area) ? [...docs.staging_area] : [],
+  };
+}
+
+function findDocEntry(lists, key, attrs = ALL_MOVE_ATTRS) {
+  const matches = [];
+  for (const attr of attrs) {
+    const list = Array.isArray(lists[attr]) ? lists[attr] : [];
+    const entry = list.find((it) => it?.key === key);
+    if (entry) matches.push({ attr, entry });
+  }
+  return matches;
+}
 
 async function getDocsItem(ddb, TABLE, uid) {
   const r = await ddb.send(new GetCommand({
@@ -70,6 +112,7 @@ function emptyDocsItem(uid, now) {
     ot_notes: [],
     postop_pics: [],
     discharge_pics: [],
+    staging_area: [],
 
     created_at: now,
     updated_at: now,
@@ -114,7 +157,7 @@ export function mountDocumentRoutes(router, ctx) {
 
   /* POST /patients/:id/documents/attach
      Body: {
-       category: "preop_pics"|"lab_reports"|"radiology"|"intraop_pics"|"ot_notes"|"postop_pics"|"discharge_pics",
+       category: "staging_area"|"preop_pics"|"lab_reports"|"radiology"|"intraop_pics"|"ot_notes"|"postop_pics"|"discharge_pics",
        key: "patients/{UID}/optimized/docs/<docType>/...ext",
        uploadedBy?: string,
        caption?: string,
@@ -185,6 +228,91 @@ export function mountDocumentRoutes(router, ctx) {
     } catch (e) {
       if (e?.name === "ConditionalCheckFailedException") {
         return resp(409, { error: "document record changed; retry attach" });
+      }
+      throw e;
+    }
+  });
+
+  // POST /patients/:id/documents/move
+  // Body: { key, fromCategory?: string, sourceCategory?: string, toCategory?: string, targetCategory?: string }
+  router.add("POST", /^\/?patients\/([^/]+)\/documents\/move\/?$/, async ({ match, event }) => {
+    const rawId = decodeURIComponent(match[1]);
+    const resolved = await resolveAnyPatientId(ddb, TABLE, rawId);
+    if (!resolved?.meta) return resp(404, { error: "Patient not found" });
+
+    const uid = resolved.uid;
+    const body = parseBody(event) || {};
+    const key = body.key;
+    if (!key || typeof key !== "string") return resp(400, { error: "key is required" });
+
+    const sourceInput = body.fromCategory ?? body.sourceCategory;
+    const targetInput = body.toCategory ?? body.targetCategory;
+    const hasSourceInput = sourceInput !== undefined && sourceInput !== null && String(sourceInput).trim() !== "";
+    const hasTargetInput = targetInput !== undefined && targetInput !== null && String(targetInput).trim() !== "";
+    const sourceCategory = hasSourceInput ? normalizeMoveCategory(sourceInput) : null;
+    const targetCategory = hasTargetInput ? normalizeMoveCategory(targetInput) : null;
+
+    if (hasSourceInput && !sourceCategory) return resp(400, { error: "invalid source category" });
+    if (!targetCategory) return resp(400, { error: "invalid target category" });
+
+    const docs = await getDocsItem(ddb, TABLE, uid);
+    if (!docs) return resp(404, { error: "documents record not found" });
+
+    const lists = cloneDocLists(docs);
+    let sourceAttr = sourceCategory;
+    let entry = null;
+
+    if (sourceAttr) {
+      entry = (lists[sourceAttr] || []).find((it) => it?.key === key) || null;
+      if (!entry) return resp(404, { error: "key not found in source category" });
+    } else {
+      const matches = findDocEntry(lists, key);
+      if (matches.length === 0) return resp(404, { error: "key not found in documents" });
+      if (matches.length > 1) {
+        return resp(409, { error: "key exists in multiple categories; provide sourceCategory" });
+      }
+      sourceAttr = matches[0].attr;
+      entry = matches[0].entry;
+    }
+
+    if (sourceAttr === targetCategory) {
+      return resp(200, {
+        message: "no-op",
+        fromCategory: sourceAttr,
+        toCategory: targetCategory,
+        documents: toUiDocs(docs),
+      });
+    }
+
+    const next = cloneDocLists(docs);
+    for (const attr of ALL_MOVE_ATTRS) {
+      next[attr] = (next[attr] || []).filter((it) => it?.key !== key);
+    }
+    next[targetCategory].push(entry);
+
+    const updatedItem = {
+      ...docs,
+      ...next,
+      updated_at: nowISO(),
+    };
+
+    try {
+      const previousUpdatedAt = docs.updated_at || "";
+      await ddb.send(new PutCommand({
+        TableName: TABLE,
+        Item: updatedItem,
+        ConditionExpression: "updated_at = :prev OR attribute_not_exists(updated_at)",
+        ExpressionAttributeValues: { ":prev": previousUpdatedAt },
+      }));
+      return resp(200, {
+        message: "moved",
+        fromCategory: sourceAttr,
+        toCategory: targetCategory,
+        documents: toUiDocs(updatedItem),
+      });
+    } catch (e) {
+      if (e?.name === "ConditionalCheckFailedException") {
+        return resp(409, { error: "document record changed; retry move" });
       }
       throw e;
     }

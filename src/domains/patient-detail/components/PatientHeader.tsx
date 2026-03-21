@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pin, FileText, PencilLine, Workflow } from "lucide-react";
+import { Pin, PencilLine, Workflow } from "lucide-react";
 import { Button } from "@shared/components/ui/button";
 import { StageChip } from "@entities/patient/ui";
 import { useToast } from "@shared/hooks/use-toast";
@@ -72,15 +72,6 @@ export function PatientSummaryHeader({ id, name, mrn, scheme, stage, pathway }: 
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => navigate(paths.patientDocs(id))}
-        >
-          <FileText className="h-4 w-4" />
-          Documents
-        </Button>
         <Button
           variant="outline"
           size="sm"

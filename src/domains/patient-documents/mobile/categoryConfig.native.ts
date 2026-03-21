@@ -5,6 +5,7 @@ import {
   FileCheck,
   FileText,
   FolderOpen,
+  Inbox,
   Scissors,
   Stethoscope,
 } from 'lucide-react-native';
@@ -19,6 +20,7 @@ export interface CategoryConfigItem {
 }
 
 const CATEGORY_ICONS: Record<DocCategory | 'all', CategoryConfigItem['icon']> = {
+  staging_area: Inbox,
   preop_pics: Camera,
   lab_reports: FileText,
   radiology: Activity,
@@ -30,6 +32,12 @@ const CATEGORY_ICONS: Record<DocCategory | 'all', CategoryConfigItem['icon']> = 
 };
 
 export const CATEGORY_CONFIG: Record<DocCategory | 'all', CategoryConfigItem> = {
+  staging_area: {
+    title: CATEGORY_META.staging_area.title,
+    shortLabel: CATEGORY_META.staging_area.shortLabel,
+    icon: CATEGORY_ICONS.staging_area,
+    gradient: [CATEGORY_META.staging_area.gradientFrom, CATEGORY_META.staging_area.gradientTo],
+  },
   preop_pics: {
     title: CATEGORY_META.preop_pics.title,
     shortLabel: CATEGORY_META.preop_pics.shortLabel,

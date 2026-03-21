@@ -1,4 +1,5 @@
 export type DocCategory =
+  | 'staging_area'
   | 'preop_pics'
   | 'lab_reports'
   | 'radiology'

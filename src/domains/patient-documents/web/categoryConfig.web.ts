@@ -1,5 +1,6 @@
 import {
   Camera,
+  Inbox,
   FileText,
   Stethoscope,
   Scissors,
@@ -22,6 +23,7 @@ export interface CategoryConfigItem {
 }
 
 const COLOR_CLASSES: Record<string, Pick<CategoryConfigItem, 'color' | 'bgFrom' | 'bgTo'>> = {
+  amber: { color: 'text-amber-600', bgFrom: 'from-amber-500', bgTo: 'to-amber-600' },
   blue: { color: 'text-blue-600', bgFrom: 'from-blue-500', bgTo: 'to-blue-600' },
   green: { color: 'text-green-600', bgFrom: 'from-green-500', bgTo: 'to-green-600' },
   purple: { color: 'text-purple-600', bgFrom: 'from-purple-500', bgTo: 'to-purple-600' },
@@ -33,6 +35,7 @@ const COLOR_CLASSES: Record<string, Pick<CategoryConfigItem, 'color' | 'bgFrom' 
 };
 
 const CATEGORY_ICONS: Record<DocCategory | 'all', LucideIcon> = {
+  staging_area: Inbox,
   preop_pics: Camera,
   lab_reports: FileText,
   radiology: Activity,
@@ -58,6 +61,7 @@ function toConfig(category: DocCategory | 'all'): CategoryConfigItem {
 }
 
 export const CATEGORY_CONFIG: Record<DocCategory | 'all', CategoryConfigItem> = {
+  staging_area: toConfig('staging_area'),
   preop_pics: toConfig('preop_pics'),
   lab_reports: toConfig('lab_reports'),
   radiology: toConfig('radiology'),

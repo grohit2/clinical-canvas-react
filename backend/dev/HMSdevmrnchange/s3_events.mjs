@@ -24,6 +24,7 @@ const DOC_SK = "DOCS#PROFILE";
 
 // category mapping based on docType in key
 const DOC_TYPE_TO_CAT = {
+  staging: "staging_area",
   preop: "preop_pics",
   lab: "lab_reports",
   radiology: "radiology",
@@ -58,6 +59,7 @@ function emptyDocsItem(uid, now) {
     doc_id: "DOCS",
     patient_uid: uid,
 
+    staging_area: [],
     preop_pics: [],
     lab_reports: [],
     radiology: [],

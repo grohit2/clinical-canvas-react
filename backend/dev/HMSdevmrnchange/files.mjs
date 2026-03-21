@@ -57,6 +57,7 @@ const EXT_BY_MIME = {
 };
 
 const DOC_TYPES = new Set([
+  "staging",
   "preop",
   "lab",
   "radiology",

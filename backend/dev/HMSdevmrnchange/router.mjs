@@ -18,13 +18,20 @@ import { mountDischargeRoutes } from "./discharge.mjs";
 /* ---- env & clients ---- */
 const REGION = process.env.AWS_REGION || "ap-south-1";
 const TABLE = process.env.TABLE_NAME || "HMS";
+const AWS_ENDPOINT = process.env.AWS_ENDPOINT || "";
 
 // Patients/Doctors list GSIs
 const DEPT_INDEX = "GSI1PK-index";       // must project REG rows (patients) + doctors as you already do
 const TASK_GSI  = "GSI2PK-GSI2SK-index"; // existing tasks dashboard index
 
+const ddbClientOpts = { region: REGION };
+if (AWS_ENDPOINT) {
+  ddbClientOpts.endpoint = AWS_ENDPOINT;
+  ddbClientOpts.credentials = { accessKeyId: "test", secretAccessKey: "test" };
+}
+
 export const ddb = DynamoDBDocumentClient.from(
-  new DynamoDBClient({ region: REGION }),
+  new DynamoDBClient(ddbClientOpts),
   { marshallOptions: { removeUndefinedValues: true } }
 );
 

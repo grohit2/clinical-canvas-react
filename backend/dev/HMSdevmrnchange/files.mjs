@@ -17,6 +17,7 @@ import { CloudFrontClient, CreateInvalidationCommand } from "@aws-sdk/client-clo
 /* ------------------------------ ENV & CLIENT ------------------------------ */
 
 const REGION = process.env.AWS_REGION || process.env.S3_REGION || "ap-south-1";
+const AWS_ENDPOINT = process.env.AWS_ENDPOINT || "";
 const BUCKET =
   process.env.FILES_BUCKET ||
   process.env.DOCS_BUCKET ||
@@ -26,7 +27,13 @@ const PRESIGN_EXPIRES_SEC = Number(
   process.env.PRESIGN_EXPIRES_SEC || process.env.S3_PRESIGN_EXPIRES || 900
 ); // 15min default
 
-const s3 = new S3Client({ region: REGION });
+const s3Opts = { region: REGION };
+if (AWS_ENDPOINT) {
+  s3Opts.endpoint = AWS_ENDPOINT;
+  s3Opts.forcePathStyle = true;
+  s3Opts.credentials = { accessKeyId: "test", secretAccessKey: "test" };
+}
+const s3 = new S3Client(s3Opts);
 const CF_DISTRIBUTION_ID = process.env.CF_DISTRIBUTION_ID || "";
 const CF_DOMAIN = process.env.CF_DOMAIN || process.env.CDN_DOMAIN || "";
 const cf = CF_DISTRIBUTION_ID ? new CloudFrontClient({ region: REGION }) : null;

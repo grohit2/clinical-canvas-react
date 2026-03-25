@@ -65,6 +65,7 @@ The backend exposes a Lambda Function URL (not API Gateway) with full CORS suppo
 |--------|------|-------------|
 | GET | `/patients` | List active patients (?department=) |
 | GET | `/patients/:id` | Get patient by UID or MRN |
+| GET | `/patients/by-mrn/:mrn` | Get patient by MRN (explicit lookup) |
 | POST | `/patients` | Create patient |
 | PUT | `/patients/:id` | Update patient fields |
 | DELETE | `/patients/:id` | Soft delete (set INACTIVE) |
@@ -72,6 +73,7 @@ The backend exposes a Lambda Function URL (not API Gateway) with full CORS suppo
 | PATCH | `/patients/:id/registration` | Switch MRN/scheme |
 | PATCH | `/patients/:id/mrn-history` | Rewrite MRN history |
 | PATCH | `/patients/:id/mrn-overwrite` | Replace history + switch active MRN |
+| POST | `/patients/janitor/mrn-history-normalize` | Maintenance: normalize mrn_history on all patients |
 
 ### Tasks
 | Method | Path | Description |
@@ -80,6 +82,8 @@ The backend exposes a Lambda Function URL (not API Gateway) with full CORS suppo
 | POST | `/patients/:id/tasks` | Create task |
 | PATCH | `/patients/:id/tasks/:taskId` | Update task |
 | DELETE | `/patients/:id/tasks/:taskId` | Soft cancel task |
+| POST | `/patients/:id/tasks/:taskId/files/attach` | Attach file to task |
+| POST | `/patients/:id/tasks/:taskId/files/detach` | Detach file from task |
 | GET | `/tasks` | Dashboard: tasks by dept/status (?department=&status=) |
 
 ### Notes
@@ -99,6 +103,8 @@ The backend exposes a Lambda Function URL (not API Gateway) with full CORS suppo
 | POST | `/patients/:id/meds` | Create medication |
 | PATCH | `/patients/:id/meds/:medId` | Update medication |
 | DELETE | `/patients/:id/meds/:medId` | Soft stop (set end date) |
+| POST | `/patients/:id/meds/:medId/files/attach` | Attach file to medication |
+| POST | `/patients/:id/meds/:medId/files/detach` | Detach file from medication |
 
 ### Doctors
 | Method | Path | Description |
@@ -206,16 +212,29 @@ Document types: `preop`, `lab`, `radiology`, `intraop`, `otnotes`, `postop`, `di
 
 ## Environment Variables
 
+### Primary
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AWS_REGION` | `ap-south-1` | AWS region |
+| `AWS_REGION` | `ap-south-1` | AWS region for DynamoDB and S3 |
 | `TABLE_NAME` | `HMS` | DynamoDB table name |
 | `FILES_BUCKET` | — | S3 bucket for patient files |
 | `PRESIGN_EXPIRES_SEC` | `900` | Presigned URL expiry (seconds) |
 | `CDN_DOMAIN` | — | CloudFront distribution domain |
-| `CF_DISTRIBUTION_ID` | — | CloudFront distribution ID |
-| `CDN_SIGNED` | `false` | Use signed CloudFront URLs |
-| `AWS_ENDPOINT` | — | Custom endpoint (for LocalStack) |
+| `CF_DISTRIBUTION_ID` | — | CloudFront distribution ID (for cache invalidation) |
+| `AWS_ENDPOINT` | — | Custom AWS endpoint (for LocalStack local development) |
+
+### Fallback Variables
+
+These are checked as fallbacks in `files.mjs` for backward compatibility:
+
+| Variable | Fallback for | Used in |
+|----------|-------------|---------|
+| `S3_REGION` | `AWS_REGION` | `files.mjs` |
+| `DOCS_BUCKET` | `FILES_BUCKET` | `files.mjs` |
+| `S3_BUCKET` | `FILES_BUCKET` | `files.mjs` |
+| `S3_PRESIGN_EXPIRES` | `PRESIGN_EXPIRES_SEC` | `files.mjs` |
+| `CF_DOMAIN` | `CDN_DOMAIN` | `files.mjs`, `documents.mjs` |
 
 ---
 

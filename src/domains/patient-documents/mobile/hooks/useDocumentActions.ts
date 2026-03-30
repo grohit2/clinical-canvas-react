@@ -9,6 +9,7 @@ import { enqueueSyncAction, listPatientDocuments, patchDocument } from '../offli
 import type { PrefetchProgress } from '../offline/fileCache';
 import {
   ensureLocalFileForViewing,
+  moveDocumentCategory,
   prefetchOfflineForDocuments,
   queueDeleteDocument,
   runSyncQueueOnce,
@@ -283,6 +284,36 @@ export function useDocumentActions(
     return failed.length;
   }, [documentsApi, patientId, queryClient]);
 
+  // -- Move ---------------------------------------------------------------
+
+  const moveDocument = useCallback(
+    async (document: DocumentItem, toCategory: DocCategory) => {
+      if (!document.remoteKey) {
+        Alert.alert('Move failed', 'Only backed-up documents can be moved between categories.');
+        return;
+      }
+
+      try {
+        await moveDocumentCategory(
+          patientId,
+          document.id,
+          {
+            fromCategory: document.category,
+            toCategory,
+            key: document.remoteKey,
+          },
+          documentsApi
+        );
+
+        invalidateAll(queryClient, patientId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        Alert.alert('Move failed', message);
+      }
+    },
+    [documentsApi, patientId, queryClient]
+  );
+
   // -- Refresh ------------------------------------------------------------
 
   const refreshCategory = useCallback(() => {
@@ -296,6 +327,7 @@ export function useDocumentActions(
     shareDocument,
     shareDocuments,
     deleteDocuments,
+    moveDocument,
     downloadForOffline,
     downloadProgress,
     retryFailedUploads,

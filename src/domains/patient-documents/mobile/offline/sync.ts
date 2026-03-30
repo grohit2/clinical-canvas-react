@@ -22,6 +22,7 @@ import {
   markSyncActionFailed,
   patchDocument,
   removeSyncAction,
+  updateDocumentCategory,
   upsertDocuments,
 } from './db';
 import {
@@ -597,6 +598,22 @@ export async function queueDeleteDocument(doc: DocumentItem): Promise<void> {
     docId: doc.id,
     category: doc.category,
   });
+}
+
+export async function moveDocumentCategory(
+  patientId: string,
+  docId: string,
+  args: { fromCategory: DocCategory; toCategory: DocCategory; key: string },
+  documentsApi: DocumentsApi
+): Promise<void> {
+  await documentsApi.moveDocument(patientId, {
+    fromCategory: args.fromCategory,
+    toCategory: args.toCategory,
+    key: args.key,
+  });
+
+  await updateDocumentCategory(docId, args.toCategory);
+  await refreshPatientDocuments(patientId, documentsApi);
 }
 
 export async function rebuildFolderFromServer(

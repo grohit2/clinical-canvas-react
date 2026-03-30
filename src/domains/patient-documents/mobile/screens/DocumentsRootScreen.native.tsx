@@ -26,8 +26,9 @@ import { useDocumentActions } from '../hooks/useDocumentActions';
 import { useDocumentFolders } from '../hooks/useDocumentFolders';
 import { useDocumentSync } from '../hooks/useDocumentSync';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
+import { DocumentCollectionView } from './DocumentCollectionView.native';
 
-type RootTab = 'activity' | 'collections';
+type RootTab = 'activity' | 'collections' | 'collection';
 
 function computeSelection(documents: DocumentItem[], selectedIds: Set<string>): DocumentItem[] {
   const selected: DocumentItem[] = [];
@@ -86,12 +87,22 @@ export function DocumentsRootScreen({
     () => documents.filter((doc) => doc.isImage),
     [documents]
   );
+  const imageDocumentsByCategory = useMemo(() => {
+    const map: Partial<Record<DocCategory, DocumentItem[]>> = {};
+    for (const doc of documents) {
+      if (!doc.isImage) continue;
+      if (!map[doc.category]) map[doc.category] = [];
+      map[doc.category]!.push(doc);
+    }
+    return map;
+  }, [documents]);
   const sections = dateGroupsQuery.sections;
 
   const [activeTab, setActiveTab] = useState<RootTab>('activity');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxCategory, setLightboxCategory] = useState<DocCategory | null>(null);
   const isTopChromeCollapsed = false;
   const autoDownloadAttemptedIdsRef = useRef<Set<string>>(new Set());
 
@@ -116,6 +127,24 @@ export function DocumentsRootScreen({
     [documents]
   );
 
+  const handleMoveDocument = useCallback(
+    async (doc: DocumentItem, fromCategory: DocCategory, toCategory: DocCategory) => {
+      try {
+        if (!doc.remoteKey) return;
+        await documentsApi.moveDocument(patientId, {
+          fromCategory,
+          toCategory,
+          key: doc.remoteKey,
+        });
+        syncNow();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        Alert.alert('Move failed', message);
+      }
+    },
+    [documentsApi, patientId, syncNow]
+  );
+
   useEffect(() => {
     if (activeTab !== 'activity' && selectionMode) {
       setSelectionMode(false);
@@ -125,9 +154,13 @@ export function DocumentsRootScreen({
 
   useEffect(() => {
     if (lightboxIndex === null) return;
-    if (lightboxIndex < imageDocuments.length) return;
+    const activeArray = lightboxCategory
+      ? imageDocumentsByCategory[lightboxCategory] || []
+      : imageDocuments;
+    if (lightboxIndex < activeArray.length) return;
     setLightboxIndex(null);
-  }, [imageDocuments.length, lightboxIndex]);
+    setLightboxCategory(null);
+  }, [imageDocuments.length, imageDocumentsByCategory, lightboxCategory, lightboxIndex]);
 
   useEffect(() => {
     autoDownloadAttemptedIdsRef.current = new Set();
@@ -214,7 +247,7 @@ export function DocumentsRootScreen({
   }, [clearSelection, selectedDocs, shareDocuments]);
 
   const handleDocPress = useCallback(
-    async (doc: DocumentItem) => {
+    async (doc: DocumentItem, category?: DocCategory) => {
       if (selectionMode) {
         toggleSelected(doc.id);
         return;
@@ -230,12 +263,16 @@ export function DocumentsRootScreen({
         if (result.failed > 0) return;
       }
 
-      const index = imageDocuments.findIndex((item) => item.id === doc.id);
+      const targetArray = category
+        ? imageDocumentsByCategory[category] || []
+        : imageDocuments;
+      const index = targetArray.findIndex((item) => item.id === doc.id);
       if (index >= 0) {
+        setLightboxCategory(category ?? null);
         setLightboxIndex(index);
       }
     },
-    [downloadForOffline, imageDocuments, openExternalDocument, selectionMode, toggleSelected]
+    [downloadForOffline, imageDocuments, imageDocumentsByCategory, openExternalDocument, selectionMode, toggleSelected]
   );
 
   const handleDownloadAll = useCallback(async () => {
@@ -273,10 +310,20 @@ export function DocumentsRootScreen({
 
           <Pressable
             style={styles.tab}
+            onPress={() => setActiveTab('collection')}
+          >
+            <Text style={[styles.tabText, activeTab === 'collection' && styles.tabTextActive]}>
+              Collection
+            </Text>
+            {activeTab === 'collection' ? <View style={styles.tabIndicator} /> : null}
+          </Pressable>
+
+          <Pressable
+            style={styles.tab}
             onPress={() => setActiveTab('collections')}
           >
             <Text style={[styles.tabText, activeTab === 'collections' && styles.tabTextActive]}>
-              Collections
+              Folders
             </Text>
             {activeTab === 'collections' ? <View style={styles.tabIndicator} /> : null}
           </Pressable>
@@ -361,6 +408,15 @@ export function DocumentsRootScreen({
           )}
 
         </View>
+      ) : activeTab === 'collection' ? (
+        <View style={styles.activityWrap}>
+          <DocumentCollectionView
+            patientId={patientId}
+            documentsApi={documentsApi}
+            onDocumentPress={handleDocPress}
+            onMoveDocument={handleMoveDocument}
+          />
+        </View>
       ) : (
         <ScrollView
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={syncNow} />}
@@ -394,22 +450,32 @@ export function DocumentsRootScreen({
         </ScrollView>
       )}
 
-      <DocumentLightbox
-        visible={lightboxIndex !== null}
-        document={lightboxIndex !== null ? imageDocuments[lightboxIndex] : null}
-        currentIndex={lightboxIndex || 0}
-        totalCount={imageDocuments.length}
-        canPrev={lightboxIndex !== null && lightboxIndex > 0}
-        canNext={lightboxIndex !== null && lightboxIndex < imageDocuments.length - 1}
-        onClose={() => setLightboxIndex(null)}
-        onNavigate={(direction) => {
-          setLightboxIndex((prev) => {
-            if (prev === null) return null;
-            if (direction === 'prev') return Math.max(0, prev - 1);
-            return Math.min(imageDocuments.length - 1, prev + 1);
-          });
-        }}
-      />
+      {(() => {
+        const currentImageArray = lightboxCategory
+          ? imageDocumentsByCategory[lightboxCategory] || []
+          : imageDocuments;
+        return (
+          <DocumentLightbox
+            visible={lightboxIndex !== null}
+            document={lightboxIndex !== null ? currentImageArray[lightboxIndex] ?? null : null}
+            currentIndex={lightboxIndex || 0}
+            totalCount={currentImageArray.length}
+            canPrev={lightboxIndex !== null && lightboxIndex > 0}
+            canNext={lightboxIndex !== null && lightboxIndex < currentImageArray.length - 1}
+            onClose={() => {
+              setLightboxIndex(null);
+              setLightboxCategory(null);
+            }}
+            onNavigate={(direction) => {
+              setLightboxIndex((prev) => {
+                if (prev === null) return null;
+                if (direction === 'prev') return Math.max(0, prev - 1);
+                return Math.min(currentImageArray.length - 1, prev + 1);
+              });
+            }}
+          />
+        );
+      })()}
     </SafeAreaView>
   );
 }

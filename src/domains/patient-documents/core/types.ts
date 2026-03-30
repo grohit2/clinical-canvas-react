@@ -5,7 +5,8 @@ export type DocCategory =
   | 'intraop_pics'
   | 'ot_notes'
   | 'postop_pics'
-  | 'discharge_pics';
+  | 'discharge_pics'
+  | 'unorganized';
 
 export type BackupState = 'backed_up' | 'device_only' | 'pending_backup' | 'error';
 export type OfflineState = 'available_offline' | 'online_only';

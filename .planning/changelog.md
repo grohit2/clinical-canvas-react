@@ -250,3 +250,29 @@ src/domains/referrals/DEPENDENCIES.md
 src/domains/referrals/README.md
 src/domains/referrals/screens/ReferralsScreen.tsx
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+apps/mobile/package.json
+pnpm-lock.yaml
+src/domains/patient-documents/api/documentsApi.ts
+src/domains/patient-documents/core/categories.ts
+src/domains/patient-documents/core/categoryMeta.ts
+src/domains/patient-documents/core/mapFromApi.ts
+src/domains/patient-documents/core/types.ts
+src/domains/patient-documents/mobile/categoryConfig.native.ts
+src/domains/patient-documents/mobile/components/DocumentLightbox.native.tsx
+src/domains/patient-documents/mobile/components/MoveDocumentModal.native.tsx
+src/domains/patient-documents/mobile/hooks/useDocumentActions.ts
+src/domains/patient-documents/mobile/offline/db.ts
+src/domains/patient-documents/mobile/offline/sync.ts
+src/domains/patient-documents/mobile/screens/DocumentCollectionView.native.tsx
+src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
+src/domains/patient-documents/web/categoryConfig.web.ts
+=========================================

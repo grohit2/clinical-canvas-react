@@ -52,6 +52,12 @@ export interface DetachDocumentRequest {
   key: string;
 }
 
+export interface MoveDocumentRequest {
+  fromCategory: DocCategory;
+  toCategory: DocCategory;
+  key: string;
+}
+
 export interface DeleteFilesOptions {
   invalidate?: boolean;
   includeSiblings?: boolean;
@@ -163,6 +169,21 @@ export function createDocumentsApi(baseUrl: string) {
           body: JSON.stringify(args),
         }
       );
+    },
+
+    async moveDocument(
+      patientId: string,
+      args: MoveDocumentRequest
+    ): Promise<{ message: string; documents: ApiDocumentsProfile }> {
+      await this.detachDocument(patientId, {
+        category: args.fromCategory,
+        key: args.key,
+      });
+
+      return this.attachDocument(patientId, {
+        category: args.toCategory,
+        key: args.key,
+      });
     },
 
     deleteFiles(

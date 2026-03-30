@@ -309,6 +309,9 @@ importers:
       '@tanstack/query-async-storage-persister':
         specifier: ^5.56.2
         version: 5.90.22
+      '@tanstack/query-core':
+        specifier: 5.90.20
+        version: 5.90.20
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.90.20(react@19.1.0)

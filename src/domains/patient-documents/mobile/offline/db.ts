@@ -539,6 +539,21 @@ export async function patchDocument(
   await db.runAsync(`UPDATE documents SET ${assignments} WHERE id = ?`, bindValues);
 }
 
+export async function updateDocumentCategory(
+  docId: string,
+  category: DocCategory
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    const current = webDocs.get(docId);
+    if (!current) return;
+    webDocs.set(docId, { ...current, category });
+    return;
+  }
+
+  const db = await getDb();
+  await db.runAsync('UPDATE documents SET category = ? WHERE id = ?', [category, docId]);
+}
+
 export async function deleteDocumentById(docId: string): Promise<void> {
   if (Platform.OS === 'web') {
     webDocs.delete(docId);

@@ -66,7 +66,6 @@ export const formStyles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 18,
-    bottom: 22,
     backgroundColor: '#22c55e',
     borderRadius: 999,
     paddingHorizontal: 16,

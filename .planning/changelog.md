@@ -276,3 +276,24 @@ src/domains/patient-documents/mobile/screens/DocumentCollectionView.native.tsx
 src/domains/patient-documents/mobile/screens/DocumentsRootScreen.native.tsx
 src/domains/patient-documents/web/categoryConfig.web.ts
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+.planning/PM/1 complete guide.md
+.planning/PM/2 people.md
+.planning/PM/3 patient-detail.md
+.planning/PM/4.task-management
+.planning/PM/5 template .md
+apps/mobile/app/(tabs)/patients.tsx
+apps/mobile/app/(tabs)/patients/[id]/index.tsx
+apps/mobile/src/components/PatientActionsSheet.tsx
+apps/mobile/src/shared/ui/fabConstants.ts
+apps/mobile/src/shared/ui/formStyles.ts
+src/domains/tasks/screens/native/TaskBoardScreen.native.tsx
+=========================================

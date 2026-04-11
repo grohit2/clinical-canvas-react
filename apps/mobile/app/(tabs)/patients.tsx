@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRouter } from 'expo-router';
@@ -137,6 +138,9 @@ export default function PatientsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
+  // FAB fixed at 120px from screen bottom — never moves regardless of tab bar
+  const fabTop = screenHeight - insets.top - 120;
   const { data: patients = [], isLoading } = usePatients();
   const filters = usePatientsFilters();
   const { isPinned } = usePinnedPatients();
@@ -187,10 +191,6 @@ export default function PatientsScreen() {
   const listBottomPadding = isTabBarHidden
     ? Math.max(insets.bottom + 16, 24)
     : Math.max(insets.bottom + 92, 100);
-  const fabBottom = isTabBarHidden
-    ? Math.max(insets.bottom + 16, 20)
-    : Math.max(insets.bottom + 86, 96);
-
   const handleClearAll = () => {
     filters.setSearchQuery('');
     filters.clearFilters();
@@ -384,7 +384,7 @@ export default function PatientsScreen() {
         />
       )}
 
-      <Pressable style={[styles.fab, { bottom: fabBottom }]} onPress={() => router.push('/patients/register' as never)}>
+      <Pressable style={[styles.fab, { top: fabTop }]} onPress={() => router.push('/patients/register' as never)}>
         <Plus size={24} color="#fff" />
       </Pressable>
     </SafeAreaView>
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    right: 24,
+    right: 16,
     width: 56,
     height: 56,
     borderRadius: 28,

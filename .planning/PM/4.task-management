@@ -1,0 +1,135 @@
+You’re right: this is not production-ready yet.
+
+It looks about **70–80% done as a demo**, but more like **35–45% done as a dependable clinical workflow product**. The missing part is not cosmetic. It is the trust layer: one source of truth, real workflow automation, documents tied to care stages, multi-user sync, permissions, and release-quality mobile behavior.
+
+For iOS/Android, the baseline is higher than “it runs locally.” Apple reviews apps across **Safety, Performance, Business, Design, and Legal**, and Apple’s current submission guidance says apps should be built and tested with the latest SDKs/Xcode 26 for the latest OS releases. Google says apps should meet **core** and **adaptive** quality guidance across form factors, use standard interaction patterns, and monitor app quality through **Android vitals**. Google Play’s current requirement is that new apps and updates target **Android 15 / API 35** or higher. ([Apple Developer][1])
+
+One important limitation: I can assess the task/workflow system well from what you shared, but I cannot directly critique the actual `DocumentsRootPage` / `DocumentsFolderPage` UI because those component files were not included. I can still see the architecture gap around documents, though.
+
+## Why it still feels unfinished
+
+1. **You have more than one task system.**
+   The main task board uses the local-ledger hooks. Patient add/edit task screens still use the REST API. `usePatientTasks` also uses the REST API. That means the app can show one task universe in `/tasks` and a different task universe inside patient pages. That is the biggest reason it does not feel trustworthy.
+
+2. **You actually have three task models, not one.**
+   The REST API uses `open / in-progress / done / cancelled`. The task board domain uses `pending / in_progress / completed / cancelled`. The architecture doc introduces `workflowStatus` plus `businessStatus`. Until those collapse into one canonical model, every screen and automation will feel slightly off.
+
+3. **The architecture doc is ahead of the implementation.**
+   `task architecture.md` describes a serious local-first ledger with real SQLite tables, patients + tasks, outbox, automations, and sync-readiness. But the shipped `local-ledger` code still persists a **single JSON blob** in `ledger_state`, not normalized tables. `commandService.ts` only supports `task`, and the test suite explicitly expects patient ops to fail. So the plan is good, but the product is not there yet.
+
+4. **A lot of the current experience is still demo scaffolding.**
+   Hard-coded doctors, nurses, places, demo groups, dev seeding, hashed fallback avatars, a spreadsheet-like mobile table, and giant demo-ish board treatment all make it feel generated instead of operational. The board is trying to look like ClickUp before it behaves like ClickUp.
+
+5. **Important systems are only shells right now.**
+   Recurrence exists mostly as a field, not a real scheduler. Reminders are a filtered view, not a notification system. Outbox exists conceptually, but there is no real sync transport. Automation exists conceptually, but patient-created and stage-changed workflows are still deferred. Documents exist as routes and a `filesUrl`/`govShare` shape, not as a first-class document subsystem.
+
+6. **There are a few trust-killing implementation choices.**
+   `shared/lib/api.ts` logs patient update requests and responses to the console. In any clinical environment, that is a red flag. The web ledger also loads `sql.js` from a public CDN at runtime and persists exported state into local storage, which is not where a real healthcare workflow should stop.
+
+## What a production checklist looks like, and where this code is today
+
+| Area                                     | Production bar                                                                                 | Current state                                                                              | Verdict     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------- |
+| **Single source of truth**               | One authoritative model for patients, tasks, docs, staff, statuses                             | Split between local-ledger board, REST patient-task flows, and separate architecture model | **Missing** |
+| **Patient lifecycle workflows**          | Patient create/stage change should drive task generation and gating                            | Patient ops are not implemented in shipped command layer                                   | **Missing** |
+| **Templates / checklists / approvals**   | Reusable pathway templates, task checklists, reviewer approvals, stage gates                   | Not implemented                                                                            | **Missing** |
+| **Documents as workflow objects**        | Structured document entities, review states, expiry, approvals, audit, linkage to tasks/stages | Mostly `filesUrl`/route-level docs concept; no real doc model shown                        | **Missing** |
+| **Offline + sync**                       | Local cache/outbox plus cloud authority, retries, conflict handling, sync status               | Local-only blob ledger; outbox concept but no real multi-user sync                         | **Partial** |
+| **Audit + undo**                         | Durable activity history across key entities, traceable automations, safe undo                 | Good start for task ops and undo only                                                      | **Partial** |
+| **Real staff / auth / permissions**      | Real user accounts, staff records, RBAC, secure identity                                       | Board uses hard-coded staff constants; actor is a local string                             | **Missing** |
+| **Search / saved views / notifications** | Fast search across patients/tasks/docs/templates, meaningful reminders, bulk actions           | Basic filters only; reminders are not a full notification system                           | **Missing** |
+| **UX consistency**                       | Same concepts, forms, labels, actions, and status language across web/mobile/patient views     | Board vs patient add/edit flows are inconsistent                                           | **Partial** |
+| **Testing / release gates**              | End-to-end workflow tests, migration tests, observability, rollback plan                       | Some unit/integration tests; major smoke paths still unfinished in your own checklist      | **Partial** |
+
+## Mobile release checklist
+
+| Mobile item                                 | What “ready” means                                                  | Current read                         |
+| ------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------ |
+| **Latest platform submission requirements** | iOS latest SDK/Xcode, Android target API compliance                 | **Not verifiable from shared files** |
+| **Accessibility**                           | Labels, focus order, dynamic text, contrast, assistive tech support | **Partial**                          |
+| **Adaptive layouts**                        | Works cleanly on phones, tablets, split-screen, foldables           | **Partial**                          |
+| **Crash / perf monitoring**                 | Crash reporting, latency, startup, memory, vitals                   | **Missing**                          |
+| **Background / restore behavior**           | Resume safely after interruptions, app kills, network loss          | **Partial at best**                  |
+| **Notification flows**                      | In-app + push/local notifications with permission UX                | **Missing**                          |
+| **Security / privacy surfacing**            | Real auth, sensitive logging removed, privacy/data safety readiness | **Missing**                          |
+
+## What the patient documents feature should do in production
+
+The documents feature should not be a storage page. It should be part of the workflow engine.
+
+A real version of this page should treat each document as a structured record with fields like: patient, category, subtype, source, uploader, uploaded time, review status, reviewer, expiry date, evidence/source file, and audit trail. A single `filesUrl` is not enough.
+
+It should show **required vs optional documents by pathway/stage**, surface **missing / uploaded / awaiting review / approved / expired** states, and automatically create or resolve tasks. Example: if a discharge summary, insurance proof, consent form, lab, or imaging result is required for the current stage, the docs page should show that status immediately, and the workflow should either create a task or block stage completion until it is reviewed.
+
+It also needs upload progress, retry, preview, rename/tag, duplicate protection, search, secure sharing, and per-document audit history. On hospital Wi‑Fi, it also needs an upload queue and clear sync status.
+
+## What the workflow system should do
+
+For this to feel useful, the product needs this core loop:
+
+**Patient created → pathway/template assigned → tasks/checklists/docs materialized → ownership assigned → completion reviewed/approved → stage change triggers next set of work → everything syncs everywhere with audit trail.**
+
+That means you need first-class support for:
+
+* **Workflow templates** by disease/pathway/stage
+* **Versioned template library** so imported care plans stay frozen per patient
+* **Task templates** with assignee rules, due rules, recurrence rules, SLAs
+* **Checklist items / subtasks**
+* **Approval steps**
+* **Document requirements**
+* **Stage transition rules**
+* **Idempotent automations** keyed by patient + stage + template item
+* **Override with reason** when clinicians must bypass a gate
+
+For “online quick search,” I would not let raw web search create live patient tasks directly. High-stakes clinical workflows need a **curated library** with source, version, owner, last reviewed date, and approval status. AI/web search can help draft or find candidates, but publishing a template into live care should require human review.
+
+## The most important fixes, in order
+
+1. **Pick one authoritative task/workflow model and make everything use it.**
+   This is the non-negotiable fix. `/tasks`, patient task views, patient detail, documents, reminders, and automation all need to talk to the same domain model and command pipeline.
+
+2. **Stop the architecture drift.**
+   Either implement the real ledger described in `task architecture.md`, or simplify the architecture doc to match reality. Do not keep a polished architecture file and a different shipping system.
+
+3. **Add patient + workflow + document entities for real.**
+   Right now tasks are first-class-ish, patients are partially external, and documents are not modeled well. That has to become a coherent schema.
+
+4. **Build the missing workflow engine.**
+   Patient-created automation, stage-change automation, templates, checklist completion, approvals, stage gates, and document requirements are the missing 20% that will make the feature actually useful.
+
+5. **Remove demo scaffolding from the product path.**
+   Hard-coded doctors/nurses/places/demo tasks should be gone outside dev/demo mode. Staff, departments, and patients should be real records.
+
+6. **Redesign the mobile UX around worklists, not spreadsheets.**
+   The native table is dense but not natural on a phone. For clinicians, a better pattern is: worklist → patient/task detail drawer → checklist/documents/approval section → quick actions.
+
+7. **Add the trust layer.**
+   Remove PHI logging, add real auth and RBAC, add crash/perf monitoring, add sync status, add retry/error UX, and add real end-to-end tests.
+
+## AWS shape that fits this product
+
+The cloud version should keep **local SQLite as an offline cache/outbox**, but make the **server the source of truth**. For AWS, the clean shape is: **Cognito** for authentication/authorization, **S3 with presigned URLs** for private patient documents, and **AppSync Events/subscriptions** for real-time updates across devices, backed by a server-authoritative data store and event log. AWS positions the Well-Architected Framework and its Healthcare Lens around secure and reliable workloads; AppSync Events is built for secure, scalable real-time pub/sub; Cognito user pools are the auth/authz layer for web and mobile; S3 presigned URLs provide time-limited access to private objects. ([AWS Documentation][2])
+
+If this product is meant for a HIPAA-regulated setting, the bar is even higher. HHS says the Security Rule requires safeguards for the confidentiality, integrity, and security of ePHI, and the Privacy Rule emphasizes minimum-necessary access. Breach notification obligations also matter. From the code shown, I do not see enough role-based access, document-level controls, or operational safeguards to call this ready for that environment yet. ([HHS.gov][3])
+
+## Bottom line
+
+This is a **promising prototype with a good architecture direction**, not a polished production workflow system yet.
+
+The fastest way to make it feel real is **not more surface UI**. It is to finish the core contract:
+
+**patient → workflow template → tasks/checklists/docs → approvals → sync → audit**
+
+Once that is solid, the app will stop feeling like disconnected AI-generated pages and start feeling like one reliable product.
+
+Send the actual patient-documents page files and I’ll turn this into a file-by-file teardown with concrete changes.
+
+[1]: https://developer.apple.com/app-store/review/guidelines/ "App Review Guidelines - Apple Developer"
+[2]: https://docs.aws.amazon.com/wellarchitected/latest/framework/reliability.html "Reliability - AWS Well-Architected Framework"
+[3]: https://www.hhs.gov/hipaa/for-professionals/security/index.html?utm_source=chatgpt.com "The Security Rule"
+
+
+
+
+
+

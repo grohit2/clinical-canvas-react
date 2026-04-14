@@ -297,3 +297,15 @@ apps/mobile/src/shared/ui/fabConstants.ts
 apps/mobile/src/shared/ui/formStyles.ts
 src/domains/tasks/screens/native/TaskBoardScreen.native.tsx
 =========================================
+
+============================================
+
+date  commit version
+goal
+reasons
+changes
+
+what files were wouched
+Docs/backend/task-management-backend-design.md
+prd.json
+=========================================

@@ -1,0 +1,75 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "ChatTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        { "name": "GSI1", "partition_key": "GSI1PK", "sort_key": "GSI1SK", "projection": "ALL" },
+        { "name": "GSI2", "partition_key": "GSI2PK", "sort_key": "GSI2SK", "projection": "ALL" },
+        { "name": "GSI3", "partition_key": "GSI3PK", "sort_key": "GSI3SK", "projection": "KEYS_ONLY" }
+      ],
+      "entities": {
+        "ChatConversation": {
+          "entity_type": "METADATA",
+          "pk_template": "THREAD#{threadId}",
+          "sk_template": "METADATA",
+          "gsi_mappings": [
+            { "name": "GSI1", "pk_template": "ASSIGNED#{assignedTo}", "sk_template": "LAST_MSG#{lastMessageOn}" },
+            { "name": "GSI2", "pk_template": "UNIT#{unitCode}", "sk_template": "LAST_MSG#{lastMessageOn}" },
+            { "name": "GSI3", "pk_template": "PAT#{patientId}", "sk_template": "THREAD#{threadId}" }
+          ],
+          "fields": [
+            { "name": "threadId", "type": "string", "required": true },
+            { "name": "conversationId", "type": "string", "required": false },
+            { "name": "topic", "type": "string", "required": false },
+            { "name": "patientId", "type": "string", "required": false },
+            { "name": "patientName", "type": "string", "required": false },
+            { "name": "uhid", "type": "string", "required": false },
+            { "name": "assignedTo", "type": "string", "required": false },
+            { "name": "assignedToName", "type": "string", "required": false },
+            { "name": "assignType", "type": "string", "required": false },
+            { "name": "status", "type": "string", "required": true },
+            { "name": "unitCode", "type": "string", "required": true },
+            { "name": "lastMessage", "type": "string", "required": false },
+            { "name": "lastMessageOn", "type": "string", "required": false },
+            { "name": "unreadCount", "type": "integer", "required": false },
+            { "name": "createdOn", "type": "string", "required": true }
+          ],
+          "access_patterns": [
+            { "pattern_id": 701, "name": "get_conversation", "description": "Get conversation metadata", "operation": "GetItem", "consistent_read": false, "parameters": [{ "name": "threadId", "type": "string" }], "return_type": "single_entity" },
+            { "pattern_id": 702, "name": "my_conversations", "description": "Conversations assigned to user", "operation": "Query", "index_name": "GSI1", "consistent_read": false, "parameters": [{ "name": "assignedTo", "type": "string" }], "return_type": "entity_list" },
+            { "pattern_id": 703, "name": "unit_conversations", "description": "All conversations for unit", "operation": "Query", "index_name": "GSI2", "consistent_read": false, "parameters": [{ "name": "unitCode", "type": "string" }], "return_type": "entity_list" },
+            { "pattern_id": 704, "name": "patient_conversations", "description": "Conversations for patient", "operation": "Query", "index_name": "GSI3", "consistent_read": false, "parameters": [{ "name": "patientId", "type": "string" }], "return_type": "entity_list" },
+            { "pattern_id": 705, "name": "update_assignment", "description": "Assign/delegate/reassign conversation", "operation": "UpdateItem", "parameters": [{ "name": "threadId", "type": "string" }, { "name": "assignedTo", "type": "string" }, { "name": "assignType", "type": "string" }], "return_type": "single_entity" }
+          ]
+        },
+        "ChatMessage": {
+          "entity_type": "MSG",
+          "pk_template": "THREAD#{threadId}",
+          "sk_template": "MSG#{createdOn}##{messageId}",
+          "fields": [
+            { "name": "threadId", "type": "string", "required": true },
+            { "name": "messageId", "type": "string", "required": true },
+            { "name": "senderId", "type": "string", "required": true },
+            { "name": "senderDisplayName", "type": "string", "required": true },
+            { "name": "content", "type": "string", "required": true },
+            { "name": "type", "type": "string", "required": true },
+            { "name": "createdOn", "type": "string", "required": true },
+            { "name": "deletedOn", "type": "string", "required": false },
+            { "name": "metadata", "type": "object", "required": false },
+            { "name": "attachments", "type": "array", "required": false, "item_type": "object" },
+            { "name": "ttl", "type": "integer", "required": false }
+          ],
+          "access_patterns": [
+            { "pattern_id": 706, "name": "send_message", "description": "Send a chat message", "operation": "PutItem", "parameters": [{ "name": "message", "type": "entity", "entity_type": "ChatMessage" }], "return_type": "single_entity" },
+            { "pattern_id": 707, "name": "list_messages", "description": "List messages in thread", "operation": "Query", "range_condition": "begins_with", "consistent_read": false, "parameters": [{ "name": "threadId", "type": "string" }, { "name": "prefix", "type": "string" }], "return_type": "entity_list" },
+            { "pattern_id": 708, "name": "delete_message", "description": "Soft-delete a message", "operation": "UpdateItem", "parameters": [{ "name": "threadId", "type": "string" }, { "name": "sk", "type": "string" }, { "name": "deletedOn", "type": "string" }], "return_type": "single_entity" }
+          ]
+        }
+      }
+    }
+  ]
+}

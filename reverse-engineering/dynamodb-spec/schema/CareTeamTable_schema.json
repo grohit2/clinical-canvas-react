@@ -1,0 +1,87 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "CareTeamTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        { "name": "GSI1", "partition_key": "GSI1PK", "sort_key": "GSI1SK", "projection": "ALL" },
+        { "name": "GSI2", "partition_key": "GSI2PK", "sort_key": "GSI2SK", "projection": "ALL" }
+      ],
+      "entities": {
+        "CareTeamMetadata": {
+          "entity_type": "METADATA",
+          "pk_template": "PAT#{patientMrn}#ENC#{encounterNumber}",
+          "sk_template": "METADATA",
+          "fields": [
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "encounterNumber", "type": "string", "required": true },
+            { "name": "primaryConsultant", "type": "object", "required": false },
+            { "name": "mode", "type": "string", "required": true },
+            { "name": "unit", "type": "object", "required": false },
+            { "name": "hsc", "type": "object", "required": false },
+            { "name": "active", "type": "boolean", "required": true },
+            { "name": "createdOn", "type": "string", "required": true },
+            { "name": "createdBy", "type": "object", "required": false },
+            { "name": "modifiedOn", "type": "string", "required": false },
+            { "name": "modifiedBy", "type": "object", "required": false }
+          ],
+          "access_patterns": [
+            { "pattern_id": 901, "name": "get_care_team", "description": "Get care team metadata for patient encounter", "operation": "GetItem", "consistent_read": false, "parameters": [{ "name": "patientMrn", "type": "string" }, { "name": "encounterNumber", "type": "string" }], "return_type": "single_entity" },
+            { "pattern_id": 902, "name": "get_full_care_team", "description": "Get team metadata + all members", "operation": "Query", "consistent_read": false, "parameters": [{ "name": "pkValue", "type": "string" }], "return_type": "mixed_data" }
+          ]
+        },
+        "CareTeamMember": {
+          "entity_type": "MEMBER",
+          "pk_template": "PAT#{patientMrn}#ENC#{encounterNumber}",
+          "sk_template": "MEMBER#{userId}",
+          "gsi_mappings": [
+            { "name": "GSI1", "pk_template": "USER#{userId}", "sk_template": "PAT#{patientMrn}#ENC#{encounterNumber}" }
+          ],
+          "fields": [
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "encounterNumber", "type": "string", "required": true },
+            { "name": "userId", "type": "string", "required": true },
+            { "name": "userLogin", "type": "string", "required": true },
+            { "name": "userName", "type": "string", "required": true },
+            { "name": "category", "type": "string", "required": true },
+            { "name": "isAdmin", "type": "boolean", "required": false },
+            { "name": "active", "type": "boolean", "required": true },
+            { "name": "mobileNo", "type": "string", "required": false },
+            { "name": "employeeNo", "type": "string", "required": false },
+            { "name": "addedOn", "type": "string", "required": false }
+          ],
+          "access_patterns": [
+            { "pattern_id": 903, "name": "add_member", "description": "Add team member", "operation": "PutItem", "parameters": [{ "name": "member", "type": "entity", "entity_type": "CareTeamMember" }], "return_type": "single_entity" },
+            { "pattern_id": 904, "name": "remove_member", "description": "Deactivate team member", "operation": "UpdateItem", "parameters": [{ "name": "pkValue", "type": "string" }, { "name": "userId", "type": "string" }, { "name": "active", "type": "boolean" }], "return_type": "single_entity" },
+            { "pattern_id": 905, "name": "user_teams", "description": "Get all teams a user belongs to", "operation": "Query", "index_name": "GSI1", "consistent_read": false, "parameters": [{ "name": "userId", "type": "string" }], "return_type": "entity_list" }
+          ]
+        },
+        "CareTeamTemplate": {
+          "entity_type": "TMPL",
+          "pk_template": "TMPL#{templateId}",
+          "sk_template": "METADATA",
+          "gsi_mappings": [
+            { "name": "GSI2", "pk_template": "TMPL#PC#{consultantLogin}", "sk_template": "UNIT#{unitCode}" }
+          ],
+          "fields": [
+            { "name": "templateId", "type": "string", "required": true },
+            { "name": "consultantLogin", "type": "string", "required": false },
+            { "name": "unitCode", "type": "string", "required": true },
+            { "name": "mode", "type": "string", "required": true },
+            { "name": "active", "type": "boolean", "required": true },
+            { "name": "careTeam", "type": "array", "required": false, "item_type": "object" },
+            { "name": "createdOn", "type": "string", "required": true },
+            { "name": "createdBy", "type": "object", "required": false }
+          ],
+          "access_patterns": [
+            { "pattern_id": 906, "name": "create_template", "description": "Create care team template", "operation": "PutItem", "parameters": [{ "name": "template", "type": "entity", "entity_type": "CareTeamTemplate" }], "return_type": "single_entity" },
+            { "pattern_id": 907, "name": "templates_by_consultant", "description": "Get templates for a consultant", "operation": "Query", "index_name": "GSI2", "consistent_read": false, "parameters": [{ "name": "consultantLogin", "type": "string" }], "return_type": "entity_list" }
+          ]
+        }
+      }
+    }
+  ]
+}

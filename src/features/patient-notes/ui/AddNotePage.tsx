@@ -1,0 +1,106 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Header } from "@shared/components/layout/Header";
+import { BottomBar } from "@shared/components/layout/BottomBar";
+import { Card } from "@shared/components/ui/card";
+import { Button } from "@shared/components/ui/button";
+import { Label } from "@shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Textarea } from "@shared/components/ui/textarea";
+import api from "@shared/lib/api";
+import { paths } from "@app/navigation";
+
+export function AddNotePage() {
+  const { id: uid } = useParams();
+  const navigate = useNavigate();
+  const [category, setCategory] = useState<"doctorNote" | "nurseNote" | "pharmacy" | "">("");
+  const [content, setContent] = useState("");
+  const [authorId, setAuthorId] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    document.title = `Add Note | Clinical Canvas`;
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+    api.patients
+      .get(uid)
+      .then((p) => {
+        setPatientName(p.name);
+        if (p.assignedDoctorId) setAuthorId(p.assignedDoctorId);
+      })
+      .catch(() => {});
+  }, [uid]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uid || !category || !content || !authorId) return;
+    setSubmitting(true);
+    try {
+      await api.notes.create(uid, { patientId: uid, authorId, category, content });
+      navigate(paths.patient(uid));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <Header title="Add Note" showBack onBack={() => navigate(-1)} />
+      <main className="p-4">
+        <Card className="p-4 max-w-xl mx-auto">
+          <h1 className="text-lg font-semibold mb-4">Add Note {patientName ? `for ${patientName}` : ""}</h1>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as "doctorNote" | "nurseNote" | "pharmacy")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="doctorNote">Doctor Note</SelectItem>
+                  <SelectItem value="nurseNote">Nurse Note</SelectItem>
+                  <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Author ID</Label>
+              <input
+                className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                value={authorId}
+                onChange={(e) => setAuthorId(e.target.value)}
+                placeholder="e.g., doc-abc123"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Content</Label>
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                placeholder="Enter clinical note"
+                required
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={submitting} className="flex-1">{submitting ? "Saving..." : "Save Note"}</Button>
+              <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+            </div>
+          </form>
+        </Card>
+      </main>
+      <BottomBar />
+    </div>
+  );
+}
+
+export default AddNotePage;

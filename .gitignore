@@ -32,3 +32,6 @@ samconfig.toml
 
 # Backup folder (legacy code)
 backup/
+
+# Reverse engineering decompiled output
+reverse-engineering/decompiled/

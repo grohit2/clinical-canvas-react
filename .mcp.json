@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "awslabs-dynamodb-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.dynamodb-mcp-server@latest"],
+      "env": {
+        "AWS_PROFILE": "default",
+        "AWS_REGION": "ap-south-1",
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "PYTHONWARNINGS": "ignore"
+      }
+    }
+  }
+}

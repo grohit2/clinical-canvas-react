@@ -35,3 +35,9 @@ backup/
 
 # Reverse engineering decompiled output
 reverse-engineering/decompiled/
+
+# Codex Ralph runtime state
+scripts/ralph/.state/
+scripts/ralph/archive/
+scripts/ralph/prd.json
+scripts/ralph/progress.txt

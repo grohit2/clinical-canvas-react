@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "prepare": "husky install",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "codex:ralph-loop": "./scripts/ralph/codexralph-loop.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",

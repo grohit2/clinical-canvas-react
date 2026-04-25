@@ -1,0 +1,194 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "BillingTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        {
+          "name": "GSI1",
+          "partition_key": "GSI1PK",
+          "sort_key": "GSI1SK",
+          "projection": "ALL"
+        },
+        {
+          "name": "GSI2",
+          "partition_key": "GSI2PK",
+          "sort_key": "GSI2SK",
+          "projection": "ALL"
+        }
+      ],
+      "entities": {
+        "Invoice": {
+          "entity_type": "INV",
+          "pk_template": "PAT#{patientId}",
+          "sk_template": "INV#{invoiceNo}",
+          "gsi_mappings": [
+            {
+              "name": "GSI1",
+              "pk_template": "UNIT#{unitCode}#STATUS#{invoiceStatus}",
+              "sk_template": "DATE#{invoiceDate}"
+            },
+            {
+              "name": "GSI2",
+              "pk_template": "INVNO#{invoiceNo}",
+              "sk_template": "PAT#{patientId}"
+            }
+          ],
+          "fields": [
+            { "name": "invoiceNo", "type": "string", "required": true },
+            { "name": "patientId", "type": "string", "required": true },
+            { "name": "uhid", "type": "string", "required": false },
+            { "name": "patientName", "type": "string", "required": true },
+            { "name": "encounterNo", "type": "string", "required": false },
+            { "name": "unitCode", "type": "string", "required": true },
+            { "name": "departmentCode", "type": "string", "required": false },
+            { "name": "invoiceDate", "type": "string", "required": true },
+            { "name": "invoiceStatus", "type": "string", "required": true },
+            { "name": "invoiceType", "type": "string", "required": false },
+            { "name": "grossAmount", "type": "decimal", "required": true },
+            { "name": "netAmount", "type": "decimal", "required": true },
+            { "name": "taxAmount", "type": "decimal", "required": false },
+            { "name": "patientPayable", "type": "decimal", "required": true },
+            { "name": "sponsorAmount", "type": "decimal", "required": false },
+            { "name": "totalAmount", "type": "decimal", "required": true },
+            { "name": "patientDiscount", "type": "decimal", "required": false },
+            { "name": "sponsorDiscount", "type": "decimal", "required": false },
+            { "name": "discretionaryDiscount", "type": "decimal", "required": false },
+            { "name": "nonDiscretionaryDiscount", "type": "decimal", "required": false },
+            { "name": "createdBy", "type": "string", "required": true },
+            { "name": "createdAt", "type": "string", "required": true },
+            { "name": "approvedBy", "type": "string", "required": false },
+            { "name": "approvedAt", "type": "string", "required": false },
+            { "name": "remarks", "type": "string", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 601,
+              "name": "list_patient_invoices",
+              "description": "List all invoices for a patient",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "patientId", "type": "string" },
+                { "name": "prefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 602,
+              "name": "get_invoice_hierarchy",
+              "description": "Get invoice with all receipts, refunds, discounts",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": true,
+              "parameters": [
+                { "name": "patientId", "type": "string" },
+                { "name": "invoicePrefix", "type": "string" }
+              ],
+              "return_type": "mixed_data"
+            },
+            {
+              "pattern_id": 603,
+              "name": "create_invoice",
+              "description": "Create a new invoice",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "invoice", "type": "entity", "entity_type": "Invoice" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 604,
+              "name": "invoices_by_unit_status",
+              "description": "List invoices by unit and status",
+              "operation": "Query",
+              "index_name": "GSI1",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "unitCode", "type": "string" },
+                { "name": "invoiceStatus", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 605,
+              "name": "get_invoice_by_number",
+              "description": "Lookup invoice by invoice number",
+              "operation": "Query",
+              "index_name": "GSI2",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "invoiceNo", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            }
+          ]
+        },
+        "Receipt": {
+          "entity_type": "REC",
+          "pk_template": "PAT#{patientId}",
+          "sk_template": "INV#{invoiceNo}#REC#{receiptNo}",
+          "fields": [
+            { "name": "patientId", "type": "string", "required": true },
+            { "name": "invoiceNo", "type": "string", "required": true },
+            { "name": "receiptNo", "type": "string", "required": true },
+            { "name": "receiptAmount", "type": "decimal", "required": true },
+            { "name": "paymentMode", "type": "string", "required": true },
+            { "name": "receiptDate", "type": "string", "required": true },
+            { "name": "receiptStatus", "type": "string", "required": true },
+            { "name": "cancellationAmount", "type": "decimal", "required": false },
+            { "name": "reasonForCancellation", "type": "string", "required": false },
+            { "name": "createdBy", "type": "string", "required": true },
+            { "name": "createdAt", "type": "string", "required": true }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 606,
+              "name": "create_receipt",
+              "description": "Create a receipt for an invoice",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "receipt", "type": "entity", "entity_type": "Receipt" }
+              ],
+              "return_type": "single_entity"
+            }
+          ]
+        },
+        "Refund": {
+          "entity_type": "REF",
+          "pk_template": "PAT#{patientId}",
+          "sk_template": "INV#{invoiceNo}#REC#{receiptNo}#REF#{refundNo}",
+          "fields": [
+            { "name": "patientId", "type": "string", "required": true },
+            { "name": "invoiceNo", "type": "string", "required": true },
+            { "name": "receiptNo", "type": "string", "required": true },
+            { "name": "refundNo", "type": "string", "required": true },
+            { "name": "refundAmount", "type": "decimal", "required": true },
+            { "name": "refundMode", "type": "string", "required": true },
+            { "name": "refundDate", "type": "string", "required": true },
+            { "name": "refundStatus", "type": "string", "required": true },
+            { "name": "reasonForRefund", "type": "string", "required": true },
+            { "name": "createdBy", "type": "string", "required": true },
+            { "name": "createdAt", "type": "string", "required": true }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 607,
+              "name": "create_refund",
+              "description": "Create a refund against a receipt",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "refund", "type": "entity", "entity_type": "Refund" }
+              ],
+              "return_type": "single_entity"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

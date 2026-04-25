@@ -5,6 +5,7 @@ import {
   FileCheck,
   FileText,
   FolderOpen,
+  Inbox,
   Scissors,
   Stethoscope,
 } from 'lucide-react-native';
@@ -26,6 +27,7 @@ const CATEGORY_ICONS: Record<DocCategory | 'all', CategoryConfigItem['icon']> = 
   ot_notes: ClipboardList,
   postop_pics: Stethoscope,
   discharge_pics: FileCheck,
+  unorganized: Inbox,
   all: FolderOpen,
 };
 
@@ -71,6 +73,12 @@ export const CATEGORY_CONFIG: Record<DocCategory | 'all', CategoryConfigItem> = 
     shortLabel: CATEGORY_META.discharge_pics.shortLabel,
     icon: CATEGORY_ICONS.discharge_pics,
     gradient: [CATEGORY_META.discharge_pics.gradientFrom, CATEGORY_META.discharge_pics.gradientTo],
+  },
+  unorganized: {
+    title: CATEGORY_META.unorganized.title,
+    shortLabel: CATEGORY_META.unorganized.shortLabel,
+    icon: CATEGORY_ICONS.unorganized,
+    gradient: [CATEGORY_META.unorganized.gradientFrom, CATEGORY_META.unorganized.gradientTo],
   },
   all: {
     title: CATEGORY_META.all.title,

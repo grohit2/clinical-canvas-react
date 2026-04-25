@@ -60,6 +60,13 @@ export const CATEGORY_META: Record<CategoryMetaKey, CategoryMetaItem> = {
     gradientFrom: '#6366f1',
     gradientTo: '#4f46e5',
   },
+  unorganized: {
+    title: 'Unorganized',
+    shortLabel: 'Unsorted',
+    colorKey: 'gray',
+    gradientFrom: '#6b7280',
+    gradientTo: '#9ca3af',
+  },
   all: {
     title: 'All Documents',
     shortLabel: 'All',

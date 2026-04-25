@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   BackHandler,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -8,10 +9,12 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FileText } from 'lucide-react-native';
+import { FileText, Plus, X } from 'lucide-react-native';
+import { PatientActionsSheet } from '../../../../src/components/PatientActionsSheet';
 import { usePatient } from '../../../../src/hooks/usePatients';
 import { TAB_BAR_HIDDEN_STYLE, getTabBarVisibleStyle } from '../../../../src/navigation/tabBarStyle';
 
@@ -29,6 +32,7 @@ export default function PatientDetailRoute() {
   const { data: patient } = usePatient(safePatientId);
   const [isTopChromeCollapsed, setIsTopChromeCollapsed] = useState(false);
   const [isTabBarHidden, setIsTabBarHidden] = useState(false);
+  const [actionsVisible, setActionsVisible] = useState(false);
   const lastScrollOffsetRef = useRef(0);
   const tabBarVisibleStyle = useMemo(
     () => getTabBarVisibleStyle(insets.bottom),
@@ -95,9 +99,35 @@ export default function PatientDetailRoute() {
     [isTabBarHidden, isTopChromeCollapsed],
   );
 
+  const handleAction = useCallback(
+    (actionId: string, pid: string) => {
+      setActionsVisible(false);
+      switch (actionId) {
+        case 'progress-notes':
+        case 'discharge-summary':
+        case 'initial-assessment':
+        case 'ot-notes':
+        case 'past-records':
+        case 'results':
+          router.push(`/patient/${pid}/documents` as never);
+          break;
+        default:
+          Alert.alert(
+            'Coming Soon',
+            `The "${actionId.replace(/-/g, ' ')}" feature is not available yet.`,
+          );
+          break;
+      }
+    },
+    [router],
+  );
+
   const contentBottomPadding = isTabBarHidden
     ? Math.max(insets.bottom + 20, 24)
     : Math.max(insets.bottom + 80, 96);
+  const { height: screenHeight } = useWindowDimensions();
+  // FAB fixed at 120px from screen bottom — never moves regardless of tab bar
+  const fabTop = screenHeight - insets.top - 120;
 
   if (!patientId) return null;
 
@@ -140,6 +170,22 @@ export default function PatientDetailRoute() {
           </View>
         </Pressable>
       </ScrollView>
+
+      <Pressable
+        style={[styles.fab, { top: fabTop }]}
+        onPress={() => setActionsVisible((v) => !v)}
+        accessibilityRole="button"
+        accessibilityLabel={actionsVisible ? 'Close actions' : 'Open actions'}
+      >
+        {actionsVisible ? <X size={24} color="#fff" /> : <Plus size={24} color="#fff" />}
+      </Pressable>
+
+      <PatientActionsSheet
+        visible={actionsVisible}
+        patientId={patientId}
+        onClose={() => setActionsVisible(false)}
+        onAction={handleAction}
+      />
     </SafeAreaView>
   );
 }
@@ -212,5 +258,20 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     color: '#64748b',
     fontSize: 12,
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#06b6d4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 
-import { Header } from "@shared/components/layout/Header";
-import { BottomBar } from "@shared/components/layout/BottomBar";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { Button } from "@shared/components/ui/button";
 import { PatientCard, PatientGridCard } from "@entities/patient/ui";
 import { NotificationsPopup } from "@/components/notifications/NotificationsPopup";
@@ -55,7 +54,7 @@ export function PatientsListPage() {
         // Cache for Dashboard reuse
         try {
           localStorage.setItem('patientsCache', JSON.stringify({ ts: Date.now(), items: withUi }));
-        } catch {}
+        } catch { /* ignore storage errors */ }
 
         // Scroll restoration
         if (restorePending && !Number.isNaN(savedScroll) && savedScroll > 0) {
@@ -68,6 +67,7 @@ export function PatientsListPage() {
         }
       })
       .catch((err) => console.error(err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function PatientsListPage() {
     try {
       sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0));
       sessionStorage.setItem(SCROLL_RESTORE_FLAG, '1');
-    } catch {}
+    } catch { /* ignore storage errors */ }
     navigate(paths.patient(id));
   };
 
@@ -150,16 +150,19 @@ export function PatientsListPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      <Header
-        title="Patients"
-        showSearch
-        searchValue={filters.searchQuery}
-        onSearchChange={filters.setSearchQuery}
-        notificationCount={3}
-        onNotificationClick={() => setShowNotifications(true)}
-      />
-
+    <PageShell
+      header={{
+        title: "Patients",
+        showAdd: true,
+        onAdd: () => navigate(paths.patientsAdd()),
+        showBell: true,
+        notificationCount: 3,
+        onNotificationClick: () => setShowNotifications(true),
+      }}
+      searchValue={filters.searchQuery}
+      onSearchChange={filters.setSearchQuery}
+      contentClassName="overflow-x-hidden"
+    >
       <div className="p-4 space-y-4 max-w-full overflow-x-hidden">
         <PatientsListTabs
           activeTab={filters.activeTab}
@@ -182,8 +185,6 @@ export function PatientsListPage() {
       >
         <Plus className="h-6 w-6" />
       </Button>
-
-      <BottomBar />
-    </div>
+    </PageShell>
   );
 }

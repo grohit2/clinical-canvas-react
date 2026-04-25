@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { paths } from '@/app/navigation';
-import { Header } from '@/components/layout/Header';
-import { BottomBar } from '@/components/layout/BottomBar';
+import { PageShell } from '@shared/components/layout/PageShell';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -41,15 +40,13 @@ export function DocumentsFolderPage() {
 
   if (!patientId || !category || !config) {
     return (
-      <div className="min-h-screen bg-slate-50 pb-20">
-        <Header title="Documents" showBack onBack={() => navigate(-1)} />
+      <PageShell header={{ title: "Documents", showBack: true, onBack: () => navigate(-1) }} contentClassName="bg-slate-50">
         <main className="p-4">
           <div className="text-center py-12 text-red-500">
             Invalid document category
           </div>
         </main>
-        <BottomBar />
-      </div>
+      </PageShell>
     );
   }
 
@@ -109,12 +106,14 @@ export function DocumentsFolderPage() {
   const deleteCount = documentToDelete ? 1 : selectedIds.size;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <Header
-        title={config.title}
-        showBack
-        onBack={() => patientId && navigate(paths.docsRoot(patientId), { replace: true })}
-      />
+    <PageShell
+      header={{
+        title: config.title,
+        showBack: true,
+        onBack: () => patientId && navigate(paths.docsRoot(patientId), { replace: true }),
+      }}
+      contentClassName="bg-slate-50"
+    >
 
       <main className="p-4">
         <div className="flex items-center gap-4 mb-6">
@@ -231,8 +230,6 @@ export function DocumentsFolderPage() {
         )}
       </main>
 
-      <BottomBar />
-
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -252,6 +249,6 @@ export function DocumentsFolderPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

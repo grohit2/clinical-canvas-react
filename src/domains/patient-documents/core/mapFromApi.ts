@@ -38,6 +38,7 @@ export interface ApiDocumentsProfile {
   otNotes?: ApiDocument[];
   postopPics?: ApiDocument[];
   dischargePics?: ApiDocument[];
+  unorganized?: ApiDocument[];
 }
 
 export type LocalStateByRemoteKey = Record<
@@ -70,6 +71,7 @@ const CATEGORY_PROFILE_MAP: Record<DocCategory, keyof ApiDocumentsProfile> = {
   ot_notes: 'otNotes',
   postop_pics: 'postopPics',
   discharge_pics: 'dischargePics',
+  unorganized: 'unorganized',
 };
 
 function sortByUploadedAt(items: DocumentItem[], sortOrder: SortOrder): DocumentItem[] {

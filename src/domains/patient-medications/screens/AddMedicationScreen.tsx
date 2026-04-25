@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Header } from "@shared/components/layout/Header";
-import { BottomBar } from "@shared/components/layout/BottomBar";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { Card } from "@shared/components/ui/card";
 import { Button } from "@shared/components/ui/button";
 import { Label } from "@shared/components/ui/label";
@@ -61,8 +60,7 @@ export function AddMedicationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Add Medication" showBack onBack={() => navigate(-1)} />
+    <PageShell header={{ title: "Add Medication", showBack: true, onBack: () => navigate(-1) }}>
       <main className="p-4">
         <Card className="p-4 max-w-xl mx-auto">
           <h1 className="text-lg font-semibold mb-4">Add Medication {patientName ? `for ${patientName}` : ""}</h1>
@@ -119,8 +117,7 @@ export function AddMedicationPage() {
           </form>
         </Card>
       </main>
-      <BottomBar />
-    </div>
+    </PageShell>
   );
 }
 

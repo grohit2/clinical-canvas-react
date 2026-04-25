@@ -1,506 +1,510 @@
-import { useState, useMemo } from "react";
-import { Header } from "@/components/layout/Header";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Search, ArrowRight, Calendar, Clock, AlertCircle, Construction } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertCircle, CheckCircle2, Clock3, ClipboardList, SendHorizontal } from "lucide-react";
+import { PageShell } from "@shared/components/layout/PageShell";
+import { Badge } from "@shared/components/ui/badge";
+import { Button } from "@shared/components/ui/button";
+import { Card } from "@shared/components/ui/card";
+import { Input } from "@shared/components/ui/input";
+import { Label } from "@shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
+import { Textarea } from "@shared/components/ui/textarea";
 
-// Types
-type ReferralStatus = "Initiated" | "Accepted" | "Completed" | "Closed";
-type ConsultStatus = "Requested" | "Accepted" | "Completed";
-type Priority = "Normal" | "Urgent";
+type ReferralType = "External Referral" | "Cross Consult";
+type ReferralPriority = "Normal" | "Urgent";
 
-interface Patient {
-  id: string;
-  name: string;
-  mrn?: string;
+interface ReferralForm {
+  patientName: string;
+  uid: string;
+  requestingDoctor: string;
+  destinationProvider: string;
+  destinationDepartment: string;
+  referralType: ReferralType;
+  priority: ReferralPriority;
+  reason: string;
+  clinicalNotes: string;
+  preferredDate: string;
+  preferredTime: string;
 }
 
-interface ReferralItem {
-  type: "referral";
+interface SubmittedReferral {
   id: string;
-  patient: Patient;
-  referring_provider: string;
-  referred_to_provider: string;
-  status: ReferralStatus;
-  priority: Priority;
-  reason?: string;
-  created_at: string;
-  updated_at?: string;
-  appointment_at?: string;
-  expected_response_by?: string;
-  completed_at?: string;
+  patientName: string;
+  uid: string;
+  destinationProvider: string;
+  destinationDepartment: string;
+  priority: ReferralPriority;
+  referralType: ReferralType;
+  status: "Initiated" | "Accepted" | "Completed";
+  reason: string;
+  createdAt: string;
+  preferredAt?: string;
 }
 
-interface ConsultItem {
-  type: "consult";
-  id: string;
-  patient: Patient;
-  from_department: string;
-  to_department: string;
-  requested_by: string;
-  consulting_doctor: string | null;
-  status: ConsultStatus;
-  priority: Priority;
-  reason?: string;
-  created_at: string;
-  updated_at?: string;
-  scheduled_at?: string;
-  expected_response_by?: string;
-  completed_at?: string;
-}
-
-type Item = ReferralItem | ConsultItem;
-
-// Mock current user
-const CURRENT_USER = {
-  name: "Dr. Kamalika",
-  department: "General Surgery",
+const INITIAL_FORM: ReferralForm = {
+  patientName: "",
+  uid: "",
+  requestingDoctor: "Dr. Kamalika",
+  destinationProvider: "",
+  destinationDepartment: "",
+  referralType: "External Referral",
+  priority: "Normal",
+  reason: "",
+  clinicalNotes: "",
+  preferredDate: "",
+  preferredTime: "",
 };
 
-// Mock data
-const MOCK_DATA: Item[] = [
+const PROVIDER_OPTIONS = [
+  "Dr. Kapoor",
+  "Dr. Sharma",
+  "Dr. Nair",
+  "Dr. Patel",
+  "Dr. Reddy",
+];
+
+const DEPARTMENT_OPTIONS = [
+  "Orthopedics",
+  "Neurology",
+  "Cardiology",
+  "Pulmonology",
+  "General Surgery",
+];
+
+const DEFAULT_RECENT_REQUESTS: SubmittedReferral[] = [
   {
-    type: "referral",
     id: "REF-10021",
-    patient: { id: "P-001", name: "Anita Rao", mrn: "MRN001" },
-    referring_provider: "Dr. Mehta (PCP)",
-    referred_to_provider: "Dr. Kapoor (Orthopedics)",
-    status: "Accepted",
+    patientName: "Anita Rao",
+    uid: "MRN001",
+    destinationProvider: "Dr. Kapoor",
+    destinationDepartment: "Orthopedics",
     priority: "Normal",
-    reason: "Chronic knee pain, requires orthopedic evaluation",
-    created_at: "2025-11-05T10:05:00Z",
-    appointment_at: "2025-11-09T09:30:00Z",
-    expected_response_by: "2025-11-06T10:05:00Z",
+    referralType: "External Referral",
+    status: "Accepted",
+    reason: "Chronic knee pain, requires specialist review.",
+    createdAt: "2026-03-05T11:05:00.000Z",
+    preferredAt: "2026-03-08T09:30:00.000Z",
   },
   {
-    type: "consult",
-    id: "CONS-20011",
-    patient: { id: "P-007", name: "Priya Desai", mrn: "MRN007" },
-    from_department: "General Medicine",
-    to_department: "Cardiology",
-    requested_by: "Dr. Nair",
-    consulting_doctor: null,
-    status: "Requested",
-    priority: "Urgent",
-    reason: "Suspected myocardial infarction, needs immediate cardiology consult",
-    created_at: "2025-11-06T07:50:00Z",
-    expected_response_by: "2025-11-06T12:00:00Z",
-  },
-  {
-    type: "referral",
     id: "REF-10022",
-    patient: { id: "P-002", name: "Rajesh Kumar", mrn: "MRN002" },
-    referring_provider: "Dr. Kamalika",
-    referred_to_provider: "Dr. Sharma (Neurology)",
+    patientName: "Rajesh Kumar",
+    uid: "MRN002",
+    destinationProvider: "Dr. Sharma",
+    destinationDepartment: "Neurology",
+    priority: "Urgent",
+    referralType: "Cross Consult",
     status: "Initiated",
-    priority: "Urgent",
-    reason: "Persistent headaches with neurological symptoms",
-    created_at: "2025-11-04T14:20:00Z",
-    expected_response_by: "2025-11-05T14:20:00Z",
-  },
-  {
-    type: "consult",
-    id: "CONS-20012",
-    patient: { id: "P-008", name: "Lakshmi Reddy", mrn: "MRN008" },
-    from_department: "Cardiology",
-    to_department: "General Surgery",
-    requested_by: "Dr. Patel",
-    consulting_doctor: "Dr. Kamalika",
-    status: "Accepted",
-    priority: "Normal",
-    reason: "Pre-operative cardiac clearance",
-    created_at: "2025-11-05T11:00:00Z",
-    scheduled_at: "2025-11-08T15:00:00Z",
-    expected_response_by: "2025-11-06T11:00:00Z",
-  },
-  {
-    type: "referral",
-    id: "REF-10023",
-    patient: { id: "P-003", name: "Mohammed Ali", mrn: "MRN003" },
-    referring_provider: "Dr. Singh (ER)",
-    referred_to_provider: "Dr. Kamalika",
-    status: "Completed",
-    priority: "Urgent",
-    reason: "Acute appendicitis",
-    created_at: "2025-11-03T08:30:00Z",
-    completed_at: "2025-11-03T16:45:00Z",
-    expected_response_by: "2025-11-03T12:00:00Z",
+    reason: "Persistent headaches with focal neurological findings.",
+    createdAt: "2026-03-05T08:15:00.000Z",
   },
 ];
 
-// Helper: Check if item is "mine"
-function isMyPatient(item: Item): boolean {
-  if (item.type === "referral") {
-    return (
-      item.referring_provider.includes(CURRENT_USER.name) ||
-      item.referred_to_provider.includes(CURRENT_USER.name)
-    );
-  } else {
-    return (
-      item.requested_by.includes(CURRENT_USER.name) ||
-      item.consulting_doctor?.includes(CURRENT_USER.name) ||
-      item.to_department === CURRENT_USER.department ||
-      item.from_department === CURRENT_USER.department
-    );
-  }
+function formatDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-// Helper: Check direction
-function isSent(item: Item): boolean {
-  if (item.type === "referral") {
-    return item.referring_provider.includes(CURRENT_USER.name);
-  } else {
-    return (
-      item.requested_by.includes(CURRENT_USER.name) ||
-      item.from_department === CURRENT_USER.department
-    );
-  }
+function getPriorityBadgeClass(priority: ReferralPriority): string {
+  return priority === "Urgent"
+    ? "bg-red-100 text-red-800 border-red-200"
+    : "bg-slate-100 text-slate-700 border-slate-200";
 }
 
-function isReceived(item: Item): boolean {
-  if (item.type === "referral") {
-    return item.referred_to_provider.includes(CURRENT_USER.name);
-  } else {
-    return (
-      item.consulting_doctor?.includes(CURRENT_USER.name) ||
-      item.to_department === CURRENT_USER.department
-    );
-  }
-}
-
-// Helper: Check if delayed
-function isDelayed(item: Item): boolean {
-  const now = new Date();
-  const created = new Date(item.created_at);
-  const hoursElapsed = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
-
-  if (item.expected_response_by) {
-    const expected = new Date(item.expected_response_by);
-    return now > expected && hoursElapsed > 24;
-  }
-
-  const incompletStatuses: string[] = ["Initiated", "Requested", "Accepted"];
-  return incompletStatuses.includes(item.status) && hoursElapsed >= 24;
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function getStatusColor(status: string): string {
+function getStatusBadgeClass(status: SubmittedReferral["status"]): string {
   switch (status) {
     case "Completed":
-    case "Closed":
-      return "bg-green-100 text-green-800";
+      return "bg-green-100 text-green-800 border-green-200";
     case "Accepted":
-      return "bg-blue-100 text-blue-800";
-    case "Initiated":
-    case "Requested":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-blue-100 text-blue-800 border-blue-200";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-amber-100 text-amber-800 border-amber-200";
   }
+}
+
+function buildPreferredDateTime(date: string, time: string): string | undefined {
+  if (!date) return undefined;
+  const safeTime = time || "09:00";
+  const candidate = new Date(`${date}T${safeTime}`);
+  return Number.isNaN(candidate.getTime()) ? undefined : candidate.toISOString();
+}
+
+function buildNewReferral(form: ReferralForm): SubmittedReferral {
+  const timestamp = Date.now();
+  return {
+    id: `REF-${String(timestamp).slice(-6)}`,
+    patientName: form.patientName.trim(),
+    uid: form.uid.trim(),
+    destinationProvider: form.destinationProvider,
+    destinationDepartment: form.destinationDepartment,
+    priority: form.priority,
+    referralType: form.referralType,
+    status: "Initiated",
+    reason: form.reason.trim(),
+    createdAt: new Date(timestamp).toISOString(),
+    preferredAt: buildPreferredDateTime(form.preferredDate, form.preferredTime),
+  };
 }
 
 export function ReferralsScreen() {
-  const [patientFilter, setPatientFilter] = useState<"all" | "my">("my");
-  const [directionFilter, setDirectionFilter] = useState<"sent" | "received">("received");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<"new-old" | "old-new">("new-old");
-  const [prototypeDialogOpen, setPrototypeDialogOpen] = useState(false);
+  const [form, setForm] = useState<ReferralForm>(INITIAL_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [lastSubmittedId, setLastSubmittedId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<SubmittedReferral[]>(DEFAULT_RECENT_REQUESTS);
+  const [errors, setErrors] = useState<Partial<Record<keyof ReferralForm, string>>>({});
 
-  // Filter and search
-  const filteredItems = useMemo(() => {
-    let items = MOCK_DATA;
+  const pendingCount = useMemo(
+    () => requests.filter((request) => request.status === "Initiated").length,
+    [requests]
+  );
 
-    // Patient filter
-    if (patientFilter === "my") {
-      items = items.filter(isMyPatient);
+  const urgentCount = useMemo(
+    () => requests.filter((request) => request.priority === "Urgent").length,
+    [requests]
+  );
+
+  const updateField = <K extends keyof ReferralForm>(key: K, value: ReferralForm[K]) => {
+    setForm((previous) => ({ ...previous, [key]: value }));
+    setErrors((previous) => {
+      if (!previous[key]) return previous;
+      return { ...previous, [key]: undefined };
+    });
+  };
+
+  const resetForm = () => {
+    setForm((previous) => ({
+      ...INITIAL_FORM,
+      requestingDoctor: previous.requestingDoctor.trim() || INITIAL_FORM.requestingDoctor,
+    }));
+    setErrors({});
+  };
+
+  const validate = () => {
+    const nextErrors: Partial<Record<keyof ReferralForm, string>> = {};
+
+    if (!form.patientName.trim()) nextErrors.patientName = "Patient name is required.";
+    if (!form.uid.trim()) nextErrors.uid = "MRN is required.";
+    if (!form.requestingDoctor.trim()) nextErrors.requestingDoctor = "Requesting doctor is required.";
+    if (!form.destinationProvider) nextErrors.destinationProvider = "Select a destination provider.";
+    if (!form.destinationDepartment) nextErrors.destinationDepartment = "Select a destination department.";
+    if (!form.reason.trim()) nextErrors.reason = "Reason for referral is required.";
+    if (form.preferredTime && !form.preferredDate) {
+      nextErrors.preferredDate = "Select a date when a time is provided.";
     }
 
-    // Direction filter
-    items = items.filter((item) => {
-      if (directionFilter === "sent") return isSent(item);
-      if (directionFilter === "received") return isReceived(item);
-      return true;
-    });
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
-    // Search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      items = items.filter((item) => {
-        const patientMatch = item.patient.name.toLowerCase().includes(query) ||
-          item.patient.mrn?.toLowerCase().includes(query);
-        const idMatch = item.id.toLowerCase().includes(query);
-        const reasonMatch = item.reason?.toLowerCase().includes(query);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validate()) return;
 
-        let providerMatch = false;
-        if (item.type === "referral") {
-          providerMatch =
-            item.referring_provider.toLowerCase().includes(query) ||
-            item.referred_to_provider.toLowerCase().includes(query);
-        } else {
-          providerMatch =
-            item.from_department.toLowerCase().includes(query) ||
-            item.to_department.toLowerCase().includes(query) ||
-            item.requested_by.toLowerCase().includes(query) ||
-            item.consulting_doctor?.toLowerCase().includes(query) || false;
-        }
+    setSubmitting(true);
 
-        return patientMatch || idMatch || reasonMatch || providerMatch;
-      });
-    }
+    const newRequest = buildNewReferral(form);
+    setRequests((previous) => [newRequest, ...previous]);
+    setLastSubmittedId(newRequest.id);
+    resetForm();
 
-    // Sort
-    items.sort((a, b) => {
-      const aDate = new Date(a.created_at).getTime();
-      const bDate = new Date(b.created_at).getTime();
-      return sortOrder === "new-old" ? bDate - aDate : aDate - bDate;
-    });
-
-    return items;
-  }, [patientFilter, directionFilter, searchQuery, sortOrder]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const total = filteredItems.length;
-    const urgent = filteredItems.filter((item) => item.priority === "Urgent").length;
-    const delayed = filteredItems.filter(isDelayed).length;
-    return { total, urgent, delayed };
-  }, [filteredItems]);
-
-  const handleViewDetails = () => {
-    setPrototypeDialogOpen(true);
+    setSubmitting(false);
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header title="Referrals & Consults" />
-
-      <div className="p-4 space-y-4">
-        {/* Filters */}
-        <div className="flex items-center gap-2">
-          <Tabs value={patientFilter} onValueChange={(v) => setPatientFilter(v as "all" | "my")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="all">All Patients</TabsTrigger>
-              <TabsTrigger value="my">My Patients</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <Tabs value={directionFilter} onValueChange={(v) => setDirectionFilter(v as "sent" | "received")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sent">Sent</TabsTrigger>
-              <TabsTrigger value="received">Received</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Stats Bar */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="px-3 py-1">
-              Total: {stats.total}
-            </Badge>
-            {stats.urgent > 0 && (
-              <Badge className="bg-red-100 text-red-800 px-3 py-1">
-                Urgent: {stats.urgent}
-              </Badge>
-            )}
-            {stats.delayed > 0 && (
-              <Badge className="bg-orange-100 text-orange-800 px-3 py-1">
-                Delayed: {stats.delayed}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-40 sm:w-64"
-              />
-            </div>
-
-            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "new-old" | "old-new")}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new-old">New → Old</SelectItem>
-                <SelectItem value="old-new">Old → New</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* List */}
-        <div className="space-y-3">
-          {filteredItems.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground mb-4">No items match your filters.</p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery("");
-                  setPatientFilter("all");
-                }}
-              >
-                Clear Filters
-              </Button>
-            </Card>
-          ) : (
-            filteredItems.map((item) => (
-              <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {/* Patient Name */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-base truncate">
-                        {item.patient.name}
-                      </h3>
-                      {item.patient.mrn && (
-                        <span className="text-sm text-muted-foreground">
-                          ({item.patient.mrn})
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Direction & Parties */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      {item.type === "referral" ? (
-                        <>
-                          <span className="truncate">{item.referring_provider}</span>
-                          <ArrowRight className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{item.referred_to_provider}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="truncate">
-                            {item.from_department} ({item.requested_by})
-                          </span>
-                          <ArrowRight className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">
-                            {item.to_department}
-                            {item.consulting_doctor && ` (${item.consulting_doctor})`}
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Tags & Status */}
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {item.type === "referral" ? "Referral" : "Cross-Consult"}
-                      </Badge>
-                      <Badge className={`text-xs ${getStatusColor(item.status)}`}>
-                        {item.status}
-                      </Badge>
-                      {item.priority === "Urgent" && (
-                        <Badge className="text-xs bg-red-100 text-red-800">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Urgent
-                        </Badge>
-                      )}
-                      {isDelayed(item) && (
-                        <Badge className="text-xs bg-orange-100 text-orange-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Delayed &gt;1d
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Meta */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(item.created_at)}
-                      </span>
-                      {(item.type === "referral" ? item.appointment_at : item.type === "consult" ? item.scheduled_at : null) && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {item.type === "referral"
-                            ? `Appt: ${formatDate(item.appointment_at)}`
-                            : `Scheduled: ${formatDate((item as ConsultItem).scheduled_at)}`}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Reason snippet */}
-                    {item.reason && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {item.reason}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* View Button */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleViewDetails}
-                    className="flex-shrink-0"
-                  >
-                    View
-                  </Button>
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Prototype Dialog */}
-      <AlertDialog open={prototypeDialogOpen} onOpenChange={setPrototypeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <Construction className="h-6 w-6 text-orange-600" />
-              </div>
+    <PageShell header={{ title: "Referral Request" }}>
+      <main className="p-4 pb-24 space-y-4">
+        <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <AlertDialogTitle>Feature in Development</AlertDialogTitle>
+                <h2 className="text-lg font-semibold">Create New Request</h2>
+                <p className="text-sm text-muted-foreground">
+                  Submit referral details and share essential context with receiving teams.
+                </p>
+              </div>
+              <Badge variant="outline" className="whitespace-nowrap">
+                {requests.length} Total Requests
+              </Badge>
+            </div>
+
+            {lastSubmittedId && (
+              <div className="mb-4 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                <span>Request {lastSubmittedId} submitted successfully.</span>
+              </div>
+            )}
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="patientName">Patient Name</Label>
+                  <Input
+                    id="patientName"
+                    value={form.patientName}
+                    onChange={(event) => updateField("patientName", event.target.value)}
+                    placeholder="Enter patient full name"
+                  />
+                  {errors.patientName && <p className="text-xs text-red-600">{errors.patientName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="uid">MRN</Label>
+                  <Input
+                    id="uid"
+                    value={form.uid}
+                    onChange={(event) => updateField("uid", event.target.value)}
+                    placeholder="e.g. MRN00981"
+                  />
+                  {errors.uid && <p className="text-xs text-red-600">{errors.uid}</p>}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Referral Type</Label>
+                  <Select
+                    value={form.referralType}
+                    onValueChange={(value) => updateField("referralType", value as ReferralType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="External Referral">External Referral</SelectItem>
+                      <SelectItem value="Cross Consult">Cross Consult</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <Select
+                    value={form.priority}
+                    onValueChange={(value) => updateField("priority", value as ReferralPriority)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Normal">Normal</SelectItem>
+                      <SelectItem value="Urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="requestingDoctor">Requesting Doctor</Label>
+                <Input
+                  id="requestingDoctor"
+                  value={form.requestingDoctor}
+                  onChange={(event) => updateField("requestingDoctor", event.target.value)}
+                  placeholder="Dr. Name"
+                />
+                {errors.requestingDoctor && (
+                  <p className="text-xs text-red-600">{errors.requestingDoctor}</p>
+                )}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Destination Provider</Label>
+                  <Select
+                    value={form.destinationProvider}
+                    onValueChange={(value) => updateField("destinationProvider", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROVIDER_OPTIONS.map((provider) => (
+                        <SelectItem key={provider} value={provider}>
+                          {provider}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.destinationProvider && (
+                    <p className="text-xs text-red-600">{errors.destinationProvider}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Destination Department</Label>
+                  <Select
+                    value={form.destinationDepartment}
+                    onValueChange={(value) => updateField("destinationDepartment", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENT_OPTIONS.map((department) => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.destinationDepartment && (
+                    <p className="text-xs text-red-600">{errors.destinationDepartment}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Referral</Label>
+                <Textarea
+                  id="reason"
+                  value={form.reason}
+                  onChange={(event) => updateField("reason", event.target.value)}
+                  placeholder="Primary reason, key symptoms, and expected outcome."
+                  rows={3}
+                />
+                {errors.reason && <p className="text-xs text-red-600">{errors.reason}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clinicalNotes">Clinical Notes</Label>
+                <Textarea
+                  id="clinicalNotes"
+                  value={form.clinicalNotes}
+                  onChange={(event) => updateField("clinicalNotes", event.target.value)}
+                  placeholder="Share relevant labs, medication details, and procedural notes."
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="preferredDate">Preferred Appointment Date</Label>
+                  <Input
+                    id="preferredDate"
+                    type="date"
+                    value={form.preferredDate}
+                    onChange={(event) => updateField("preferredDate", event.target.value)}
+                  />
+                  {errors.preferredDate && <p className="text-xs text-red-600">{errors.preferredDate}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="preferredTime">Preferred Appointment Time</Label>
+                  <Input
+                    id="preferredTime"
+                    type="time"
+                    value={form.preferredTime}
+                    onChange={(event) => updateField("preferredTime", event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Button type="submit" disabled={submitting} className="min-w-40">
+                  <SendHorizontal className="mr-2 h-4 w-4" />
+                  {submitting ? "Submitting..." : "Submit Request"}
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Clear Form
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="text-base font-semibold">Request Snapshot</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Quick overview of pending queue and response expectations.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Pending Referrals</p>
+                <p className="text-2xl font-semibold">{pendingCount}</p>
+              </div>
+
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Urgent Referrals</p>
+                <p className="text-2xl font-semibold">{urgentCount}</p>
+              </div>
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <Clock3 className="h-4 w-4" />
+                  <p className="text-sm font-medium">SLA Guidance</p>
+                </div>
+                <p className="mt-1 text-xs text-amber-700">
+                  Urgent requests target a response within 4 hours, normal requests within 24 hours.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <ClipboardList className="h-4 w-4" />
+                  <p className="text-sm font-medium">Pre-submit Checklist</p>
+                </div>
+                <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-blue-700">
+                  <li>Confirm latest vitals and medication list.</li>
+                  <li>Attach concise reason and desired specialist input.</li>
+                  <li>Mark urgent only when immediate intervention is required.</li>
+                </ul>
               </div>
             </div>
-            <AlertDialogDescription className="text-base">
-              This feature is currently in the <strong>prototyping stage</strong>. Full referral and
-              cross-consultation management capabilities are being developed and will be available soon.
-              <br />
-              <br />
-              In the meantime, you can explore the list view to see how referrals and consults will be
-              organized and filtered.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setPrototypeDialogOpen(false)}>
-              Got it
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+          </Card>
+        </div>
+
+        <Card className="mx-auto max-w-6xl p-5">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base font-semibold">Recent Requests</h3>
+              <p className="text-sm text-muted-foreground">Track referral status after submission.</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {requests.map((request) => (
+              <div key={request.id} className="rounded-lg border p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{request.patientName}</p>
+                      <span className="text-xs text-muted-foreground">({request.uid})</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {request.destinationProvider} - {request.destinationDepartment}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={getPriorityBadgeClass(request.priority)}>
+                      {request.priority}
+                    </Badge>
+                    <Badge variant="outline" className={getStatusBadgeClass(request.status)}>
+                      {request.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <span>ID: {request.id}</span>
+                  <span>Submitted: {formatDateTime(request.createdAt)}</span>
+                  {request.preferredAt && <span>Preferred: {formatDateTime(request.preferredAt)}</span>}
+                  <span>Type: {request.referralType}</span>
+                </div>
+
+                <p className="mt-2 text-sm text-foreground">{request.reason}</p>
+                {request.priority === "Urgent" && request.status === "Initiated" && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-red-700">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Follow up if not acknowledged within 4 hours.
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      </main>
+    </PageShell>
   );
 }

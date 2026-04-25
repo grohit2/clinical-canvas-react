@@ -7,6 +7,7 @@ import {
   Activity,
   FileCheck,
   FolderOpen,
+  Inbox,
   type LucideIcon,
 } from 'lucide-react';
 import { CATEGORY_META } from '../core/categoryMeta';
@@ -40,6 +41,7 @@ const CATEGORY_ICONS: Record<DocCategory | 'all', LucideIcon> = {
   ot_notes: ClipboardList,
   postop_pics: Stethoscope,
   discharge_pics: FileCheck,
+  unorganized: Inbox,
   all: FolderOpen,
 };
 
@@ -65,6 +67,7 @@ export const CATEGORY_CONFIG: Record<DocCategory | 'all', CategoryConfigItem> = 
   ot_notes: toConfig('ot_notes'),
   postop_pics: toConfig('postop_pics'),
   discharge_pics: toConfig('discharge_pics'),
+  unorganized: toConfig('unorganized'),
   all: toConfig('all'),
 };
 

@@ -1,57 +1,44 @@
 # Referrals Domain
 
 ## Purpose
-Manages external referrals and internal cross-consultations between departments.
-Tracks status, priority, and response times for patient referrals.
+Manages referral request intake for external referrals and internal cross-consults.
+Captures referral details, routing destination, urgency, and supporting context.
 
 ## Screens
 | Screen | Route | Description |
 |--------|-------|-------------|
-| ReferralsScreen | `/(app)/referrals` | List of referrals and consults with filters |
+| ReferralsScreen | `/(app)/referrals` | Referral request form with live validation and recent request tracking |
 
-## Item Types
+## Request Types
 | Type | Description |
 |------|-------------|
-| Referral | External referral to another provider |
-| Consult | Internal cross-department consultation |
+| External Referral | Referral sent to a specific provider |
+| Cross Consult | Internal specialist consult request |
 
-## Referral Status Flow
+## Status Flow
 ```
 Initiated → Accepted → Completed → Closed
-```
-
-## Consult Status Flow
-```
-Requested → Accepted → Completed
 ```
 
 ## Core Logic (Pure TypeScript)
 | File | Purpose |
 |------|---------|
-| `types.ts` | ReferralItem, ConsultItem, status types |
-| `types.ts` | isDelayed, isMyItem, isSent, isReceived helpers |
-| `types.ts` | formatReferralDate, getStatusColor utilities |
-
-## Filters
-| Filter | Options |
-|--------|---------|
-| Patient | All / My Patients |
-| Direction | Sent / Received |
-| Sort | Newest First / Oldest First |
-| Search | Patient name, MRN, provider, reason |
+| `types.ts` | Referral and consult item contracts |
+| `types.ts` | Delay checks and status helpers for list workflows |
 
 ## Priority Levels
 | Priority | Badge Color |
 |----------|-------------|
-| Normal | Default |
+| Normal | Slate |
 | Urgent | Red |
 
-## Status Colors
-| Status | Color |
-|--------|-------|
-| Completed/Closed | Green |
-| Accepted | Blue |
-| Initiated/Requested | Yellow |
+## Form Requirements
+- Patient name
+- MRN
+- Requesting doctor
+- Destination provider
+- Destination department
+- Reason for referral
 
 ## Cross-Domain Consumers
 - `patient-detail/GreenZone` — Links to referrals for discharge planning

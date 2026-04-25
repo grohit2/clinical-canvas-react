@@ -1,1 +1,1 @@
-export { AppShell, MinimalShell, FullscreenShell } from "./AppShell";
+export { MinimalShell, FullscreenShell } from "./AppShell";

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { BottomBar } from "@/components/layout/BottomBar";
+import { PageShell } from "@shared/components/layout/PageShell";
 import DischargeSummaryForm from "@features/patient-discharge-summary/DischargeSummaryForm";
 
 export default function DischargeSummaryPage() {
@@ -23,9 +23,8 @@ export default function DischargeSummaryPage() {
 
   // Render like PatientRegistrationPage - no extra wrappers, just the form with BottomBar
   return (
-    <>
+    <PageShell>
       <DischargeSummaryForm patientIdOrMrn={id} />
-      <BottomBar />
-    </>
+    </PageShell>
   );
 }

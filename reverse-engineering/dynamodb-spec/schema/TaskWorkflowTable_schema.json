@@ -1,0 +1,238 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "TaskWorkflowTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        {
+          "name": "GSI1",
+          "partition_key": "GSI1PK",
+          "sort_key": "GSI1SK",
+          "projection": "ALL"
+        },
+        {
+          "name": "GSI2",
+          "partition_key": "GSI2PK",
+          "sort_key": "GSI2SK",
+          "projection": "ALL"
+        }
+      ],
+      "entities": {
+        "TaskMetadata": {
+          "entity_type": "METADATA",
+          "pk_template": "TASK#{taskId}",
+          "sk_template": "METADATA",
+          "gsi_mappings": [
+            {
+              "name": "GSI1",
+              "pk_template": "ASSIGNEE#{actualOwner}",
+              "sk_template": "STATUS#{taskStatus}#CREATED#{createdOn}"
+            },
+            {
+              "name": "GSI2",
+              "pk_template": "UNIT#{unitCode}#STATUS#{taskStatus}",
+              "sk_template": "TYPE#{taskName}#CREATED#{createdOn}"
+            }
+          ],
+          "fields": [
+            { "name": "taskId", "type": "integer", "required": true },
+            { "name": "taskName", "type": "string", "required": true },
+            { "name": "taskStatus", "type": "string", "required": true },
+            { "name": "processInstanceId", "type": "integer", "required": false },
+            { "name": "containerId", "type": "string", "required": false },
+            { "name": "actualOwner", "type": "string", "required": false },
+            { "name": "createdBy", "type": "string", "required": true },
+            { "name": "createdOn", "type": "string", "required": true },
+            { "name": "activationTime", "type": "string", "required": false },
+            { "name": "priority", "type": "integer", "required": false },
+            { "name": "processId", "type": "string", "required": false },
+            { "name": "description", "type": "string", "required": false },
+            { "name": "subject", "type": "string", "required": false },
+            { "name": "documentNo", "type": "string", "required": false },
+            { "name": "patientId", "type": "string", "required": false },
+            { "name": "uhid", "type": "string", "required": false },
+            { "name": "unitCode", "type": "string", "required": true },
+            { "name": "taskSource", "type": "string", "required": false },
+            { "name": "ttl", "type": "integer", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 501,
+              "name": "get_task",
+              "description": "Get task details by ID",
+              "operation": "GetItem",
+              "consistent_read": true,
+              "parameters": [
+                { "name": "taskId", "type": "integer" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 502,
+              "name": "create_task",
+              "description": "Create a new task",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "task", "type": "entity", "entity_type": "TaskMetadata" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 503,
+              "name": "claim_task",
+              "description": "Claim and start a task (atomic with condition)",
+              "operation": "UpdateItem",
+              "parameters": [
+                { "name": "taskId", "type": "integer" },
+                { "name": "actualOwner", "type": "string" },
+                { "name": "taskStatus", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 504,
+              "name": "release_task",
+              "description": "Release claimed task back to group queue",
+              "operation": "UpdateItem",
+              "parameters": [
+                { "name": "taskId", "type": "integer" },
+                { "name": "taskStatus", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 505,
+              "name": "complete_task",
+              "description": "Mark task as done",
+              "operation": "UpdateItem",
+              "parameters": [
+                { "name": "taskId", "type": "integer" },
+                { "name": "taskStatus", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 506,
+              "name": "my_tasks",
+              "description": "Get personal task queue for a user",
+              "operation": "Query",
+              "index_name": "GSI1",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "actualOwner", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 507,
+              "name": "group_tasks",
+              "description": "Get open tasks for a unit (group queue)",
+              "operation": "Query",
+              "index_name": "GSI2",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "unitCode", "type": "string" },
+                { "name": "taskStatus", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 508,
+              "name": "tasks_by_type",
+              "description": "Get tasks filtered by type in a unit",
+              "operation": "Query",
+              "index_name": "GSI2",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "gsi2pk", "type": "string" },
+                { "name": "taskNamePrefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            }
+          ]
+        },
+        "TaskProcessVariables": {
+          "entity_type": "VARS",
+          "pk_template": "TASK#{taskId}",
+          "sk_template": "VARS",
+          "fields": [
+            { "name": "taskId", "type": "integer", "required": true },
+            { "name": "documentNo", "type": "string", "required": false },
+            { "name": "documentType", "type": "string", "required": false },
+            { "name": "invoiceData", "type": "object", "required": false },
+            { "name": "receiptData", "type": "object", "required": false },
+            { "name": "refundData", "type": "object", "required": false },
+            { "name": "patientId", "type": "string", "required": false },
+            { "name": "uhid", "type": "string", "required": false },
+            { "name": "unitCode", "type": "string", "required": false },
+            { "name": "additionalData", "type": "object", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 509,
+              "name": "get_process_variables",
+              "description": "Get process variables for a task",
+              "operation": "GetItem",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "taskId", "type": "integer" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 510,
+              "name": "store_process_variables",
+              "description": "Store process variables for a task",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "vars", "type": "entity", "entity_type": "TaskProcessVariables" }
+              ],
+              "return_type": "single_entity"
+            }
+          ]
+        },
+        "TaskComment": {
+          "entity_type": "COMMENT",
+          "pk_template": "TASK#{taskId}",
+          "sk_template": "COMMENT#{commentedOn}",
+          "fields": [
+            { "name": "taskId", "type": "integer", "required": true },
+            { "name": "commentedOn", "type": "string", "required": true },
+            { "name": "commentedBy", "type": "string", "required": true },
+            { "name": "commentedByName", "type": "string", "required": true },
+            { "name": "comment", "type": "string", "required": true }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 511,
+              "name": "add_task_comment",
+              "description": "Add a comment to a task",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "comment", "type": "entity", "entity_type": "TaskComment" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 512,
+              "name": "list_task_comments",
+              "description": "List all comments for a task",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "taskId", "type": "integer" },
+                { "name": "prefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

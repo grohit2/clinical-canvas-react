@@ -1,0 +1,254 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "MedicationOrderTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        {
+          "name": "GSI1",
+          "partition_key": "GSI1PK",
+          "sort_key": "GSI1SK",
+          "projection": "ALL"
+        },
+        {
+          "name": "GSI2",
+          "partition_key": "GSI2PK",
+          "sort_key": "GSI2SK",
+          "projection": "KEYS_ONLY"
+        }
+      ],
+      "entities": {
+        "MedicationOrder": {
+          "entity_type": "MED",
+          "pk_template": "ENC#{encounterNumber}",
+          "sk_template": "MED#{medicationId}",
+          "gsi_mappings": [
+            {
+              "name": "GSI1",
+              "pk_template": "PAT#{patientMrn}",
+              "sk_template": "STATUS#{status}#MED#{medicationId}"
+            },
+            {
+              "name": "GSI2",
+              "pk_template": "ENC#{encounterNumber}#STATUS#{status}",
+              "sk_template": "DATE#{prescriptionDate}"
+            }
+          ],
+          "fields": [
+            { "name": "medicationId", "type": "string", "required": true },
+            { "name": "encounterNumber", "type": "string", "required": true },
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "patientName", "type": "string", "required": true },
+            { "name": "status", "type": "string", "required": true },
+            { "name": "medication", "type": "object", "required": true },
+            { "name": "daywiseDosage", "type": "object", "required": false },
+            { "name": "drugFrequency", "type": "object", "required": false },
+            { "name": "duration", "type": "integer", "required": false },
+            { "name": "durationUnit", "type": "string", "required": false },
+            { "name": "quantity", "type": "integer", "required": false },
+            { "name": "route", "type": "string", "required": false },
+            { "name": "foodInstruction", "type": "string", "required": false },
+            { "name": "patientInstruction", "type": "string", "required": false },
+            { "name": "prefixInstruction", "type": "string", "required": false },
+            { "name": "prescriptionDate", "type": "string", "required": true },
+            { "name": "isDischargeMedication", "type": "boolean", "required": false },
+            { "name": "substitution", "type": "object", "required": false },
+            { "name": "orderedBy", "type": "object", "required": false },
+            { "name": "createdOn", "type": "string", "required": true },
+            { "name": "modifiedOn", "type": "string", "required": false },
+            { "name": "documentNumber", "type": "string", "required": false },
+            { "name": "referenceNumber", "type": "string", "required": false },
+            { "name": "cancelReason", "type": "string", "required": false },
+            { "name": "holdReason", "type": "string", "required": false },
+            { "name": "stopReason", "type": "string", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 401,
+              "name": "list_medications_for_encounter",
+              "description": "List all medications for an encounter",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "prefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 402,
+              "name": "get_medication",
+              "description": "Get specific medication order",
+              "operation": "GetItem",
+              "consistent_read": true,
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "medicationId", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 403,
+              "name": "create_medication_order",
+              "description": "Create a new medication order",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "medication", "type": "entity", "entity_type": "MedicationOrder" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 404,
+              "name": "update_medication_status",
+              "description": "Update medication status (cancel, hold, stop)",
+              "operation": "UpdateItem",
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "medicationId", "type": "string" },
+                { "name": "status", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 405,
+              "name": "active_medications_by_patient",
+              "description": "Get active medications for a patient across encounters",
+              "operation": "Query",
+              "index_name": "GSI1",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "patientMrn", "type": "string" },
+                { "name": "statusPrefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 406,
+              "name": "delete_medication",
+              "description": "Delete a medication order (ADDED status only)",
+              "operation": "DeleteItem",
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "medicationId", "type": "string" }
+              ],
+              "return_type": "success_flag"
+            }
+          ]
+        },
+        "MedicationAdminRecord": {
+          "entity_type": "ADMIN",
+          "pk_template": "ENC#{encounterNumber}",
+          "sk_template": "ADMIN#MED#{medicationId}#TIME#{scheduledTime}",
+          "fields": [
+            { "name": "encounterNumber", "type": "string", "required": true },
+            { "name": "medicationId", "type": "string", "required": true },
+            { "name": "scheduledTime", "type": "string", "required": true },
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "slotPeriod", "type": "string", "required": true },
+            { "name": "slotStatus", "type": "string", "required": true },
+            { "name": "administeredBy", "type": "object", "required": false },
+            { "name": "administeredAt", "type": "string", "required": false },
+            { "name": "modifyReason", "type": "string", "required": false },
+            { "name": "modifyCode", "type": "string", "required": false },
+            { "name": "dose", "type": "object", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 407,
+              "name": "record_administration",
+              "description": "Record medication administration",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "adminRecord", "type": "entity", "entity_type": "MedicationAdminRecord" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 408,
+              "name": "get_admin_slots_for_medication",
+              "description": "Get administration slots for a medication",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "adminPrefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 409,
+              "name": "update_slot_status",
+              "description": "Update slot status (refuse, withhold, modify)",
+              "operation": "UpdateItem",
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "medicationId", "type": "string" },
+                { "name": "scheduledTime", "type": "string" },
+                { "name": "slotStatus", "type": "string" },
+                { "name": "modifyCode", "type": "string" }
+              ],
+              "return_type": "single_entity"
+            }
+          ]
+        },
+        "MedicationFavorite": {
+          "entity_type": "FAV",
+          "pk_template": "FAV#{consultantLogin}",
+          "sk_template": "MED#{drugCode}",
+          "fields": [
+            { "name": "consultantLogin", "type": "string", "required": true },
+            { "name": "drugCode", "type": "string", "required": true },
+            { "name": "drugName", "type": "string", "required": true },
+            { "name": "genericName", "type": "string", "required": false },
+            { "name": "drugForm", "type": "string", "required": false },
+            { "name": "defaultDosage", "type": "object", "required": false },
+            { "name": "defaultRoute", "type": "string", "required": false },
+            { "name": "addedOn", "type": "string", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 410,
+              "name": "list_medication_favorites",
+              "description": "List favorite medications for a doctor",
+              "operation": "Query",
+              "range_condition": "begins_with",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "consultantLogin", "type": "string" },
+                { "name": "prefix", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 411,
+              "name": "add_medication_favorite",
+              "description": "Add a medication to doctor favorites",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "favorite", "type": "entity", "entity_type": "MedicationFavorite" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 412,
+              "name": "remove_medication_favorite",
+              "description": "Remove a medication from favorites",
+              "operation": "DeleteItem",
+              "parameters": [
+                { "name": "consultantLogin", "type": "string" },
+                { "name": "drugCode", "type": "string" }
+              ],
+              "return_type": "success_flag"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

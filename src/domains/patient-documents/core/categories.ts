@@ -8,6 +8,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
   'ot_notes',
   'postop_pics',
   'discharge_pics',
+  'unorganized',
 ];
 
 export const CATEGORY_LABELS: Record<DocCategory, string> = {
@@ -18,6 +19,7 @@ export const CATEGORY_LABELS: Record<DocCategory, string> = {
   ot_notes: 'OT Notes',
   postop_pics: 'Post-op',
   discharge_pics: 'Discharge',
+  unorganized: 'Unorganized',
 };
 
 export const CATEGORY_FULL_LABELS: Record<DocCategory, string> = {
@@ -28,9 +30,10 @@ export const CATEGORY_FULL_LABELS: Record<DocCategory, string> = {
   ot_notes: 'OT Notes',
   postop_pics: 'Post-operative',
   discharge_pics: 'Discharge',
+  unorganized: 'Unorganized',
 };
 
-export type DocType = 'preop' | 'lab' | 'radiology' | 'intraop' | 'otnotes' | 'postop' | 'discharge';
+export type DocType = 'preop' | 'lab' | 'radiology' | 'intraop' | 'otnotes' | 'postop' | 'discharge' | 'unorganized';
 
 const DOC_TYPE_BY_CATEGORY: Record<DocCategory, DocType> = {
   preop_pics: 'preop',
@@ -40,6 +43,7 @@ const DOC_TYPE_BY_CATEGORY: Record<DocCategory, DocType> = {
   ot_notes: 'otnotes',
   postop_pics: 'postop',
   discharge_pics: 'discharge',
+  unorganized: 'unorganized',
 };
 
 export function isValidCategory(value: unknown): value is DocCategory {

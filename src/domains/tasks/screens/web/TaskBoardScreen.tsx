@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { PageShell } from '@shared/components/layout/PageShell';
 import { TASK_BOARD_FILTERS } from '../../core/constants';
 import { isCompletedToday, isDueToday, isUrgent } from '../../core/filters';
 import type { TaskPriority, TaskStatus } from '../../core/types';
@@ -429,7 +430,7 @@ export function TaskBoardScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-28">
+    <PageShell showBottomBar={false} contentClassName="bg-slate-100">
       <header className="sticky top-0 z-30 bg-gradient-to-r from-slate-900 to-indigo-950 px-4 pb-4 pt-4 shadow-md">
         <div className="mx-auto w-full max-w-6xl">
           <div className="flex items-start justify-between gap-4">
@@ -632,7 +633,7 @@ export function TaskBoardScreen() {
       {activeDetailRow ? <TaskDetailModal row={activeDetailRow} onClose={() => setActiveDetailRow(null)} /> : null}
 
       <TaskBottomNav tabs={navTabs} activeTab={activeTab} onTabChange={handleBottomTabChange} />
-    </div>
+    </PageShell>
   );
 }
 

@@ -1,0 +1,20 @@
+version: 2
+mode: git
+created: "2026-04-14T22:29:38Z"
+config:
+  proactive_commits: true
+  worktree_ttl: 24h
+  bridge_to_aiyoucli: auto
+
+current_branch: claude/reusable-topbar-component-FbNRJ
+
+timeline:
+  - id: INIT
+    hash: 7cb742f
+    intent: "gcc initialized"
+    branch: claude/reusable-topbar-component-FbNRJ
+    date: "2026-04-14T22:29:38Z"
+
+worktrees: []
+
+decisions: []

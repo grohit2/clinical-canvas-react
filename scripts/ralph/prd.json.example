@@ -1,0 +1,48 @@
+{
+  "project": "Clinical Canvas",
+  "branchName": "codex/task-priority",
+  "description": "Task Priority System - Add priority levels to tasks",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add priority field to task storage",
+      "description": "As a developer, I need to store task priority so it persists across sessions.",
+      "acceptanceCriteria": [
+        "Add a priority field with values high, medium, or low",
+        "Existing data defaults to medium priority",
+        "npm run typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Display a priority indicator on task cards",
+      "description": "As a user, I want to see task priority at a glance.",
+      "acceptanceCriteria": [
+        "Each task card shows a visible priority badge",
+        "Badge styling distinguishes high, medium, and low",
+        "npm run lint passes",
+        "Verify in browser tooling when feasible"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add a priority selector when editing tasks",
+      "description": "As a user, I want to change a task priority during editing.",
+      "acceptanceCriteria": [
+        "Task edit UI includes a priority selector",
+        "The current priority is preselected",
+        "Changes persist after save",
+        "npm run build passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

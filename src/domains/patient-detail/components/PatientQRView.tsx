@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
+import { PageShell } from '@shared/components/layout/PageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -94,8 +94,7 @@ export default function PatientQRView() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header title="Patient Details" />
+    <PageShell header={{ title: "Patient Details" }} showBottomBar={false}>
       
       <div className="p-4 space-y-4">
         {/* Patient Header */}
@@ -230,6 +229,6 @@ export default function PatientQRView() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

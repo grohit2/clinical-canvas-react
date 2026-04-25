@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Bell,
@@ -59,6 +59,7 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
   const { patients = [], pinnedPatientIds = [] } = props;
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const actorId = getActiveActorId() ?? 'anon';
 
   const { data: tasks = [], isLoading } = useTasks();
@@ -232,6 +233,8 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
 
   const showFab = activeTab === 'home' || activeTab === 'reminders';
   const fabLabel = activeTab === 'reminders' ? 'Add Reminder' : 'Add Task';
+  // Fixed FAB position: customNavHeight(60) + safeAreaPadding + gap(16)
+  const fabBottom = 60 + Math.max(insets.bottom, 8) + 16;
   const activeView = BOARD_VIEW_OPTIONS.find((view) => view.id === activeViewMode)?.label ?? 'Ward';
 
   const addQuickTask = async (overrides?: Partial<Parameters<typeof createTask.mutateAsync>[0]>) => {
@@ -446,7 +449,7 @@ export function TaskBoardScreenNative(props: TaskBoardScreenNativeProps) {
 
       {showFab ? (
         <Pressable
-          style={[styles.fabButton, createTask.isPending && styles.fabButtonDisabled]}
+          style={[styles.fabButton, { bottom: fabBottom }, createTask.isPending && styles.fabButtonDisabled]}
           onPress={() => void handleFabPress()}
           disabled={createTask.isPending}
         >
@@ -659,8 +662,7 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    right: 14,
-    bottom: 96,
+    right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

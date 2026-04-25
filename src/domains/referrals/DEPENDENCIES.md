@@ -1,17 +1,17 @@
 # Referrals — Dependencies
 
 ## Shared UI
-- `@/components/ui/Card`
-- `@/components/ui/Badge`
-- `@/components/ui/Button`
-- `@/components/ui/Input`
-- `@/components/ui/Tabs`
-- `@/components/ui/Select`
-- `@/components/ui/AlertDialog`
+- `@shared/components/ui/card`
+- `@shared/components/ui/badge`
+- `@shared/components/ui/button`
+- `@shared/components/ui/input`
+- `@shared/components/ui/label`
+- `@shared/components/ui/select`
+- `@shared/components/ui/textarea`
 
 ## Layout Components
-- `@/components/layout/Header`
+- `@shared/components/layout/PageShell`
 
 ## External Packages
-- `lucide-react` — Icons (Search, ArrowRight, Calendar, Clock, AlertCircle, Construction)
+- `lucide-react` — form and status icons
 - `react` — useState, useMemo

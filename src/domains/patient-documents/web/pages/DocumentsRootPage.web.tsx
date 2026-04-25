@@ -2,8 +2,7 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { paths } from '@/app/navigation';
-import { Header } from '@/components/layout/Header';
-import { BottomBar } from '@/components/layout/BottomBar';
+import { PageShell } from '@shared/components/layout/PageShell';
 import type { DocCategory } from '../../core/types';
 import { FolderGrid } from '../components/FolderCard.web';
 import { useDocumentFolderSummaries } from '../hooks/usePatientDocuments';
@@ -23,8 +22,7 @@ export function DocumentsRootPage() {
   const totalDocuments = summaries?.reduce((acc, summary) => acc + summary.count, 0) ?? 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <Header title="Documents" showBack onBack={() => navigate(-1)} />
+    <PageShell header={{ title: "Documents", showBack: true, onBack: () => navigate(-1) }} contentClassName="bg-slate-50">
 
       <main className="p-4">
         <h2 className="text-[#0d141c] text-[22px] font-bold tracking-[-0.015em] pb-3 pt-1">
@@ -74,7 +72,6 @@ export function DocumentsRootPage() {
         </button>
       )}
 
-      <BottomBar />
-    </div>
+    </PageShell>
   );
 }

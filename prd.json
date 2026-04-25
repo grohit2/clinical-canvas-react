@@ -1,0 +1,142 @@
+{
+  "project": "HMS-Tasks-Backend",
+  "branchName": "ralph/task-lambda-gsi-audit",
+  "description": "Separate Task Lambda with multi-GSI DynamoDB design, checkpoint-based sync via updatedAt GSI, and full audit trail",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add GSI3 and GSI4 attribute definitions and indexes to SAM template",
+      "description": "As a developer, I need new Global Secondary Indexes on the DynamoDB table to support checkpoint-based sync (GSI3 on updatedAt) and assignee-based queries (GSI4).",
+      "acceptanceCriteria": [
+        "Add GSI3PK (S) and GSI3SK (S) to AttributeDefinitions in backend/dev/template.yaml",
+        "Add GSI4PK (S) and GSI4SK (S) to AttributeDefinitions in backend/dev/template.yaml",
+        "Add GSI3PK-GSI3SK-index with HASH=GSI3PK, RANGE=GSI3SK, ProjectionType=ALL",
+        "Add GSI4PK-GSI4SK-index with HASH=GSI4PK, RANGE=GSI4SK, ProjectionType=ALL",
+        "Existing GSI1, GSI2, and LSI remain untouched",
+        "SAM template validates with 'sam validate'",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "GSI3 pattern: GSI3PK='TASK_SYNC#DEPT#{department}', GSI3SK='{updatedAt}#{taskId}'. GSI4 pattern: GSI4PK='TASK_BY_ASSIGNEE#{assigneeId}', GSI4SK='{status}#{dueDate}#{taskId}'. These support incremental sync and per-assignee task queries respectively."
+    },
+    {
+      "id": "US-002",
+      "title": "Create separate Task Lambda function scaffold in SAM template",
+      "description": "As a developer, I need a dedicated Lambda function for task management, separate from the monolithic HMS Lambda, with its own function URL and IAM permissions.",
+      "acceptanceCriteria": [
+        "New SAM resource HMSTasksFunction in backend/dev/template.yaml",
+        "FunctionName: HMS-tasks-{StackEnvironment}",
+        "CodeUri points to new directory: HMSTasksFunction/",
+        "Runtime nodejs22.x, MemorySize 256, Timeout 30",
+        "FunctionUrlConfig with AuthType NONE and same CORS as existing Lambda",
+        "Environment variables: TABLE_NAME, FILES_BUCKET, PRESIGN_EXPIRES_SEC, CDN_DOMAIN",
+        "IAM policy grants dynamodb:GetItem, PutItem, UpdateItem, DeleteItem, Query, Scan on table ARN and all indexes",
+        "Create HMSTasksFunction/index.mjs with router scaffold (copy pattern from existing router.mjs)",
+        "Create HMSTasksFunction/utils.mjs with shared helpers (nowISO, resp, parseBody, JSON_HEADERS)",
+        "Lambda responds 200 to GET /health",
+        "Output: TasksFunctionUrl exported from stack",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Follow existing pattern from HMSdevmrnchange. The new Lambda shares the same DynamoDB table (single-table design) but runs as an independent function."
+    },
+    {
+      "id": "US-003",
+      "title": "Implement task CRUD endpoints with multi-GSI key population",
+      "description": "As a developer, I need full task CRUD in the new Lambda that populates all GSI keys (GSI2, GSI3, GSI4) on every write operation.",
+      "acceptanceCriteria": [
+        "POST /patients/{mrn}/tasks creates task with PK/SK + GSI2PK/GSI2SK (existing pattern) + GSI3PK/GSI3SK (sync) + GSI4PK/GSI4SK (assignee)",
+        "GSI3PK set to 'TASK_SYNC#DEPT#{department}', GSI3SK set to '{updatedAt}#{taskId}'",
+        "GSI4PK set to 'TASK_BY_ASSIGNEE#{assigneeId}', GSI4SK set to '{status}#{dueDate}#{taskId}'",
+        "GET /patients/{mrn}/tasks returns tasks for patient (query PK=PATIENT#{mrn}, SK begins_with TASK#)",
+        "PATCH /patients/{mrn}/tasks/{taskId} updates task and refreshes all GSI keys if relevant fields changed",
+        "DELETE /patients/{mrn}/tasks/{taskId} soft-cancels task and refreshes all GSI keys",
+        "GET /tasks?department=&status=&assigneeId= queries via GSI2 (existing dashboard pattern)",
+        "GET /tasks/by-assignee/{assigneeId}?status=&limit= queries via GSI4",
+        "Validation matches existing: type in [lab,medication,procedure,assessment,discharge], status in [open,in-progress,done,cancelled], priority in [low,medium,high,urgent]",
+        "Response format matches existing toUiTask shape (taskId, patientId, title, type, due, assigneeId, status, priority, recurring, recurrence, details, department, files, createdAt, updatedAt)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Port logic from existing backend/dev/HMSdevmrnchange/tasks.mjs. Key change: every write now populates 3 GSI key pairs instead of 1. The buildTaskGSI helper should return all 6 GSI attributes."
+    },
+    {
+      "id": "US-004",
+      "title": "Implement checkpoint sync endpoint using updatedAt GSI",
+      "description": "As a frontend developer, I need a sync endpoint that returns only tasks modified after a given checkpoint timestamp, so the client can cache results and fetch deltas incrementally.",
+      "acceptanceCriteria": [
+        "GET /tasks/sync?department={dept}&since={ISO_TIMESTAMP}&limit={N} endpoint exists",
+        "Queries GSI3PK-GSI3SK-index with KeyCondition: GSI3PK = 'TASK_SYNC#DEPT#{dept}' AND GSI3SK > '{since}'",
+        "Default limit is 100, max 500",
+        "Response shape: { tasks: TaskUI[], checkpoint: string (ISO timestamp of last item), hasMore: boolean }",
+        "When hasMore is true, response includes nextToken (base64 encoded ExclusiveStartKey)",
+        "Subsequent requests pass nextToken as query param to continue pagination",
+        "If 'since' is omitted, returns all tasks (full sync) for that department",
+        "If 'department' is omitted, returns 400 error",
+        "Tasks with status 'cancelled' are still included (client needs to know about cancellations for cache invalidation)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "This is the key endpoint for incremental sync. Client stores the 'checkpoint' timestamp from the response and passes it as 'since' on next sync. Because GSI3SK is '{updatedAt}#{taskId}', the sort is naturally by modification time."
+    },
+    {
+      "id": "US-005",
+      "title": "Implement audit trail writes on every task mutation using TransactWrite",
+      "description": "As a compliance officer, I need every task create/update/delete to atomically write an audit trail entry so we have a complete history of who changed what and when.",
+      "acceptanceCriteria": [
+        "Every task create writes an audit item atomically via TransactWriteCommand (task put + audit put in same transaction)",
+        "Every task update writes an audit item atomically via TransactWriteCommand (task update + audit put)",
+        "Every task delete (soft cancel) writes an audit item atomically",
+        "Audit item key: PK = 'TASK#{taskId}', SK = 'AUDIT#{ISO_timestamp}#{opId}'",
+        "Audit item fields: op_type ('create'|'update'|'delete'), actor_id (from X-Actor-Id header or 'system'), device_id (from X-Device-Id header or 'unknown'), previous_values (null for create, snapshot before for update/delete), new_values (snapshot after), patch_json (only changed fields for update), reason (from request body if provided), created_at",
+        "opId is a unique ID (timestamp + random hex, same pattern as existing newId())",
+        "File attach/detach operations also write audit entries",
+        "Audit entries are never deleted or modified",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "TransactWriteCommand ensures audit entry is atomically written with the task mutation — no partial writes. The actor_id and device_id come from request headers, matching the local-ledger's actorId/deviceId model."
+    },
+    {
+      "id": "US-006",
+      "title": "Implement audit trail query endpoints",
+      "description": "As a user, I need endpoints to retrieve audit trail entries for a specific task or across tasks, so I can see the full history of changes.",
+      "acceptanceCriteria": [
+        "GET /tasks/{taskId}/audit returns audit entries for a single task",
+        "Queries main table: PK = 'TASK#{taskId}', SK begins_with 'AUDIT#'",
+        "Results sorted by SK descending (newest first) by default",
+        "Supports ?limit=N (default 50, max 200) and ?nextToken for pagination",
+        "Response shape: { entries: AuditEntry[], nextToken?: string }",
+        "AuditEntry shape: { opId, opType, actorId, deviceId, previousValues, newValues, patchJson, reason, createdAt }",
+        "GET /tasks/{taskId}/audit?since={ISO_TIMESTAMP} filters to entries after timestamp",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Per-task audit uses the main table key (no GSI needed) since audit items share the task's PK. ScanIndexForward: false gives newest-first ordering."
+    },
+    {
+      "id": "US-007",
+      "title": "Port file attach/detach endpoints to new task Lambda with audit",
+      "description": "As a developer, I need file attach/detach endpoints in the new task Lambda so all task operations are consolidated in one service.",
+      "acceptanceCriteria": [
+        "POST /patients/{mrn}/tasks/{taskId}/files/attach endpoint in new Lambda",
+        "POST /patients/{mrn}/tasks/{taskId}/files/detach endpoint in new Lambda",
+        "Attach adds S3 key to task's files array, detach removes it",
+        "Both endpoints update task's updated_at and refresh GSI3 keys (so sync picks up file changes)",
+        "Both endpoints write audit trail entry (op_type: 'update', patch shows files array change)",
+        "Safety check: S3 key must start with 'patients/{mrn}/'",
+        "Response matches existing shape: { message, task: TaskUI }",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Ported from existing tasks.mjs attach/detach logic. Key addition: GSI3 key refresh + audit trail write."
+    }
+  ]
+}

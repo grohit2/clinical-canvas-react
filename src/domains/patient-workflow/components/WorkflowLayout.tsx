@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BottomBar } from "@/components/layout/BottomBar";
+import { PageShell } from "@shared/components/layout/PageShell";
 import { paths } from "@/app/navigation";
 import api from "@/lib/api";
 import { WorkflowStepper } from "./WorkflowStepper";
@@ -42,7 +42,7 @@ export function WorkflowPageLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <PageShell contentClassName="bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="px-4 py-3">
@@ -109,7 +109,6 @@ export function WorkflowPageLayout({
         )}
       </div>
 
-      <BottomBar />
-    </div>
+    </PageShell>
   );
 }

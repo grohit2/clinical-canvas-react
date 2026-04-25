@@ -1,0 +1,128 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "VitalsTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        {
+          "name": "GSI1",
+          "partition_key": "GSI1PK",
+          "sort_key": "GSI1SK",
+          "projection": "ALL"
+        }
+      ],
+      "entities": {
+        "VitalReading": {
+          "entity_type": "VITAL",
+          "pk_template": "ENC#{encounterNumber}#DATE#{recordDate}",
+          "sk_template": "TIME#{recordTime}",
+          "gsi_mappings": [
+            {
+              "name": "GSI1",
+              "pk_template": "PAT#{patientMrn}",
+              "sk_template": "DATE#{recordDate}#TIME#{recordTime}"
+            }
+          ],
+          "fields": [
+            { "name": "encounterNumber", "type": "string", "required": true },
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "recordDate", "type": "string", "required": true },
+            { "name": "recordTime", "type": "string", "required": true },
+            { "name": "documentNumber", "type": "string", "required": false },
+            { "name": "systolicBP", "type": "integer", "required": false },
+            { "name": "diastolicBP", "type": "integer", "required": false },
+            { "name": "pulse", "type": "integer", "required": false },
+            { "name": "temperature", "type": "decimal", "required": false },
+            { "name": "temperatureUnit", "type": "string", "required": false },
+            { "name": "spO2", "type": "decimal", "required": false },
+            { "name": "respiratoryRate", "type": "integer", "required": false },
+            { "name": "weight", "type": "decimal", "required": false },
+            { "name": "height", "type": "decimal", "required": false },
+            { "name": "bmi", "type": "decimal", "required": false },
+            { "name": "painScore", "type": "integer", "required": false },
+            { "name": "bloodSugar", "type": "decimal", "required": false },
+            { "name": "gcsScore", "type": "integer", "required": false },
+            { "name": "urineOutput", "type": "integer", "required": false },
+            { "name": "arterialPressureSys", "type": "integer", "required": false },
+            { "name": "arterialPressureDia", "type": "integer", "required": false },
+            { "name": "crt", "type": "decimal", "required": false },
+            { "name": "chewsScore", "type": "integer", "required": false },
+            { "name": "customVitals", "type": "object", "required": false },
+            { "name": "recordedBy", "type": "object", "required": false },
+            { "name": "recordedAt", "type": "string", "required": true },
+            { "name": "source", "type": "string", "required": false },
+            { "name": "ttl", "type": "integer", "required": false }
+          ],
+          "access_patterns": [
+            {
+              "pattern_id": 301,
+              "name": "record_vitals",
+              "description": "Record a new vital signs reading",
+              "operation": "PutItem",
+              "parameters": [
+                { "name": "vital", "type": "entity", "entity_type": "VitalReading" }
+              ],
+              "return_type": "single_entity"
+            },
+            {
+              "pattern_id": 302,
+              "name": "get_vitals_for_day",
+              "description": "Get all vital readings for an encounter on a specific day",
+              "operation": "Query",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "encounterNumber", "type": "string" },
+                { "name": "recordDate", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 303,
+              "name": "get_vitals_time_range",
+              "description": "Get vitals in a time range for a day",
+              "operation": "Query",
+              "range_condition": "between",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "pkValue", "type": "string" },
+                { "name": "fromTime", "type": "string" },
+                { "name": "toTime", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 304,
+              "name": "get_patient_vitals_history",
+              "description": "Get vitals across encounters for a patient via GSI1",
+              "operation": "Query",
+              "index_name": "GSI1",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "patientMrn", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            },
+            {
+              "pattern_id": 305,
+              "name": "get_patient_vitals_date_range",
+              "description": "Get patient vitals within a date range via GSI1",
+              "operation": "Query",
+              "index_name": "GSI1",
+              "range_condition": "between",
+              "consistent_read": false,
+              "parameters": [
+                { "name": "patientMrn", "type": "string" },
+                { "name": "fromDate", "type": "string" },
+                { "name": "toDate", "type": "string" }
+              ],
+              "return_type": "entity_list"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

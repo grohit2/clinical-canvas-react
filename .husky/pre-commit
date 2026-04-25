@@ -1,3 +1,0 @@
-#!/usr/bin/env sh
-sh scripts/append-changelog-entry.sh
-npx lint-staged

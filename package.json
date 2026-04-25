@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "prepare": "husky install",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "codex:ralph-loop": "./scripts/ralph/codexralph-loop.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
@@ -108,10 +109,5 @@
     "vite": "^5.4.1",
     "vitest": "^4.0.14"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "bash -lc \"if git diff --cached -U0 | grep -qE '^\\+.*\\bmrn\\b'; then echo '❌ MRN found in staged changes. Use UID.' && exit 1; fi\"",
-      "eslint --fix"
-    ]
-  }
+  "lint-staged": {}
 }

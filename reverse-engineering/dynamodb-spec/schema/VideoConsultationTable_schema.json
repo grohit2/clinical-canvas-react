@@ -1,0 +1,71 @@
+{
+  "tables": [
+    {
+      "table_config": {
+        "table_name": "VideoConsultationTable",
+        "partition_key": "PK",
+        "sort_key": "SK"
+      },
+      "gsi_list": [
+        { "name": "GSI1", "partition_key": "GSI1PK", "sort_key": "GSI1SK", "projection": "ALL" },
+        { "name": "GSI2", "partition_key": "GSI2PK", "sort_key": "GSI2SK", "projection": "ALL" }
+      ],
+      "entities": {
+        "Appointment": {
+          "entity_type": "METADATA",
+          "pk_template": "APT#{appointmentNumber}",
+          "sk_template": "METADATA",
+          "gsi_mappings": [
+            { "name": "GSI1", "pk_template": "DOC#{doctorLogin}", "sk_template": "DATE#{appointmentDate}#APT#{appointmentNumber}" },
+            { "name": "GSI2", "pk_template": "PAT#{patientMrn}", "sk_template": "DATE#{appointmentDate}" }
+          ],
+          "fields": [
+            { "name": "appointmentNumber", "type": "string", "required": true },
+            { "name": "encounterNumber", "type": "string", "required": false },
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "patientName", "type": "string", "required": true },
+            { "name": "doctorLogin", "type": "string", "required": true },
+            { "name": "doctorName", "type": "string", "required": true },
+            { "name": "consultationStatus", "type": "string", "required": true },
+            { "name": "appointmentDate", "type": "string", "required": true },
+            { "name": "appointmentTime", "type": "string", "required": false },
+            { "name": "appointmentType", "type": "string", "required": false },
+            { "name": "unitCode", "type": "string", "required": false },
+            { "name": "departmentCode", "type": "string", "required": false }
+          ],
+          "access_patterns": [
+            { "pattern_id": 1201, "name": "get_appointment", "description": "Get appointment details", "operation": "GetItem", "consistent_read": true, "parameters": [{ "name": "appointmentNumber", "type": "string" }], "return_type": "single_entity" },
+            { "pattern_id": 1202, "name": "create_appointment", "description": "Create appointment", "operation": "PutItem", "parameters": [{ "name": "appointment", "type": "entity", "entity_type": "Appointment" }], "return_type": "single_entity" },
+            { "pattern_id": 1203, "name": "update_status", "description": "Update consultation status", "operation": "UpdateItem", "parameters": [{ "name": "appointmentNumber", "type": "string" }, { "name": "consultationStatus", "type": "string" }], "return_type": "single_entity" },
+            { "pattern_id": 1204, "name": "doctor_appointments", "description": "Doctor's schedule", "operation": "Query", "index_name": "GSI1", "consistent_read": false, "parameters": [{ "name": "doctorLogin", "type": "string" }], "return_type": "entity_list" },
+            { "pattern_id": 1205, "name": "patient_appointments", "description": "Patient consultation history", "operation": "Query", "index_name": "GSI2", "consistent_read": false, "parameters": [{ "name": "patientMrn", "type": "string" }], "return_type": "entity_list" }
+          ]
+        },
+        "FollowUpRecord": {
+          "entity_type": "FOLLOWUP",
+          "pk_template": "APT#{appointmentNumber}",
+          "sk_template": "FOLLOWUP",
+          "fields": [
+            { "name": "appointmentNumber", "type": "string", "required": true },
+            { "name": "mode", "type": "string", "required": true },
+            { "name": "followUpDate", "type": "string", "required": false },
+            { "name": "duration", "type": "string", "required": false },
+            { "name": "consultant", "type": "object", "required": false },
+            { "name": "department", "type": "object", "required": false },
+            { "name": "appointmentType", "type": "string", "required": false },
+            { "name": "investigations", "type": "array", "required": false, "item_type": "object" },
+            { "name": "notes", "type": "string", "required": false },
+            { "name": "sourceEncounter", "type": "string", "required": false },
+            { "name": "patientMrn", "type": "string", "required": true },
+            { "name": "createdBy", "type": "object", "required": false },
+            { "name": "createdOn", "type": "string", "required": true }
+          ],
+          "access_patterns": [
+            { "pattern_id": 1206, "name": "store_followup", "description": "Store follow-up record", "operation": "PutItem", "parameters": [{ "name": "followup", "type": "entity", "entity_type": "FollowUpRecord" }], "return_type": "single_entity" },
+            { "pattern_id": 1207, "name": "get_followup", "description": "Get follow-up for appointment", "operation": "GetItem", "consistent_read": false, "parameters": [{ "name": "appointmentNumber", "type": "string" }], "return_type": "single_entity" }
+          ]
+        }
+      }
+    }
+  ]
+}

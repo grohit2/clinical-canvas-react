@@ -4,25 +4,39 @@ import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { resolveAnyPatientId } from "./ids.mjs";
 
 /* Map DB -> UI */
-const toUiTimeline = (it = {}) => ({
-  timelineId: it.timeline_id,
-  patientId: it.patient_uid,
-  mrn: it.mrn ?? null,         // provenance only
-  scheme: it.scheme ?? null,   // provenance only
-  state: it.state,
-  dateIn: it.date_in,
-  dateOut: it.date_out || null,
-  // DONE lists (UI will render these)
-  checklistIn: Array.isArray(it.checklist_in_done) ? it.checklist_in_done : [],
-  checklistOut: Array.isArray(it.checklist_out_done) ? it.checklist_out_done : [],
-  // For completeness (what was required at that step)
-  requiredIn: Array.isArray(it.required_in) ? it.required_in : [],
-  requiredOut: Array.isArray(it.required_out) ? it.required_out : [],
-  actorId: it.actor_id || null,
-  notes: it.notes || null,
-  createdAt: it.created_at,
-  updatedAt: it.updated_at,
-});
+const toUiTimeline = (it = {}) => {
+  const isTaskRow = it.entity === "TIMELINE_TASK";
+  return {
+    timelineId: it.timeline_id,
+    patientId: it.patient_uid,
+    mrn: it.mrn ?? null,         // provenance only
+    scheme: it.scheme ?? null,   // provenance only
+    kind: isTaskRow ? "task" : "episode",
+    state: it.state,
+    dateIn: it.date_in,
+    dateOut: it.date_out || null,
+    // DONE lists (UI will render these)
+    checklistIn: Array.isArray(it.checklist_in_done) ? it.checklist_in_done : [],
+    checklistOut: Array.isArray(it.checklist_out_done) ? it.checklist_out_done : [],
+    // For completeness (what was required at that step)
+    requiredIn: Array.isArray(it.required_in) ? it.required_in : [],
+    requiredOut: Array.isArray(it.required_out) ? it.required_out : [],
+    actorId: it.actor_id || null,
+    notes: it.notes || null,
+    // Task-event fields (null for episode rows)
+    task: isTaskRow ? {
+      taskId: it.task_id,
+      title: it.task_title,
+      type: it.task_type,
+      statusAfter: it.task_status_after,
+      changeType: it.task_change_type,
+      summary: it.task_summary,
+      updateId: it.task_update_id,
+    } : null,
+    createdAt: it.created_at,
+    updatedAt: it.updated_at,
+  };
+};
 
 export function mountTimelineRoutes(router, ctx) {
   const { ddb, TABLE, utils } = ctx;

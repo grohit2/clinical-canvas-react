@@ -6,6 +6,7 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 // feature modules
 import { mountPatientRoutes } from "./patients.mjs";
 import { mountTaskRoutes } from "./tasks.mjs";
+import { mountTaskRoutesV2 } from "./tasks/index.mjs";
 import { mountNoteRoutes } from "./notes.mjs";
 import { mountMedRoutes } from "./meds.mjs";
 import { mountDoctorRoutes } from "./doctors.mjs";
@@ -88,8 +89,12 @@ export const handler = async (event = {}) => {
 
   const router = new Router(ctx);
 
-  // mount feature modules (order doesn't matter)
+  // mount feature modules
+  // NOTE: typed task module (tasks/) is mounted BEFORE legacy tasks.mjs so its
+  // routes match first. Legacy tasks.mjs stays for any path the new module
+  // does not yet handle (file attach/detach + GET /tasks dept dashboard).
   mountNoteRoutes(router, ctx);
+  mountTaskRoutesV2(router, ctx);
   mountTaskRoutes(router, ctx);
   mountMedRoutes(router, ctx);
   mountDoctorRoutes(router, ctx);

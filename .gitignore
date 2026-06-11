@@ -19,6 +19,26 @@ blob-report
 .aws-sam/
 samconfig.toml
 
+# Local cloud credentials
+.GCP/keys/
+*.pem
+*.key
+
+# Expo / Android local and generated files
+apps/mobile/.expo/
+apps/mobile/android/local.properties
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/.cxx/
+apps/mobile/android/app/build/
+
+# Local automation state
+.claude/worktrees/
+scripts/ralph/.state/
+
+# Reverse-engineered APK dumps and extracted third-party app artifacts
+reverse-engineering/decompiled/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

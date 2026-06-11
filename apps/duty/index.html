@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#202124" />
+  <title>Duty · HMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="clinical.css?v=15" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- React 18 + Babel via CDN (mirrors design source). No build step. -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- App code -->
+  <script src="api.js"></script>
+  <script src="clipboard.js"></script>
+  <script type="text/babel" data-presets="env,react" src="components/TopBar.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/CopyButton.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/TaskRow.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/PriorityHeader.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/QuickActions.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/IdentityPicker.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/EmptyState.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/NowStrip.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/PatientCard.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="components/PatientListRow.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="DutyBoard.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="TaskDetail.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="PatientTasks.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="PatientsList.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="Register.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="App.jsx"></script>
+</body>
+</html>

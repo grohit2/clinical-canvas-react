@@ -7,6 +7,8 @@ import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { mountPatientRoutes } from "./patients.mjs";
 import { mountTaskRoutes } from "./tasks.mjs";
 import { mountTaskRoutesV2 } from "./tasks/index.mjs";
+import { mountVitalsRoutes } from "./vitals/index.mjs";
+import { mountChangesRoutes } from "./changes/index.mjs";
 import { mountNoteRoutes } from "./notes.mjs";
 import { mountMedRoutes } from "./meds.mjs";
 import { mountDoctorRoutes } from "./doctors.mjs";
@@ -34,7 +36,7 @@ export const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization,X-User-Id,X-User-Name,X-User-Role",
 };
 export const nowISO = () => new Date().toISOString();
 export const resp = (statusCode, bodyObj) => ({
@@ -94,7 +96,9 @@ export const handler = async (event = {}) => {
   // routes match first. Legacy tasks.mjs stays for any path the new module
   // does not yet handle (file attach/detach + GET /tasks dept dashboard).
   mountNoteRoutes(router, ctx);
+  mountChangesRoutes(router, ctx);
   mountTaskRoutesV2(router, ctx);
+  mountVitalsRoutes(router, ctx);
   mountTaskRoutes(router, ctx);
   mountMedRoutes(router, ctx);
   mountDoctorRoutes(router, ctx);

@@ -109,6 +109,33 @@ function PatientsList({ me, onOpenPatient, onChangeIdentity }) {
           Overdue
         </button>
         <span style={{flex: 1}}></span>
+        <CopyButton
+          label="AI ctx"
+          style={{ height: '24px', padding: '0 8px', fontSize: '10px' }}
+          getText={() => {
+            const list = filtered || [];
+            const lines = [`## Patients (${list.length}${filter !== "all" ? `, filter: ${filter}` : ""})`];
+            for (const p of list) {
+              const ids = [p.uid ? `UID: ${p.uid}` : null, p.mrn ? `MRN: ${p.mrn}` : null].filter(Boolean).join(" | ");
+              const demo = [
+                [p.age, p.sex?.[0]?.toUpperCase()].filter(Boolean).join(""),
+                p.bedNo ? `Bed ${p.bedNo}` : null,
+                p.department || null,
+              ].filter(Boolean).join(" · ");
+              const counts = [];
+              if (p.taskCounts.overdue > 0) counts.push(`${p.taskCounts.overdue} late`);
+              if (p.taskCounts.open > 0) counts.push(`${p.taskCounts.open} open`);
+              lines.push("");
+              lines.push(`### ${p.name || "?"}`);
+              if (ids) lines.push(ids);
+              if (demo) lines.push(demo);
+              if (p.diagnosis) lines.push(`Dx: ${p.diagnosis}`);
+              if (counts.length) lines.push(`Tasks: ${counts.join(", ")}`);
+            }
+            return lines.join("\n");
+          }}
+          confirmMsg="Patient list copied"
+        />
         <button className="filter-chip ghost" onClick={() => { loadPatients(); loadMyTaskCounts(); }} title="Refresh">↻</button>
       </div>
 

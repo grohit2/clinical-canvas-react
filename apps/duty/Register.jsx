@@ -325,6 +325,16 @@ function Register({ me, onOpenTask, onChangeIdentity }) {
                       {lateCount > 0 && <span className="chip late">{lateCount} late</span>}
                       {openCount > 0 && <span className="chip open">{openCount} open</span>}
                       {vitals.length > 0 && <span className="chip vitals">{vitals.length}♡</span>}
+                      {isExpanded && (
+                        <span onClick={e => e.stopPropagation()}>
+                          <CopyButton
+                            label="AI ctx"
+                            style={{ height: '20px', padding: '0 7px', fontSize: '10px' }}
+                            getText={() => window.buildAIContext ? window.buildAIContext(p, [...active, ...pending], vitals) : ""}
+                            confirmMsg="Context copied"
+                          />
+                        </span>
+                      )}
                     </div>
                   </div>
 

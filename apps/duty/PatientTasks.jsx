@@ -441,6 +441,99 @@ function buildHandoffText({ patient, tasks, vitals, severity }) {
   return lines.join("\n");
 }
 
+/* ---------- AI CONTEXT BUILDER ---------- */
+function buildAIContext(patient, tasks, vitals) {
+  if (!patient) return "";
+  const lines = [];
+
+  const ageSex = [patient.age, patient.sex?.[0]?.toUpperCase()].filter(Boolean).join("");
+  const bed = patient.roomNumber || patient.bedNo;
+  lines.push(`## Patient: ${patient.name || "Unknown"}`);
+
+  const idParts = [];
+  if (patient.uid || patient.id) idParts.push(`UID: ${patient.uid || patient.id}`);
+  if (patient.mrn) idParts.push(`MRN: ${patient.mrn}`);
+  if (idParts.length) lines.push(idParts.join(" | "));
+
+  const demoParts = [];
+  if (ageSex) demoParts.push(ageSex);
+  if (bed) demoParts.push(`Bed ${bed}`);
+  if (patient.department) demoParts.push(patient.department);
+  if (demoParts.length) lines.push(demoParts.join(" · "));
+
+  const d = daysIn(patient);
+  if (patient.surgeryDate && patient.procedureName) {
+    const pod = Math.max(0, Math.floor((Date.now() - new Date(patient.surgeryDate).getTime()) / 86400000));
+    lines.push(`POD ${pod} — ${patient.procedureName}`);
+  } else if (patient.diagnosis) {
+    lines.push(`Dx: ${patient.diagnosis}${d != null ? ` (Day ${d})` : ""}`);
+  } else if (d != null) {
+    lines.push(`Admission day ${d}`);
+  }
+  if (patient.currentState) lines.push(`State: ${String(patient.currentState).toUpperCase()}`);
+  if (patient.comorbidities?.filter(Boolean).length)
+    lines.push(`Comorbidities: ${patient.comorbidities.filter(Boolean).join(", ")}`);
+  if (patient.allergies?.filter(Boolean).length)
+    lines.push(`⚠ Allergies: ${patient.allergies.filter(Boolean).join(", ")}`);
+  if (patient.assignedDoctor) lines.push(`Attending: ${patient.assignedDoctor}`);
+
+  const lv = Array.isArray(vitals) && vitals.length > 0
+    ? [...vitals].sort((a, b) => new Date(b.recorded_at || 0) - new Date(a.recorded_at || 0))[0]
+    : null;
+  if (lv) {
+    const vParts = [];
+    if (lv.bp_systolic != null && lv.bp_diastolic != null) vParts.push(`BP ${lv.bp_systolic}/${lv.bp_diastolic}`);
+    if (lv.hr != null) vParts.push(`HR ${lv.hr}`);
+    if (lv.spo2 != null) vParts.push(`SpO₂ ${lv.spo2}%`);
+    if (lv.temp_c != null) vParts.push(`T ${lv.temp_c}°C`);
+    if (lv.grbs != null) vParts.push(`GRBS ${lv.grbs}`);
+    if (lv.rr != null) vParts.push(`RR ${lv.rr}`);
+    if (lv.urine_output_ml != null) vParts.push(`UO ${lv.urine_output_ml}ml`);
+    const ts = lv.recorded_at
+      ? new Date(lv.recorded_at).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })
+      : "";
+    lines.push("");
+    lines.push(`## Vitals${ts ? ` (${ts})` : ""}`);
+    lines.push(vParts.join(" · ") || "—");
+  }
+
+  const open = (tasks || []).filter(t => !["done", "cancelled"].includes(t.status));
+  const done = (tasks || []).filter(t => t.status === "done");
+
+  if (open.length > 0) {
+    const lateCount = open.filter(t => {
+      const due = t.dueAt || t.due_at;
+      return due && new Date(due).getTime() < Date.now();
+    }).length;
+    lines.push("");
+    lines.push(`## Open Tasks (${open.length}${lateCount > 0 ? `, ${lateCount} late` : ""})`);
+    const priority = { blocked: 0, in_progress: 1, todo: 2, pending: 3 };
+    const sorted = [...open].sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9));
+    for (const t of sorted) {
+      const label = { blocked: "BLOCKED", in_progress: "IN PROG", todo: "TODO", pending: "WAITING" }[t.status] || t.status.toUpperCase();
+      const dueField = t.dueAt || t.due_at;
+      const dueStr = dueField
+        ? new Date(dueField).getTime() < Date.now()
+          ? ` [LATE ${Math.round((Date.now() - new Date(dueField).getTime()) / 3600000)}h]`
+          : ` @ ${new Date(dueField).toISOString().slice(11, 16)}`
+        : "";
+      const typeStr = t.type ? ` (${t.type})` : "";
+      lines.push(`[${label}] ${t.title}${typeStr}${dueStr}`);
+    }
+  }
+
+  if (done.length > 0) {
+    lines.push("");
+    lines.push(`## Done (${done.length})`);
+    for (const t of done.slice(0, 5)) lines.push(`✓ ${t.title}`);
+    if (done.length > 5) lines.push(`  … +${done.length - 5} more`);
+  }
+
+  return lines.join("\n");
+}
+
+window.buildAIContext = buildAIContext;
+
 function HandoffView({ patient, tasks, vitals }) {
   if (!patient) return <div className="loader">Loading handoff…</div>;
   const severity = illnessSeverity({ tasks: tasks || [], vitals: vitals || [] });
@@ -604,6 +697,12 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
             {ageSex && <span className="p-demo">{ageSex}</span>}
             <span style={{flex: 1}}></span>
             {d != null && <span className="p-demo">Day {d}</span>}
+            <CopyButton
+              label="AI ctx"
+              style={{ height: '22px', padding: '0 8px', fontSize: '10px', alignSelf: 'center' }}
+              getText={() => buildAIContext(patient, tasks || [], vitals || [])}
+              confirmMsg="Patient context copied"
+            />
           </div>
           <div className="p-line2">
             {patient.mrn && <span>MRN {patient.mrn}</span>}

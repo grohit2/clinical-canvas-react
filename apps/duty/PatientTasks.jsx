@@ -700,7 +700,7 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
             <CopyButton
               label="AI ctx"
               style={{ height: '22px', padding: '0 8px', fontSize: '10px', alignSelf: 'center' }}
-              getText={() => buildAIContext(patient, tasks || [], vitals || [])}
+              getText={() => buildAIContext({ ...patient, uid: patient.uid || patient.id || patientId }, tasks || [], vitals || [])}
               confirmMsg="Patient context copied"
             />
           </div>

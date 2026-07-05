@@ -52,3 +52,5 @@ reverse-engineering/decompiled/
 
 # Backup folder (legacy code)
 backup/
+.vercel
+.env*

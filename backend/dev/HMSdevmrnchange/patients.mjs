@@ -7,6 +7,7 @@ import {
 import crypto from "node:crypto";
 import { resolveAnyPatientId } from "./ids.mjs";
 import { buildInitialTimelineItem } from "./timeline.mjs";
+import { buildChangeRows } from "./changes/changes_emit.mjs";
 
 /* ---------------------------- ULID generator ---------------------------- */
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -46,6 +47,8 @@ const EPISODE_UPDATABLE = new Set([
   // New optional fields
   "tid_number", "tid_status", "surgery_code", "surgery_date", "procedure_name",
   "room_number",
+  // org model: physical location + dept slug
+  "ward_id", "ward", "bed_no", "department_id",
 ]); // current_state is handled in /state
 
 /* ------------------------------- UI mapper ------------------------------ */
@@ -66,6 +69,10 @@ const toUiPatient = (it = {}) => ({
   emergencyContact: it.emergency_contact ?? null,
 
   department: it.department ?? null,
+  departmentId: it.department_id ?? null,
+  wardId: it.ward_id ?? null,
+  ward: it.ward ?? null,
+  bedNo: it.bed_no ?? null,
   status: it.status ?? null,
   pathway: it.pathway ?? null,
   currentState: it.current_state ?? null,
@@ -148,6 +155,11 @@ export function mountPatientRoutes(router, ctx) {
       surgery_date: surgeryDate ?? null,
       procedure_name: procedureName,
       room_number: roomNumber,
+      // org model: physical location + dept slug
+      ward_id: reg.ward_id ?? null,
+      ward: reg.ward ?? null,
+      bed_no: reg.bed_no ?? roomNumber ?? null,
+      department_id: reg.department_id ?? null,
       state_dates: { [String(firstState)]: now },
       timeline_open_sk: tl.sk,
 
@@ -305,6 +317,135 @@ export function mountPatientRoutes(router, ctx) {
      PATCH /patients/{id}/state
      Body: { current_state, checklistInDone?, checklistOutDone?, actorId?, timelineNotes? }
   */
+  /* ---------------- ASSIGN (move: department / ward / bed) ----------------
+     PATCH /patients/{id}/assign
+     Body: { department?, department_id?, ward_id?, ward?, bed_no?, reason? }
+     - dept move updates GSI1PK and emits moved_out/moved_in change rows
+     - ward/bed move is a plain location update (emits one `updated` row)
+     - every move appends an audit row SK=MOVE#<iso>#<eid>                    */
+  router.add("PATCH", /^\/?patients\/([^/]+)\/assign\/?$/, async ({ match, event }) => {
+    const resolved = await resolveAnyPatientId(ddb, TABLE, decodeURIComponent(match[1]));
+    if (!resolved) return resp(404, { error: "Patient not found" });
+    const body = parseBody(event) || {};
+    const now = nowISO();
+    const meta = resolved.meta;
+    const h = event?.headers || {};
+    const actor = {
+      user_id: h["x-user-id"] || h["X-User-Id"] || null,
+      name: h["x-user-name"] || h["X-User-Name"] || null,
+    };
+
+    // Resolve new department name: explicit name wins, else slug via registry
+    let newDeptName = body.department ?? null;
+    let newDeptId = body.department_id ?? null;
+    if (!newDeptName && newDeptId) {
+      const reg = await ddb.send(new GetCommand({
+        TableName: TABLE, Key: { PK: "ORG#REGISTRY", SK: `DEPT#${newDeptId}` },
+      }));
+      if (!reg.Item) return resp(404, { error: `department ${newDeptId} not found in registry` });
+      newDeptName = reg.Item.name;
+    }
+
+    // Resolve ward display name if only ward_id given
+    let newWardName = body.ward ?? null;
+    if (!newWardName && body.ward_id) {
+      const w = await ddb.send(new GetCommand({
+        TableName: TABLE, Key: { PK: "ORG#REGISTRY", SK: `WARD#${body.ward_id}` },
+      }));
+      newWardName = w.Item?.name ?? null;
+    }
+
+    const from = {
+      department: meta.department ?? null, department_id: meta.department_id ?? null,
+      ward_id: meta.ward_id ?? null, bed_no: meta.bed_no ?? meta.room_number ?? null,
+    };
+    const to = {
+      department: newDeptName ?? from.department,
+      department_id: newDeptId ?? from.department_id,
+      ward_id: body.ward_id !== undefined ? body.ward_id : from.ward_id,
+      bed_no: body.bed_no !== undefined ? body.bed_no : from.bed_no,
+    };
+    const deptChanged = newDeptName && newDeptName !== from.department;
+    const deptIdChanged = newDeptId && newDeptId !== from.department_id;
+    if (!deptChanged && !deptIdChanged && body.ward_id === undefined && body.bed_no === undefined) {
+      return resp(400, { error: "nothing to change — pass department(_id), ward_id, or bed_no" });
+    }
+
+    const values = { ":now": now };
+    let setExpr = "SET updated_at = :now, last_updated = :now";
+    if (deptChanged) {
+      setExpr += ", department = :dept, GSI1PK = :gsi";
+      values[":dept"] = newDeptName;
+      values[":gsi"] = `DEPT#${newDeptName}#${meta.status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}`;
+    }
+    if (newDeptId && (deptChanged || deptIdChanged)) {
+      setExpr += ", department_id = :deptid"; values[":deptid"] = newDeptId;
+    }
+    if (body.ward_id !== undefined) {
+      setExpr += ", ward_id = :wid, ward = :wname";
+      values[":wid"] = body.ward_id; values[":wname"] = newWardName;
+    }
+    if (body.bed_no !== undefined) {
+      setExpr += ", bed_no = :bed";
+      values[":bed"] = body.bed_no;
+    }
+
+    const eid = crypto.randomUUID();
+    const moveRow = {
+      PK: `PATIENT#${resolved.uid}`, SK: `MOVE#${now}#${eid}`,
+      entity: "PATIENT_MOVE",
+      patient_uid: resolved.uid,
+      from, to, reason: body.reason ?? null,
+      actor_id: actor.user_id, actor_name: actor.name,
+      created_at: now,
+    };
+
+    const snapshot = { id: resolved.uid, name: meta.name, from, to };
+    const changeItems = [];
+    if (deptChanged) {
+      changeItems.push(...buildChangeRows({
+        op: "moved_out", entity: "PATIENT_META", entity_id: resolved.uid,
+        patient_uid: resolved.uid, scopes: { department: from.department },
+        snapshot, actor, nowISO: now,
+      }));
+      changeItems.push(...buildChangeRows({
+        op: "moved_in", entity: "PATIENT_META", entity_id: resolved.uid,
+        patient_uid: resolved.uid, scopes: { patient: resolved.uid, department: newDeptName },
+        snapshot, actor, nowISO: now,
+      }));
+    } else {
+      changeItems.push(...buildChangeRows({
+        op: "updated", entity: "PATIENT_META", entity_id: resolved.uid,
+        patient_uid: resolved.uid,
+        scopes: { patient: resolved.uid, department: from.department },
+        snapshot, actor, nowISO: now,
+      }));
+    }
+
+    try {
+      await ddb.send(new TransactWriteCommand({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TABLE,
+              Key: { PK: `PATIENT#${resolved.uid}`, SK: "META_LATEST" },
+              UpdateExpression: setExpr,
+              ExpressionAttributeValues: values,
+              ConditionExpression: "attribute_exists(PK)",
+            },
+          },
+          { Put: { TableName: TABLE, Item: moveRow } },
+          ...changeItems.map(({ Item }) => ({ Put: { TableName: TABLE, Item } })),
+        ],
+      }));
+    } catch (err) {
+      console.error("assign tx failed", { uid: resolved.uid, name: err?.name, msg: err?.message });
+      return resp(500, { error: "assign failed", detail: `${err?.name}: ${err?.message}` });
+    }
+
+    return resp(200, { message: "assigned", patient_uid: resolved.uid, from, to });
+  });
+
   router.add("PATCH", /^\/?patients\/([^/]+)\/state\/?$/, async ({ match, event }) => {
     const rawId = decodeURIComponent(match[1]);
     const body = parseBody(event) || {};

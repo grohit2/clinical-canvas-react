@@ -43,7 +43,14 @@ function hasAnyReading(v) {
   return VITAL_FIELDS.some((f) => v[f] !== null && v[f] !== undefined);
 }
 
-export async function recordVitals(deps, { uid, body, actor, nowISO }) {
+/**
+ * buildVitalsWrite — pure builder (no DDB send).
+ * Returns { item, transactItems } — the exact item and TransactItems array
+ * that recordVitals used to assemble before sending.
+ * Callers (e.g. pnotes createPnote) splice transactItems into their own
+ * TransactWrite to record a vitals reading atomically with another entity.
+ */
+export function buildVitalsWrite(deps, { uid, body, actor, nowISO }) {
   const norm = normalize(body || {});
   if (!hasAnyReading(norm)) {
     throw Object.assign(new Error("vitals payload must include at least one reading"),
@@ -84,11 +91,18 @@ export async function recordVitals(deps, { uid, body, actor, nowISO }) {
     actor, nowISO,
   });
 
-  const TransactItems = [
+  const transactItems = [
     { Put: { TableName: deps.TABLE, Item: item, ConditionExpression: "attribute_not_exists(PK)" } },
     ...changeRows.map((r) => ({ Put: { TableName: deps.TABLE, Item: r.Item } })),
   ];
-  await deps.ddb.send(new TransactWriteCommand({ TransactItems }));
+
+  return { item, transactItems };
+}
+
+/** recordVitals — thin wrapper: build → send → return item (no behavior change). */
+export async function recordVitals(deps, { uid, body, actor, nowISO }) {
+  const { item, transactItems } = buildVitalsWrite(deps, { uid, body, actor, nowISO });
+  await deps.ddb.send(new TransactWriteCommand({ TransactItems: transactItems }));
   return item;
 }
 

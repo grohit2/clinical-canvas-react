@@ -9,6 +9,9 @@ import { mountTaskRoutes } from "./tasks.mjs";
 import { mountTaskRoutesV2 } from "./tasks/index.mjs";
 import { mountVitalsRoutes } from "./vitals/index.mjs";
 import { mountChangesRoutes } from "./changes/index.mjs";
+import { mountPromptsRoutes } from "./prompts/index.mjs";
+import { mountOrgRoutes } from "./org/index.mjs";
+import { mountPnoteRoutes } from "./pnotes/index.mjs";
 import { mountNoteRoutes } from "./notes.mjs";
 import { mountMedRoutes } from "./meds.mjs";
 import { mountDoctorRoutes } from "./doctors.mjs";
@@ -97,6 +100,9 @@ export const handler = async (event = {}) => {
   // does not yet handle (file attach/detach + GET /tasks dept dashboard).
   mountNoteRoutes(router, ctx);
   mountChangesRoutes(router, ctx);
+  mountPromptsRoutes(router, ctx);
+  mountOrgRoutes(router, ctx);
+  mountPnoteRoutes(router, ctx);
   mountTaskRoutesV2(router, ctx);
   mountVitalsRoutes(router, ctx);
   mountTaskRoutes(router, ctx);

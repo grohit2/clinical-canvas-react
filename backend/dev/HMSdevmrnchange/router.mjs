@@ -12,6 +12,8 @@ import { mountChangesRoutes } from "./changes/index.mjs";
 import { mountPromptsRoutes } from "./prompts/index.mjs";
 import { mountOrgRoutes } from "./org/index.mjs";
 import { mountPnoteRoutes } from "./pnotes/index.mjs";
+import { mountMedicationRoutes } from "./medications/index.mjs";
+import { mountLabsLinkRoutes } from "./labs_link.mjs";
 import { mountNoteRoutes } from "./notes.mjs";
 import { mountMedRoutes } from "./meds.mjs";
 import { mountDoctorRoutes } from "./doctors.mjs";
@@ -103,6 +105,8 @@ export const handler = async (event = {}) => {
   mountPromptsRoutes(router, ctx);
   mountOrgRoutes(router, ctx);
   mountPnoteRoutes(router, ctx);
+  // Structured medications (med-orders/MAR/dashboard) — paths distinct from legacy /meds.
+  mountMedicationRoutes(router, ctx);
   mountTaskRoutesV2(router, ctx);
   mountVitalsRoutes(router, ctx);
   mountTaskRoutes(router, ctx);
@@ -114,6 +118,7 @@ export const handler = async (event = {}) => {
   mountFileRoutes(router, ctx);
   mountDocumentRoutes(router, ctx);
   mountDischargeRoutes(router, ctx);
+  mountLabsLinkRoutes(router, ctx);
 
   try {
     const out = await router.handle(event);

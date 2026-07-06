@@ -38,6 +38,7 @@ export const TASK_VERIFICATION_STATUSES = Object.freeze([
 
 export const TASK_TYPES = Object.freeze([
   "investigation",
+  "lab_followup",
   "report_followup",
   "photo_upload",
   "medication",
@@ -56,6 +57,19 @@ export const TASK_TYPES = Object.freeze([
 // Other types start as minimal stubs — fill them in subsequent iterations as
 // downstream modules (forms, proposals, copy) need them.
 export const TASK_TYPE_DEFS = Object.freeze({
+  lab_followup: {
+    displayName: "Lab follow-up",
+    createDefaults: {
+      status: "todo",
+      priority: "important",
+      duePolicy: "24h",
+    },
+    updateFields: [
+      { key: "lab_order_id", type: "string", label: "Lab OS order ID" },
+      { key: "test_codes", type: "array", label: "Test codes" },
+      { key: "summary", type: "string", label: "Result summary" },
+    ],
+  },
   investigation: {
     displayName: "Investigation",
     aliases: ["cbc", "hb", "tlc", "rft", "lft", "culture", "biopsy"],

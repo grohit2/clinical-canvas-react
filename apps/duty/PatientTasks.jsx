@@ -534,7 +534,15 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
       busy = false;
     }
     const iv = setInterval(tick, 25000);
-    return () => { stop = true; clearInterval(iv); };
+    // Polls skip while the tab is hidden/occluded — catch up immediately
+    // when the user looks at it again.
+    const onVis = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop = true;
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [patient?.uid || patient?.id]);
 
   const allTasks      = tasks || [];

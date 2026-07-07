@@ -132,6 +132,59 @@
     return call("GET", `/patients/${encodeURIComponent(patientId)}/agent-context`);
   }
 
+  // ---- Progress notes ----
+  function listProgressNotes(patientId) {
+    return call("GET", `/patients/${encodeURIComponent(patientId)}/progress-notes?all=1&includeLegacy=1`);
+  }
+  function createProgressNote(patientId, body) {
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/progress-notes`, body);
+  }
+  function acknowledgeNote(patientId, pnId) {
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/progress-notes/${encodeURIComponent(pnId)}/acknowledge`, {});
+  }
+
+  // ---- Medications ----
+  function getMedsDashboard(patientId, date) {
+    const q = date ? `?date=${encodeURIComponent(date)}` : "";
+    return call("GET", `/patients/${encodeURIComponent(patientId)}/meds/dashboard${q}`);
+  }
+  function listMedOrders(patientId, opts) {
+    const params = new URLSearchParams();
+    if (opts?.status)   params.set("status",   opts.status);
+    if (opts?.category) params.set("category", opts.category);
+    if (opts?.limit)    params.set("limit",    String(opts.limit));
+    const q = params.toString() ? `?${params.toString()}` : "";
+    return call("GET", `/patients/${encodeURIComponent(patientId)}/med-orders${q}`);
+  }
+  function createMedOrder(patientId, body) {
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/med-orders`, body);
+  }
+  function marAct(patientId, body) {
+    // body: { medId, date, time, action, note? }
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/mar/act`, body);
+  }
+
+  // ---- Documents / files ----
+  function getDocuments(patientId) {
+    return call("GET", `/patients/${encodeURIComponent(patientId)}/documents`);
+  }
+  function presignUpload(patientId, body) {
+    // body: { filename, mimeType, kind:"doc", docType, quality?, maxW?, label? }
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/files/presign-upload`, body);
+  }
+  function attachDocument(patientId, body) {
+    // body: { category, key, uploadedBy?, caption?, mimeType?, size?, stamp? }
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/documents/attach`, body);
+  }
+  function detachDocument(patientId, body) {
+    // body: { category, key }
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/documents/detach`, body);
+  }
+  function presignFileDownload(patientId, key) {
+    // returns { url, method, key, expiresIn }
+    return call("POST", `/patients/${encodeURIComponent(patientId)}/files/presign-download`, { key });
+  }
+
   window.api = {
     BASE,
     getIdentity, setIdentity,
@@ -141,5 +194,11 @@
     recordVitals, listVitals, latestVitals,
     getChanges,
     patientContext,
+    // Progress notes
+    listProgressNotes, createProgressNote, acknowledgeNote,
+    // Medications
+    getMedsDashboard, listMedOrders, createMedOrder, marAct,
+    // Documents / files
+    getDocuments, presignFileDownload, presignUpload, attachDocument, detachDocument,
   };
 })();

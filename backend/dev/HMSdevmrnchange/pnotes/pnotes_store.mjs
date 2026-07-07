@@ -162,13 +162,22 @@ export async function createPnote(deps, { uid, meta, body, actor, nowISO }) {
 
   const status = body?.status === "draft" ? "draft" : "final";
   const pnId = randomUUID();
-  const createdAt = nowISO;
+  // recorded_at override — lets paper records be transcribed with their true
+  // timestamp; SK sorts on created_at, so backdated notes land in place.
+  let createdAt = nowISO;
+  if (body?.recorded_at != null) {
+    const t = Date.parse(body.recorded_at);
+    if (Number.isNaN(t)) {
+      throw mkErr("recorded_at must be an ISO datetime", "BAD_REQUEST");
+    }
+    createdAt = new Date(t).toISOString();
+  }
   const PK = `PATIENT#${uid}`;
   const SK = pnoteSK(createdAt, pnId);
   const authorId = actor?.user_id || "unknown";
 
-  const pad = computePAD(meta, nowISO);
-  const pod = computePOD(meta, nowISO);
+  const pad = computePAD(meta, createdAt);
+  const pod = computePOD(meta, createdAt);
 
   // ── spawnTasks first — each runs its own TransactWrite via createTask ──
   // FIX 5: deterministic clientMutationId per task when caller supplied one.
@@ -249,6 +258,10 @@ export async function createPnote(deps, { uid, meta, body, actor, nowISO }) {
     pn_id:      pnId,
     patient_uid: uid,
     status,
+    note_type:
+      typeof body?.note_type === "string" && body.note_type.trim()
+        ? body.note_type.trim().toLowerCase()
+        : null,
     text: hasText ? body.text.trim() : null,
     sections: {
       subjective: body?.sections?.subjective ?? null,
@@ -1044,6 +1057,7 @@ export function toUiPnote(it = {}) {
     pnId:         it.pn_id        ?? null,
     patientId:    it.patient_uid  ?? null,
     status:       it.status       ?? null,
+    noteType:     it.note_type    ?? null,
     text:         it.text         ?? null,
     sections:     it.sections     ?? null,
     pad:          it.pad          ?? null,

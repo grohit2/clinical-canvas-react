@@ -306,7 +306,7 @@ function PDSlot({ slot, medId, patientId, onRefresh }) {
     if (!window.confirm(`Mark ${slot.time} as given?`)) return;
     try {
       const today = new Date().toISOString().slice(0, 10);
-      await window.api.marAct(patientId, { medId, date: today, time: slot.time, action: "given" });
+      await window.api.marAct(patientId, { medId, date: today, time: slot.time, action: "administered" });
       onRefresh();
     } catch(err) {
       alert("Could not mark given: " + (err.message || err));

@@ -25,6 +25,21 @@ function TaskDetail({ me, patientId, taskId, onBack, onChanged }) {
   }
   React.useEffect(() => { refresh(); }, [patientId, taskId]);
 
+  // Checkpoint-driven delta sync (see sync.js) — refetch this task only when
+  // the patient's TASKSYNC stream reports an event for it (e.g. someone else
+  // acts on the same task).
+  React.useEffect(() => {
+    return window.dutySync.startDeltaPoll({
+      feeds: [{
+        key: `duty.changes.ckpt.tasksync.patient.${patientId}`,
+        fetch: (after) => window.api.changes("patient", patientId, after),
+        match: (it) => it.task_id === taskId,
+      }],
+      onChange: refresh,
+      intervalMs: 25000,
+    });
+  }, [patientId, taskId]);
+
   async function act(action) {
     if (!data?.task) return;
     setBusy(true);

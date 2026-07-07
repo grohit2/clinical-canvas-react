@@ -203,6 +203,25 @@ function Register({ me, onOpenTask, onChangeIdentity }) {
 
   React.useEffect(() => { load(); }, []);
 
+  // Checkpoint-driven delta sync (see sync.js) — the full load is O(patients)
+  // requests, so refetch only when the change feeds report activity.
+  // Coverage: my task events (TASKSYNC assignee) + dept notes / med orders
+  // (unified feed). Other assignees' task events and vitals aren't
+  // dept-scoped in either feed yet — the refresh button still covers those.
+  React.useEffect(() => {
+    const feeds = [];
+    if (me?.userId) feeds.push({
+      key: `duty.changes.ckpt.assignee.${me.userId}`,
+      fetch: (after) => window.api.changes("assignee", me.userId, after),
+    });
+    if (me?.department) feeds.push({
+      key: `duty.changes.ckpt.dept.${me.department}`,
+      fetch: (after) => window.api.getChanges("department", me.department, after, 200),
+    });
+    if (feeds.length === 0) return;
+    return window.dutySync.startDeltaPoll({ feeds, onChange: load, intervalMs: 60000 });
+  }, [me?.userId, me?.department]);
+
   const rows = React.useMemo(() => {
     if (!patients) return null;
     let list = patients.map(p => {

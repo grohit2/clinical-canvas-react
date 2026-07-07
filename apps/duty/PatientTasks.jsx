@@ -508,41 +508,23 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
 
   React.useEffect(() => { refresh(); }, [patientId]);
 
-  // ── Checkpoint-driven delta sync ──
-  // The backend keeps a per-patient change feed (GET /changes?scope=patient).
-  // We persist the last-seen cursor in localStorage and poll with it: when the
-  // feed returns nothing, the poll costs one tiny read; when items arrive, we
-  // refetch. The checkpoint bootstraps to "now" because the cursor is
-  // `<recorded_at iso>#<eventId>` and compares lexicographically.
+  // ── Checkpoint-driven delta sync (see sync.js for cursor semantics) ──
+  // Two feeds cover this screen: the unified change feed (vitals, notes,
+  // med orders, MAR) and the legacy TASKSYNC stream — task events do NOT
+  // appear in the unified feed yet, so both checkpoints are needed.
   React.useEffect(() => {
     const uid = patient?.uid || patient?.id;
     if (!uid) return;
-    const ckey = `duty.changes.ckpt.patient.${uid}`;
-    if (!localStorage.getItem(ckey)) {
-      localStorage.setItem(ckey, new Date().toISOString());
-    }
-    let stop = false, busy = false;
-    async function tick() {
-      if (stop || busy || document.hidden) return;
-      busy = true;
-      try {
-        const after = localStorage.getItem(ckey);
-        const res = await window.api.getChanges("patient", uid, after, 200);
-        if (res?.cursor && res.cursor !== after) localStorage.setItem(ckey, res.cursor);
-        if (Array.isArray(res?.items) && res.items.length > 0) await refresh();
-      } catch (e) { /* transient poll failure — next tick retries */ }
-      busy = false;
-    }
-    const iv = setInterval(tick, 25000);
-    // Polls skip while the tab is hidden/occluded — catch up immediately
-    // when the user looks at it again.
-    const onVis = () => { if (!document.hidden) tick(); };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      stop = true;
-      clearInterval(iv);
-      document.removeEventListener("visibilitychange", onVis);
-    };
+    return window.dutySync.startDeltaPoll({
+      feeds: [
+        { key: `duty.changes.ckpt.patient.${uid}`,
+          fetch: (after) => window.api.getChanges("patient", uid, after, 200) },
+        { key: `duty.changes.ckpt.tasksync.patient.${uid}`,
+          fetch: (after) => window.api.changes("patient", uid, after) },
+      ],
+      onChange: refresh,
+      intervalMs: 25000,
+    });
   }, [patient?.uid || patient?.id]);
 
   const allTasks      = tasks || [];

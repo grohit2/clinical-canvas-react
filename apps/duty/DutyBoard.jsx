@@ -119,8 +119,9 @@ function DutyBoard({ me, onOpenTask, onOpenPatient, onChangeIdentity }) {
     }
   }
 
-  async function refresh() {
-    setLoading(true); setError(null);
+  async function refresh(opts) {
+    if (!opts?.silent) setLoading(true);
+    setError(null);
     try {
       let items = [];
       if (filter === "mine") {
@@ -157,6 +158,27 @@ function DutyBoard({ me, onOpenTask, onOpenPatient, onChangeIdentity }) {
 
   React.useEffect(() => { refresh(); }, [me.userId, filter]);
   React.useEffect(() => { loadPatientMap(); }, [me.userId]);
+
+  // Checkpoint-driven delta sync (see sync.js): poll the assignee TASKSYNC
+  // stream (my task events) and, on the dept filter, the unified department
+  // feed (notes / med orders — dept-scoped task and vitals events aren't
+  // emitted by the backend yet).
+  React.useEffect(() => {
+    if (!me?.userId) return;
+    const feeds = [
+      { key: `duty.changes.ckpt.assignee.${me.userId}`,
+        fetch: (after) => window.api.changes("assignee", me.userId, after) },
+    ];
+    if (filter === "dept" && me.department) {
+      feeds.push({ key: `duty.changes.ckpt.dept.${me.department}`,
+        fetch: (after) => window.api.getChanges("department", me.department, after, 200) });
+    }
+    return window.dutySync.startDeltaPoll({
+      feeds,
+      onChange: () => refresh({ silent: true }),
+      intervalMs: 30000,
+    });
+  }, [me.userId, me.department, filter]);
 
   const enrichedRows = React.useMemo(() => {
     return rows.map(r => {

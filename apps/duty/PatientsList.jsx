@@ -50,6 +50,21 @@ function PatientsList({ me, onOpenPatient, onChangeIdentity }) {
   React.useEffect(() => { loadPatients(); }, []);
   React.useEffect(() => { loadMyTaskCounts(); }, [me.userId]);
 
+  // Checkpoint-driven delta sync (see sync.js) — my task events change the
+  // open/overdue badges; re-pull counts only when the assignee stream
+  // reports activity.
+  React.useEffect(() => {
+    if (!me?.userId) return;
+    return window.dutySync.startDeltaPoll({
+      feeds: [{
+        key: `duty.changes.ckpt.assignee.${me.userId}`,
+        fetch: (after) => window.api.changes("assignee", me.userId, after),
+      }],
+      onChange: loadMyTaskCounts,
+      intervalMs: 30000,
+    });
+  }, [me.userId]);
+
   const enriched = React.useMemo(() => {
     if (!patients) return null;
     return patients.map(p => ({

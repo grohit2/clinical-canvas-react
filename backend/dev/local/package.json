@@ -1,0 +1,21 @@
+{
+  "name": "hms-backend-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local development server for HMS backend using LocalStack",
+  "scripts": {
+    "start": "node local-server.mjs",
+    "seed": "node seed.mjs",
+    "setup": "docker compose up -d && node seed.mjs",
+    "teardown": "docker compose down -v",
+    "reset": "docker compose down -v && docker compose up -d && sleep 3 && node seed.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-cloudfront": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0"
+  }
+}

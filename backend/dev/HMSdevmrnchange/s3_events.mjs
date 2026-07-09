@@ -13,12 +13,18 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 
 const REGION = process.env.AWS_REGION || "ap-south-1";
+const AWS_ENDPOINT = process.env.AWS_ENDPOINT || "";
 const TABLE = process.env.TABLE_NAME || "HMS";
 const BUCKET = process.env.FILES_BUCKET || "";
 const CDN_DOMAIN = process.env.CDN_DOMAIN || "";
 
-const s3 = new S3Client({ region: REGION });
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+const clientOpts = { region: REGION };
+if (AWS_ENDPOINT) {
+  clientOpts.endpoint = AWS_ENDPOINT;
+  clientOpts.credentials = { accessKeyId: "test", secretAccessKey: "test" };
+}
+const s3 = new S3Client({ ...clientOpts, ...(AWS_ENDPOINT ? { forcePathStyle: true } : {}) });
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient(clientOpts));
 
 const DOC_SK = "DOCS#PROFILE";
 

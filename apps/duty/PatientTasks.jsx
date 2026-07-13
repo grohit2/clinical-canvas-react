@@ -474,6 +474,7 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
   const [medsDash,  setMedsDash]  = React.useState(null);
   const [error,     setError]     = React.useState(null);
   const [sheet,     setSheet]     = React.useState(null);
+  const [showPatientActions, setShowPatientActions] = React.useState(false);
 
   React.useEffect(() => { localStorage.setItem("patient.tab", tab); }, [tab]);
 
@@ -588,7 +589,13 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
       {/* Patient top bar */}
       <div className="pd-ptop">
         <div className="nm">
-          <div className="n">{patient?.name || patient?.mrn || patientId}</div>
+          <PatientNameLongPress
+            patient={patient || { id: patientId, patientId }}
+            onLongPress={() => setShowPatientActions(true)}
+            className="n"
+          >
+            {patient?.name || patient?.mrn || patientId}
+          </PatientNameLongPress>
           <div className="s">
             {[patient?.mrn && `MRN ${patient.mrn}`, ageSex, where, d != null && `Day ${d}`]
               .filter(Boolean).join(" · ")}
@@ -662,6 +669,16 @@ function PatientTasks({ patientId, onBack, onOpenTask }) {
       {sheet === "vitals" && <PDVitalsSheet patientId={patientId} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); refresh(); }} />}
       {sheet === "task"   && <PDTaskSheet   patientId={patientId} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); refresh(); }} />}
       {sheet === "med"    && <PDMedSheet    patientId={patientId} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); refresh(); }} />}
+      {showPatientActions && (
+        <PatientActionsSheet
+          patient={patient || { id: patientId, patientId }}
+          onClose={() => setShowPatientActions(false)}
+          onPatientChanged={(updated, meta) => {
+            refresh();
+            if (!meta?.partial) setShowPatientActions(false);
+          }}
+        />
+      )}
     </React.Fragment>
   );
 }

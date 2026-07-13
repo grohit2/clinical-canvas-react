@@ -8,6 +8,8 @@ function PatientsList({ me, onOpenPatient, onChangeIdentity }) {
   const [search, setSearch] = React.useState("");
   const [filter, setFilter] = React.useState("all"); // all | mine | overdue
   const [taskCountsByUid, setTaskCountsByUid] = React.useState({});
+  const [actionPatient, setActionPatient] = React.useState(null);
+  const [showCreate, setShowCreate] = React.useState(false);
 
   async function loadPatients() {
     setError(null);
@@ -124,6 +126,9 @@ function PatientsList({ me, onOpenPatient, onChangeIdentity }) {
           Overdue
         </button>
         <span style={{flex: 1}}></span>
+        <button className="filter-chip pa-new-patient" onClick={() => setShowCreate(true)}>
+          <i className="ti ti-user-plus" /> New patient
+        </button>
         <CopyButton
           label="AI ctx"
           style={{ height: '24px', padding: '0 8px', fontSize: '10px' }}
@@ -178,8 +183,30 @@ function PatientsList({ me, onOpenPatient, onChangeIdentity }) {
           patient={p}
           taskCounts={p.taskCounts}
           onOpen={() => onOpenPatient(p)}
+          onPatientActions={() => setActionPatient(p)}
         />
       ))}
+
+      {actionPatient && (
+        <PatientActionsSheet
+          patient={actionPatient}
+          onClose={() => setActionPatient(null)}
+          onPatientChanged={(updated, meta) => {
+            loadPatients();
+            if (!meta?.partial) setActionPatient(null);
+          }}
+        />
+      )}
+      {showCreate && (
+        <PatientFormSheet
+          onClose={() => setShowCreate(false)}
+          onSaved={(created) => {
+            setShowCreate(false);
+            loadPatients();
+            if (created) onOpenPatient({ ...created, uid: created.uid || created.id || created.patientId });
+          }}
+        />
+      )}
     </React.Fragment>
   );
 }

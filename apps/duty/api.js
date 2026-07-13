@@ -103,6 +103,21 @@
     params.set("limit", "200");
     return call("GET", `/directory/patients?${params.toString()}`);
   }
+  function createPatient(body) {
+    return call("POST", "/patients", body);
+  }
+  function updatePatient(patientId, body) {
+    return call("PUT", `/patients/${encodeURIComponent(patientId)}`, body);
+  }
+  function assignPatient(patientId, body) {
+    return call("PATCH", `/patients/${encodeURIComponent(patientId)}/assign`, body);
+  }
+  function addPatientRegistration(patientId, body) {
+    return call("PATCH", `/patients/${encodeURIComponent(patientId)}/registration`, body);
+  }
+  function getOrg() {
+    return call("GET", "/org");
+  }
   function createDoctor(body) {
     return call("POST", "/doctors", body);
   }
@@ -190,7 +205,9 @@
     getIdentity, setIdentity,
     listPatientTasks, getTask, createTask, patchTask, lifecycle, copyTask,
     changes, latest,
-    listStaff, listPatients, getPatient, createDoctor,
+    listStaff, listPatients, getPatient,
+    createPatient, updatePatient, assignPatient, addPatientRegistration, getOrg,
+    createDoctor,
     recordVitals, listVitals, latestVitals,
     getChanges,
     patientContext,
